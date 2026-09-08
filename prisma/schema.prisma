@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Farmer {
+  id          String    @id @default(cuid())
+  mobile      String    @unique
+  name        String
+  farmerCode  String    @unique
+  district    String?
+  village     String?
+  landAcres   Float?
+  primaryCrop String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+
+  @@map("farmers")
+}
+
+model Official {
+  id           String    @id @default(cuid())
+  officialId   String    @unique
+  name         String
+  centreId     String?
+  centre       Centre?   @relation(fields: [centreId], references: [id])
+  role         String    @default("Centre Official")
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  bookings     Booking[]
+
+  @@map("officials")
+}
+
+model Centre {
+  id                    String     @id @default(cuid())
+  code                  String     @unique
+  name                  String     @unique
+  district              String
+  distance              String     @default("4.7 km")
+  latitude              Float?
+  longitude             Float?
+  dailyCapacityBays     Int        @default(4)
+  avgProcessingMinPerQtl Float     @default(1.5)
+  isActive              Boolean    @default(true)
+  recommended           Boolean    @default(false)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  officials             Official[]
+  timeSlots             TimeSlot[]
+  bookings              Booking[]
+
+  @@map("centres")
+}
+
+model TimeSlot {
+  id          String    @id @default(cuid())
+  centreId    String
+  centre      Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  timeWindow  String
+  shortTime   String
+  maxCapacity Int       @default(15)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  bookings    Booking[]
+
+  @@map("time_slots")
+}
+
+enum BookingStatus {
+  WAITING
+  CALLED
+  VERIFIED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+model Booking {
+  id                   String              @id @default(cuid())
+  bookingCode          String              @unique
+  token                String
+  tokenNumber          Int
+  farmerId             String
+  farmer               Farmer              @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  centreId             String
+  centre               Centre              @relation(fields: [centreId], references: [id])
+  timeSlotId           String?
+  timeSlot             TimeSlot?           @relation(fields: [timeSlotId], references: [id])
+  procurementDate      DateTime
+  time                 String
+  fullTime             String?
+  crop                 String
+  estimatedQuantity    Float
+  status               BookingStatus       @default(WAITING)
+  queuePosition        Int                 @default(1)
+  estimatedWaitMinutes Int                 @default(20)
+  calledAt             DateTime?
+  verifiedAt           DateTime?
+  processingStartedAt  DateTime?
+  completedAt          DateTime?
+  officialId           String?
+  official             Official?           @relation(fields: [officialId], references: [id])
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  procurementRecord    ProcurementRecord?
+
+  @@unique([centreId, procurementDate, tokenNumber])
+  @@map("bookings")
+}
+
+model ProcurementRecord {
+  id                     String   @id @default(cuid())
+  bookingId              String   @unique
+  booking                Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  grossWeightKg          Float
+  tareWeightKg           Float
+  netWeightQtl           Float
+  moisturePercentage     Float
+  moistureDeductionQtl   Float    @default(0)
+  finalPayableWeightQtl  Float
+  mspPerQtl              Float
+  totalPayoutAmount      Float
+  paymentStatus          String   @default("PENDING")
+  recordedAt             DateTime @default(now())
+
+  @@map("procurement_records")
+}
+
+model CropMsp {
+  id                 String   @id @default(cuid())
+  cropName           String   @unique
+  mspPerQtl          Float
+  maxAllowedMoisture Float    @default(12.0)
+  standardMoisture   Float    @default(8.0)
+  createdAt          DateTime @default(now())
+
+  @@map("crop_msps")
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  mobile    String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([mobile])
+  @@map("otp_codes")
+}
