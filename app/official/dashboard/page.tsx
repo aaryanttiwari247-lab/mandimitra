@@ -118,59 +118,63 @@ export default function OfficialDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // ============================================================
-  // LOAD QUEUE FROM LOCAL STORAGE
+  // LOAD QUEUE (FROM LOCAL STORAGE & LIVE BACKEND API)
   // ============================================================
 
   const loadQueue = useCallback(() => {
+    // 1. Immediately display localStorage queue if present
     try {
-      const savedQueue = localStorage.getItem(
-        "smartProcurementQueue"
-      );
-
-      if (!savedQueue) {
-        setQueue([]);
-        setLoading(false);
-        return;
+      const savedQueue = localStorage.getItem("smartProcurementQueue");
+      if (savedQueue) {
+        const parsed = JSON.parse(savedQueue);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setQueue(parsed);
+        }
       }
+    } catch {}
 
-      const parsed = JSON.parse(savedQueue);
+    // 2. Fetch live server queue (for cross-device & cross-tab sync)
+    fetch("/api/official/queue")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.queue)) {
+          setQueue((prev) => {
+            const map = new Map<string, Booking>();
+            // Add server items
+            data.queue.forEach((b: Booking) => {
+              const key = b.bookingId || b.token || "";
+              if (key) map.set(key, b);
+            });
+            // Merge with any local items
+            prev.forEach((b: Booking) => {
+              const key = b.bookingId || b.token || "";
+              if (key && !map.has(key)) map.set(key, b);
+            });
 
-      if (Array.isArray(parsed)) {
-        setQueue(parsed);
-      // Fetch live updates from server API
-      fetch("/api/official/queue")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && Array.isArray(data.queue)) {
-            setQueue(data.queue);
-            localStorage.setItem("smartProcurementQueue", JSON.stringify(data.queue));
-          }
-        })
-        .catch(() => {});
-
-      } else {
-        setQueue([]);
-      }
-    } catch (error) {
-      console.error(
-        "Unable to load procurement queue:",
-        error
-      );
-
-      setQueue([]);
-    } finally {
-      setLoading(false);
-    }
+            const merged = Array.from(map.values());
+            const finalResult = merged.length > 0 ? merged : data.queue;
+            try {
+              localStorage.setItem("smartProcurementQueue", JSON.stringify(finalResult));
+            } catch {}
+            return finalResult;
+          });
+        }
+      })
+      .catch((err) => console.warn("Live queue fetch error:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   // ============================================================
-  // LOAD QUEUE EFFECT
+  // REAL-TIME POLLING (AUTO-REFRESH EVERY 3 SECONDS)
   // ============================================================
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    loadQueue();
+
+    // Auto-poll every 3 seconds so farmer bookings show up without refreshing
+    const pollTimer = setInterval(() => {
       loadQueue();
-    }, 0);
+    }, 3000);
 
     const handleStorage = (event: StorageEvent) => {
       if (
@@ -187,27 +191,15 @@ export default function OfficialDashboardPage() {
     };
 
     window.addEventListener("storage", handleStorage);
-
-    window.addEventListener(
-      "smartProcurementQueueUpdated",
-      handleQueueUpdate
-    );
+    window.addEventListener("smartProcurementQueueUpdated", handleQueueUpdate);
 
     return () => {
-      clearTimeout(timer);
-
+      clearInterval(pollTimer);
       window.removeEventListener("storage", handleStorage);
-
-      window.removeEventListener(
-        "smartProcurementQueueUpdated",
-        handleQueueUpdate
-      );
+      window.removeEventListener("smartProcurementQueueUpdated", handleQueueUpdate);
     };
   }, [loadQueue]);
 
-  // ============================================================
-  // NORMALIZE STATUS
-  // ============================================================
 
   const getStatus = (
     booking: Booking

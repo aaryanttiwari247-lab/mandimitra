@@ -20,8 +20,41 @@ function dispatchCustom(eventName: string) {
   }
 }
 
+// Global server-side fallback queue for cross-tab & cross-device sync
+const globalForQueue = globalThis as unknown as { __mandiMitraQueue?: Booking[] };
+if (!globalForQueue.__mandiMitraQueue) {
+  globalForQueue.__mandiMitraQueue = [
+    {
+      bookingId: "BOOK-INIT-001",
+      tokenNumber: 101,
+      token: "A101",
+      farmerId: "FMR9801",
+      farmerName: "Rameshwar Singh",
+      farmerMobile: "9876543210",
+      crop: "Wheat (Grade A)",
+      quantity: 45,
+      date: new Date().toISOString().split("T")[0],
+      centre: "Lakshmipur Procurement Centre",
+      distance: "4.7 km",
+      time: "10:00 AM",
+      fullTime: "10:00 AM – 10:30 AM",
+      availableSlots: 10,
+      queuePosition: 1,
+      waitTime: 15,
+      status: "WAITING",
+      queueStatus: "WAITING",
+      procurementStatus: "WAITING",
+      arrivalTime: "09:50 AM",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+}
+
 export function getStoredQueue(): Booking[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") {
+    return globalForQueue.__mandiMitraQueue || [];
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.QUEUE);
     if (!raw) return [];
@@ -33,7 +66,10 @@ export function getStoredQueue(): Booking[] {
 }
 
 export function saveStoredQueue(queue: Booking[]) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    globalForQueue.__mandiMitraQueue = queue;
+    return;
+  }
   localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(queue));
   dispatchCustom(CUSTOM_EVENTS.QUEUE_UPDATED);
 }
@@ -76,7 +112,17 @@ export function updateBookingInAllStores(
   bookingId: string,
   updates: Partial<Booking>
 ): Booking | null {
-  if (typeof window === "undefined") return null;
+  // 1. If on server, update globalForQueue
+  if (typeof window === "undefined") {
+    const queue = globalForQueue.__mandiMitraQueue || [];
+    const idx = queue.findIndex((b) => b.bookingId === bookingId || b.token === bookingId);
+    if (idx !== -1) {
+      queue[idx] = { ...queue[idx], ...updates, updatedAt: new Date().toISOString() };
+      globalForQueue.__mandiMitraQueue = queue;
+      return queue[idx];
+    }
+    return null;
+  }
 
   let updatedBooking: Booking | null = null;
 

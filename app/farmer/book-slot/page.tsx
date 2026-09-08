@@ -537,6 +537,15 @@ export default function BookProcurementSlot() {
       JSON.stringify(updatedHistory.slice(0, 10))
     );
 
+    // Sync booking with server so official dashboard sees it across all devices & tabs
+    try {
+      fetch("/api/official/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finalBooking),
+      }).catch(() => {});
+    } catch {}
+
     // ==========================================================
     // 6. NOTIFY OTHER TABS / COMPONENTS
     // ==========================================================
