@@ -19,7 +19,12 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { getFarmerSession } from "@/lib/farmer-auth";
 import { Booking } from "@/lib/types";
 import { CROP_MSP_RATES, getCropMspData, formatINR } from "@/lib/msp-rates";
-
+import {
+  LOCATIONS_DATA,
+  PROCUREMENT_CENTRES,
+  getCentresByLocation,
+  ProcurementCentre,
+} from "@/lib/locations-centres";
 
 type SmartRecommendation = {
   bestCentre: {
@@ -42,35 +47,6 @@ type SmartRecommendation = {
   reasoning: string;
 };
 
-type Centre = {
-  name: string;
-  distance: string;
-  farmers: number;
-  wait: number;
-  recommended?: boolean;
-};
-
-const centres: Centre[] = [
-  {
-    name: "Rampur Procurement Centre",
-    distance: "2.0 km away",
-    farmers: 87,
-    wait: 95,
-  },
-  {
-    name: "Lakshmipur Procurement Centre",
-    distance: "4.7 km away",
-    farmers: 19,
-    wait: 24,
-    recommended: true,
-  },
-  {
-    name: "Shivpur Procurement Centre",
-    distance: "6.2 km away",
-    farmers: 41,
-    wait: 48,
-  },
-];
 
 const slots = [
   {
@@ -109,14 +85,31 @@ export default function BookProcurementSlot() {
   const [crop, setCrop] = useState("Wheat");
   const [quantity, setQuantity] = useState("");
   const [date, setDate] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("Bhopal");
 
   const selectedCropMsp = useMemo(() => {
     return getCropMspData(crop);
   }, [crop]);
 
+  const availableCentres = useMemo(() => {
+    return getCentresByLocation(selectedLocation);
+  }, [selectedLocation]);
+
   const [selectedCentre, setSelectedCentre] = useState(
     "Lakshmipur Procurement Centre"
   );
+
+  // When location changes, auto-select recommended or first centre in that location
+  useEffect(() => {
+    const allotted = getCentresByLocation(selectedLocation);
+    if (allotted.length > 0) {
+      const match = allotted.some((c) => c.name === selectedCentre);
+      if (!match) {
+        const rec = allotted.find((c) => c.recommended) || allotted[0];
+        setSelectedCentre(rec.name);
+      }
+    }
+  }, [selectedLocation, selectedCentre]);
 
   const [selectedSlot, setSelectedSlot] = useState("10:30 AM");
 
@@ -135,6 +128,7 @@ export default function BookProcurementSlot() {
             crop,
             quantity: Number(quantity) || 30,
             preferredSlot: selectedSlot,
+            location: selectedLocation,
           }),
         });
         const data = await res.json();
@@ -151,7 +145,7 @@ export default function BookProcurementSlot() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [crop, quantity, selectedSlot]);
+  }, [crop, quantity, selectedSlot, selectedLocation]);
 
   // ============================================================
   // AUTHENTICATION
@@ -165,6 +159,15 @@ export default function BookProcurementSlot() {
       return;
     }
 
+    if (farmer.district) {
+      const matchedLoc = LOCATIONS_DATA.find(
+        (l) => l.name.toLowerCase() === farmer.district?.toLowerCase()
+      );
+      if (matchedLoc) {
+        setSelectedLocation(matchedLoc.name);
+      }
+    }
+
     const timer = setTimeout(() => {
       setCheckingAuth(false);
     }, 0);
@@ -172,9 +175,13 @@ export default function BookProcurementSlot() {
     return () => clearTimeout(timer);
   }, [router]);
 
-  const selectedCentreData = centres.find(
-    (centre) => centre.name === selectedCentre
-  );
+  const selectedCentreData = useMemo(() => {
+    return (
+      availableCentres.find((centre) => centre.name === selectedCentre) ||
+      PROCUREMENT_CENTRES.find((centre) => centre.name === selectedCentre) ||
+      availableCentres[0]
+    );
+  }, [availableCentres, selectedCentre]);
 
   // ============================================================
   // TOMORROW DATE
@@ -352,7 +359,11 @@ export default function BookProcurementSlot() {
 
       date,
 
+      location: selectedLocation,
+
       centre: selectedCentre,
+
+      centreId: selectedCentreData?.id,
 
       distance: selectedCentreData?.distance ?? "",
 
@@ -370,7 +381,7 @@ export default function BookProcurementSlot() {
 
       queuePosition: existingQueue.length + 1,
 
-      waitTime: selectedCentreData?.wait ?? 24,
+      waitTime: selectedCentreData?.baseWaitMinutes ?? 20,
 
       // --------------------------------------------------------
       // STATUS
@@ -809,78 +820,115 @@ export default function BookProcurementSlot() {
               </div>
             </div>
 
-            {/* CENTRES */}
+            {/* LOCATION & CENTRES */}
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
-              <h2 className="text-xl font-bold text-[#111827]">
-                2. Choose Procurement Centre
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-xl font-bold text-[#111827]">
+                    2. Location & Procurement Centre
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Select your location to view allotted procurement centres.
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
+                  {LOCATIONS_DATA.length} Locations Available
+                </span>
+              </div>
 
-              <p className="mt-1 text-sm text-gray-500">
-                We recommend centres with lower waiting time.
-              </p>
+              {/* LOCATION SELECTOR */}
+              <div className="mt-5">
+                <label className="text-sm font-semibold text-gray-800">
+                  Select Location / District
+                </label>
+                <div className="relative mt-2">
+                  <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#2E7D32]" />
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3.5 pl-12 pr-10 text-base font-semibold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                  >
+                    {LOCATIONS_DATA.map((loc) => (
+                      <option key={loc.id} value={loc.name}>
+                        {loc.name} ({loc.state}) — {loc.centresCount} Centres Allotted
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-              <div className="mt-5 space-y-3">
-                {centres.map((centre) => {
-                  const selected =
-                    selectedCentre === centre.name;
+              {/* ALLOTTED CENTRES */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    Allotted Centres for {selectedLocation} ({availableCentres.length})
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    Showing local mandi terminals
+                  </span>
+                </div>
 
-                  return (
-                    <button
-                      key={centre.name}
-                      onClick={() =>
-                        setSelectedCentre(centre.name)
-                      }
-                      className={`w-full rounded-2xl border p-4 text-left transition ${
-                        selected
-                          ? "border-[#2E7D32] bg-[#F1F8F2] shadow-sm"
-                          : "border-gray-200 bg-white hover:border-[#9CCC9F]"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F5E9]">
-                          <MapPin className="h-5 w-5 text-[#2E7D32]" />
-                        </div>
+                <div className="mt-3 space-y-3">
+                  {availableCentres.map((centre) => {
+                    const selected = selectedCentre === centre.name;
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <p className="font-semibold text-gray-900">
-                              {centre.name}
+                    return (
+                      <button
+                        key={centre.id}
+                        type="button"
+                        onClick={() => setSelectedCentre(centre.name)}
+                        className={`w-full rounded-2xl border p-4 text-left transition ${
+                          selected
+                            ? "border-[#2E7D32] bg-[#F1F8F2] shadow-sm ring-1 ring-[#2E7D32]"
+                            : "border-gray-200 bg-white hover:border-[#9CCC9F]"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                            selected ? "bg-[#2E7D32] text-white" : "bg-[#E8F5E9] text-[#2E7D32]"
+                          }`}>
+                            <MapPin className="h-5 w-5" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <p className="font-bold text-gray-900">
+                                {centre.name}
+                              </p>
+
+                              {centre.recommended && (
+                                <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-bold text-[#2E7D32]">
+                                  Recommended
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="mt-1 text-xs text-gray-500">
+                              {centre.distance} • {centre.location}, {centre.state}
                             </p>
 
-                            {centre.recommended && (
-                              <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-semibold text-[#2E7D32]">
-                                Recommended
+                            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
+                              <span className="rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700">
+                                Bays: <strong className="text-gray-900">{centre.bays}</strong>
                               </span>
-                            )}
-                          </div>
 
-                          <p className="mt-1 text-sm text-gray-500">
-                            {centre.distance}
-                          </p>
-
-                          <div className="mt-4 flex gap-5 text-sm">
-                            <span>
-                              <strong className="text-gray-900">
-                                {centre.farmers}
-                              </strong>{" "}
-                              <span className="text-gray-500">
-                                farmers
+                              <span className="rounded-md bg-emerald-50 px-2 py-1 font-medium text-emerald-800">
+                                Est. Wait: <strong className="text-emerald-900">~{centre.baseWaitMinutes} min</strong>
                               </span>
-                            </span>
 
-                            <span>
-                              Wait{" "}
-                              <strong className="text-gray-900">
-                                ~{centre.wait} min
-                              </strong>
-                            </span>
+                              {centre.contactNumber && (
+                                <span className="text-gray-500">
+                                  📞 {centre.contactNumber}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

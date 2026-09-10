@@ -2,16 +2,32 @@
 
 import {
   ArrowRight,
+  Building2,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock3,
+  Filter,
+  Layers,
+  ListFilter,
+  MapPin,
   PackageCheck,
+  Phone,
+  Search,
   Sprout,
   Ticket,
   Users,
+  Warehouse,
   Wheat,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  LOCATIONS_DATA,
+  PROCUREMENT_CENTRES,
+  getCentresByLocation,
+  ProcurementCentre,
+} from "@/lib/locations-centres";
 
 type Booking = {
   bookingId?: string;
@@ -23,10 +39,13 @@ type Booking = {
   farmerMobile?: string;
 
   crop?: string;
+  cropGrade?: string;
   quantity?: number;
 
   date?: string;
+  location?: string;
   centre?: string;
+  centreId?: string;
 
   time?: string;
   fullTime?: string;
@@ -116,6 +135,35 @@ export default function OfficialDashboardPage() {
 
   const [queue, setQueue] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filter & View States
+  const [selectedLocation, setSelectedLocation] = useState<string>("ALL");
+  const [selectedCentre, setSelectedCentre] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [viewMode, setViewMode] = useState<"grouped" | "flat">("grouped");
+  const [collapsedCentres, setCollapsedCentres] = useState<Record<string, boolean>>({});
+
+  const toggleCentreCollapse = (centreId: string) => {
+    setCollapsedCentres((prev) => ({
+      ...prev,
+      [centreId]: !prev[centreId],
+    }));
+  };
+
+  const availableCentresForLocation = useMemo(() => {
+    if (selectedLocation === "ALL") return PROCUREMENT_CENTRES;
+    return getCentresByLocation(selectedLocation);
+  }, [selectedLocation]);
+
+  useEffect(() => {
+    if (selectedLocation !== "ALL" && selectedCentre !== "ALL") {
+      const match = availableCentresForLocation.some(
+        (c) => c.name.toLowerCase() === selectedCentre.toLowerCase()
+      );
+      if (!match) setSelectedCentre("ALL");
+    }
+  }, [selectedLocation, selectedCentre, availableCentresForLocation]);
 
   // ============================================================
   // LOAD QUEUE (FROM LOCAL STORAGE & LIVE BACKEND API)
@@ -256,11 +304,115 @@ export default function OfficialDashboardPage() {
   };
 
   // ============================================================
+  // FILTERED QUEUE (BY LOCATION, CENTRE, STATUS, SEARCH)
+  // ============================================================
+
+  const filteredQueue = useMemo(() => {
+    return queue.filter((booking) => {
+      // 1. Location filter
+      if (selectedLocation !== "ALL") {
+        const bLoc = (booking.location || "").toLowerCase().trim();
+        const selLoc = selectedLocation.toLowerCase().trim();
+
+        // If booking doesn't have location field, look up centre
+        let matched = bLoc === selLoc || bLoc.includes(selLoc) || selLoc.includes(bLoc);
+        if (!matched && booking.centre) {
+          const centreObj = PROCUREMENT_CENTRES.find(
+            (c) => c.name.toLowerCase() === booking.centre?.toLowerCase()
+          );
+          if (centreObj && centreObj.location.toLowerCase() === selLoc) {
+            matched = true;
+          }
+        }
+        if (!matched) return false;
+      }
+
+      // 2. Centre filter
+      if (selectedCentre !== "ALL") {
+        const selCentre = selectedCentre.toLowerCase().trim();
+        const bCentre = (booking.centre || "").toLowerCase().trim();
+        const bCentreId = (booking.centreId || "").toLowerCase().trim();
+        const matched = bCentre === selCentre || bCentre.includes(selCentre) || bCentreId === selCentre;
+        if (!matched) return false;
+      }
+
+      // 3. Status filter
+      if (statusFilter !== "ALL") {
+        if (getStatus(booking) !== statusFilter) return false;
+      }
+
+      // 4. Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const match =
+          (booking.farmerName || "").toLowerCase().includes(q) ||
+          (booking.token || "").toLowerCase().includes(q) ||
+          (booking.farmerMobile || "").includes(q) ||
+          (booking.crop || "").toLowerCase().includes(q) ||
+          (booking.centre || "").toLowerCase().includes(q) ||
+          (booking.location || "").toLowerCase().includes(q);
+        if (!match) return false;
+      }
+
+      return true;
+    });
+  }, [queue, selectedLocation, selectedCentre, statusFilter, searchQuery]);
+
+  // ============================================================
+  // GROUPED BY ALLOTTED CENTRES
+  // ============================================================
+
+  const groupedCentres = useMemo(() => {
+    const centresToDisplay =
+      selectedCentre !== "ALL"
+        ? availableCentresForLocation.filter(
+            (c) => c.name.toLowerCase() === selectedCentre.toLowerCase()
+          )
+        : availableCentresForLocation;
+
+    return centresToDisplay.map((centre) => {
+      const centreFarmers = filteredQueue.filter((b) => {
+        if (b.centreId && b.centreId === centre.id) return true;
+        if (b.centre && (b.centre.toLowerCase() === centre.name.toLowerCase() || b.centre.toLowerCase().includes(centre.name.toLowerCase()))) {
+          return true;
+        }
+        return false;
+      });
+
+      const activeFarmers = centreFarmers.filter((b) => {
+        const s = getStatus(b);
+        return s !== "COMPLETED" && s !== "CANCELLED";
+      });
+
+      const waiting = centreFarmers.filter((b) => getStatus(b) === "WAITING").length;
+      const called = centreFarmers.filter((b) => getStatus(b) === "CALLED").length;
+      const verified = centreFarmers.filter((b) => getStatus(b) === "VERIFIED").length;
+      const processing = centreFarmers.filter((b) => getStatus(b) === "PROCESSING").length;
+      const completed = centreFarmers.filter((b) => getStatus(b) === "COMPLETED").length;
+
+      return {
+        centre,
+        farmers: centreFarmers,
+        activeFarmers,
+        counts: {
+          total: centreFarmers.length,
+          active: activeFarmers.length,
+          waiting,
+          called,
+          verified,
+          processing,
+          completed,
+        },
+      };
+    });
+  }, [availableCentresForLocation, selectedCentre, filteredQueue]);
+
+  // ============================================================
   // ACTIVE FARMERS
   // ============================================================
 
   const activeQueue = useMemo(() => {
-    return queue.filter((booking) => {
+    return filteredQueue.filter((booking) => {
       const status = getStatus(booking);
 
       return (
@@ -268,14 +420,10 @@ export default function OfficialDashboardPage() {
         status !== "CANCELLED"
       );
     });
-  }, [queue]);
+  }, [filteredQueue]);
 
   // ============================================================
   // CURRENT FARMER
-  //
-  // IMPORTANT:
-  // VERIFIED farmer can be current.
-  // But WAITING farmer must NOT become VERIFIED automatically.
   // ============================================================
 
   const currentFarmer = useMemo(() => {
@@ -318,14 +466,14 @@ export default function OfficialDashboardPage() {
   // ============================================================
 
   const farmersWaiting = useMemo(() => {
-    return queue.filter(
+    return filteredQueue.filter(
       (booking) =>
         getStatus(booking) === "WAITING"
     ).length;
-  }, [queue]);
+  }, [filteredQueue]);
 
   const processedToday = useMemo(() => {
-    return queue.filter((booking) => {
+    return filteredQueue.filter((booking) => {
       const status = getStatus(booking);
 
       return (
@@ -335,17 +483,17 @@ export default function OfficialDashboardPage() {
         status === "CALLED"
       );
     }).length;
-  }, [queue]);
+  }, [filteredQueue]);
 
   const completedToday = useMemo(() => {
-    return queue.filter(
+    return filteredQueue.filter(
       (booking) =>
         getStatus(booking) === "COMPLETED"
     ).length;
-  }, [queue]);
+  }, [filteredQueue]);
 
   const averageWait = useMemo(() => {
-    const waitTimes = queue
+    const waitTimes = filteredQueue
       .map((booking) => booking.waitTime)
       .filter(
         (value): value is number =>
@@ -365,7 +513,7 @@ export default function OfficialDashboardPage() {
     return Math.round(
       total / waitTimes.length
     );
-  }, [queue]);
+  }, [filteredQueue]);
 
   // ============================================================
   // VERIFY FARMER
@@ -750,229 +898,485 @@ export default function OfficialDashboardPage() {
         </div>
 
         {/* ====================================================
+            LOCATION & ALLOTTED CENTRES FILTER CONTROLS
+            ==================================================== */}
+
+        <div className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Warehouse className="h-5 w-5 text-[#2E7D32]" />
+                  Allotted Procurement Centres & Yard Queue
+                </h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Select location or centre to monitor farmers divided by their allotted procurement yard.
+                </p>
+              </div>
+
+              {/* VIEW MODE TOGGLE */}
+              <div className="flex items-center rounded-xl bg-gray-100 p-1 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grouped")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition ${
+                    viewMode === "grouped"
+                      ? "bg-[#2E7D32] text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <Layers className="h-4 w-4" />
+                  Divided by Centre ({groupedCentres.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("flat")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition ${
+                    viewMode === "flat"
+                      ? "bg-[#2E7D32] text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <ListFilter className="h-4 w-4" />
+                  Unified List ({filteredQueue.length})
+                </button>
+              </div>
+            </div>
+
+            {/* CONTROLS ROW */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* LOCATION SELECTOR */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                  Location / District ({LOCATIONS_DATA.length})
+                </label>
+                <div className="relative mt-1.5">
+                  <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2E7D32]" />
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pl-10 pr-8 text-sm font-semibold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                  >
+                    <option value="ALL">All Locations (15 Districts)</option>
+                    {LOCATIONS_DATA.map((loc) => (
+                      <option key={loc.id} value={loc.name}>
+                        {loc.name} ({loc.state}) — {loc.centresCount} Centres
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* ALLOTTED CENTRE SELECTOR */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                  Allotted Centre ({availableCentresForLocation.length})
+                </label>
+                <div className="relative mt-1.5">
+                  <Building2 className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2E7D32]" />
+                  <select
+                    value={selectedCentre}
+                    onChange={(e) => setSelectedCentre(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pl-10 pr-8 text-sm font-semibold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                  >
+                    <option value="ALL">
+                      All Centres ({availableCentresForLocation.length})
+                    </option>
+                    {availableCentresForLocation.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} ({c.location})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* SEARCH INPUT */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                  Search Farmer / Token
+                </label>
+                <div className="relative mt-1.5">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by Token, Name, Mobile, Crop..."
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pl-10 text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* STATUS FILTER PILLS */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">
+                Filter Status:
+              </span>
+              {[
+                { id: "ALL", label: "All" },
+                { id: "WAITING", label: "Waiting" },
+                { id: "CALLED", label: "Called" },
+                { id: "VERIFIED", label: "Verified" },
+                { id: "PROCESSING", label: "Processing" },
+                { id: "COMPLETED", label: "Completed" },
+              ].map((pill) => {
+                const count =
+                  pill.id === "ALL"
+                    ? queue.length
+                    : queue.filter((b) => getStatus(b) === pill.id).length;
+                const active = statusFilter === pill.id;
+
+                return (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => setStatusFilter(pill.id)}
+                    className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                      active
+                        ? "bg-[#2E7D32] text-white shadow-sm"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {pill.label} ({count})
+                  </button>
+                );
+              })}
+
+              {(selectedLocation !== "ALL" || selectedCentre !== "ALL" || statusFilter !== "ALL" || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLocation("ALL");
+                    setSelectedCentre("ALL");
+                    setStatusFilter("ALL");
+                    setSearchQuery("");
+                  }}
+                  className="ml-auto text-xs font-bold text-red-600 hover:underline"
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ====================================================
             QUEUE + CURRENT FARMER
             ==================================================== */}
 
         <div className="mt-8 grid gap-7 lg:grid-cols-[1.65fr_0.85fr]">
 
           {/* ==================================================
-              LIVE QUEUE
+              CENTRE-DIVIDED QUEUE OR FLAT LIST
               ================================================== */}
 
-          <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+          <div className="space-y-6">
+            {viewMode === "grouped" ? (
+              // GROUPED BY ALLOTTED CENTRES VIEW
+              groupedCentres.map((group) => {
+                const isCollapsed = Boolean(collapsedCentres[group.centre.id]);
 
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-6 sm:px-7">
-
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Live Farmer Queue
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-600">
-                  Farmers currently waiting at the centre.
-                </p>
-              </div>
-
-              <Ticket className="h-7 w-7 text-[#2E7D32]" />
-
-            </div>
-
-            {activeQueue.length === 0 ? (
-
-              <div className="px-6 py-16 text-center">
-
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E8F5E9]">
-                  <Users className="h-7 w-7 text-[#2E7D32]" />
-                </div>
-
-                <h3 className="mt-5 text-lg font-bold text-gray-900">
-                  No active farmers
-                </h3>
-
-                <p className="mt-2 text-sm text-gray-600">
-                  There are currently no farmers in the
-                  procurement queue.
-                </p>
-
-              </div>
-
-            ) : (
-
-              <div>
-
-                {activeQueue.map(
-                  (booking, index) => {
-
-                    const status =
-                      getStatus(booking);
-
-                    const isCurrent =
-                      currentFarmer?.bookingId &&
-                      booking.bookingId ===
-                        currentFarmer.bookingId;
-
-                    return (
-                      <div
-                        key={
-                          booking.bookingId ??
-                          `${booking.token}-${index}`
-                        }
-                        className={`border-b border-gray-100 px-6 py-6 last:border-b-0 sm:px-7 ${
-                          isCurrent
-                            ? "bg-[#F1F8F2]"
-                            : "bg-white"
-                        }`}
-                      >
-
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-
-                          {/* FARMER */}
-
-                          <div className="flex min-w-0 items-center gap-4">
-
-                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#E8F5E9] text-sm font-bold text-[#2E7D32]">
-                              {booking.token ??
-                                "—"}
-                            </div>
-
-                            <div className="min-w-0">
-
-                              <div className="flex flex-wrap items-center gap-2">
-
-                                <h3 className="font-bold text-gray-900">
-                                  {booking.farmerName ??
-                                    "Farmer"}
-                                </h3>
-
-                                {isCurrent && (
-                                  <span className="text-xs font-bold text-[#2E7D32]">
-                                    CURRENT
-                                  </span>
-                                )}
-
-                              </div>
-
-                              <p className="mt-1 text-sm text-gray-600">
-                                {booking.crop ??
-                                  "Crop"}{" "}
-                                •{" "}
-                                {booking.quantity ??
-                                  0}{" "}
-                                Quintals
-                              </p>
-
-                              <p className="mt-1 text-sm text-gray-500">
-                                Slot:{" "}
-                                {booking.fullTime ??
-                                  booking.time ??
-                                  "Not available"}
-                              </p>
-
-                            </div>
-
+                return (
+                  <div
+                    key={group.centre.id}
+                    className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
+                  >
+                    {/* CENTRE HEADER */}
+                    <div className="border-b border-gray-100 bg-gradient-to-r from-emerald-50/70 via-white to-gray-50/50 p-6 sm:p-7">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3.5">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#2E7D32] text-white shadow-sm">
+                            <Warehouse className="h-6 w-6" />
                           </div>
-
-                          {/* ACTIONS */}
-
-                          <div className="flex flex-wrap items-center gap-3">
-
-                            <StatusBadge
-                              status={status}
-                            />
-
-                            {/* =================================
-                                WAITING
-                                ================================= */}
-
-                            {status ===
-                              "WAITING" && (
-                              <button
-                                onClick={() =>
-                                  handleVerifyFarmer(
-                                    booking
-                                  )
-                                }
-                                className="flex items-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#256428]"
-                              >
-                                Verify Farmer
-
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                            )}
-
-                            {/* =================================
-                                VERIFIED
-                                ================================= */}
-
-                            {status ===
-                              "VERIFIED" && (
-                              <button
-                                onClick={() =>
-                                  handleCallFarmer(
-                                    booking
-                                  )
-                                }
-                                className="flex items-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#256428]"
-                              >
-                                Call Farmer
-
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                            )}
-
-                            {/* =================================
-                                CALLED
-                                ================================= */}
-
-                            {status ===
-                              "CALLED" && (
-                              <button
-                                onClick={() =>
-                                  handleOpenProcurement(
-                                    booking
-                                  )
-                                }
-                                className="flex items-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#256428]"
-                              >
-                                Open Procurement
-
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                            )}
-
-                            {/* =================================
-                                PROCESSING
-                                ================================= */}
-
-                            {status ===
-                              "PROCESSING" && (
-                              <button
-                                onClick={() =>
-                                  handleOpenProcurement(
-                                    booking
-                                  )
-                                }
-                                className="flex items-center gap-2 rounded-xl border border-[#2E7D32] bg-white px-5 py-3 text-sm font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9]"
-                              >
-                                View Procurement
-
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                            )}
-
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-xl font-bold text-gray-900">
+                                {group.centre.name}
+                              </h3>
+                              <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-bold text-[#2E7D32]">
+                                {group.centre.location}, {group.centre.state}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {group.centre.distance} • {group.centre.bays} Bays Capacity • Est. Wait ~{group.centre.baseWaitMinutes} min • 📞 {group.centre.contactNumber}
+                            </p>
                           </div>
-
                         </div>
 
+                        {/* CENTRE QUEUE STATS CHIPS & COLLAPSE */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-xl bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700">
+                            Total: {group.counts.total}
+                          </span>
+                          <span className="rounded-xl bg-[#FFF8E1] px-2.5 py-1 text-xs font-bold text-[#A16207]">
+                            Waiting: {group.counts.waiting}
+                          </span>
+                          <span className="rounded-xl bg-[#E8F5E9] px-2.5 py-1 text-xs font-bold text-[#2E7D32]">
+                            Verified: {group.counts.verified}
+                          </span>
+                          <span className="rounded-xl bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+                            Processing: {group.counts.processing}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleCentreCollapse(group.centre.id)}
+                            className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                          >
+                            {isCollapsed ? (
+                              <>
+                                Expand <ChevronDown className="h-3.5 w-3.5" />
+                              </>
+                            ) : (
+                              <>
+                                Collapse <ChevronUp className="h-3.5 w-3.5" />
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    );
-                  }
+                    </div>
+
+                    {/* FARMERS IN THIS CENTRE */}
+                    {!isCollapsed && (
+                      <div>
+                        {group.farmers.length === 0 ? (
+                          <div className="p-8 text-center text-sm text-gray-500">
+                            <Users className="mx-auto h-8 w-8 text-gray-300" />
+                            <p className="mt-2 font-medium">No farmers currently registered for this centre matching active filters.</p>
+                          </div>
+                        ) : (
+                          group.farmers.map((booking, index) => {
+                            const status = getStatus(booking);
+                            const isCurrent =
+                              currentFarmer?.bookingId &&
+                              booking.bookingId === currentFarmer.bookingId;
+
+                            return (
+                              <div
+                                key={booking.bookingId ?? `${booking.token}-${index}`}
+                                className={`border-b border-gray-100 px-6 py-5 last:border-b-0 sm:px-7 transition ${
+                                  isCurrent ? "bg-[#F1F8F2]" : "bg-white hover:bg-gray-50/50"
+                                }`}
+                              >
+                                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                  {/* FARMER INFO */}
+                                  <div className="flex min-w-0 items-center gap-4">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E8F5E9] text-sm font-bold text-[#2E7D32]">
+                                      {booking.token ?? "—"}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <h4 className="font-bold text-gray-900">
+                                          {booking.farmerName ?? "Farmer"}
+                                        </h4>
+                                        {booking.farmerMobile && (
+                                          <span className="text-xs text-gray-500">
+                                            ({booking.farmerMobile})
+                                          </span>
+                                        )}
+                                        {isCurrent && (
+                                          <span className="text-xs font-bold text-[#2E7D32]">
+                                            CURRENT
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                        <span className="font-semibold text-gray-900">
+                                          {booking.crop ?? "Crop"}
+                                        </span>
+                                        {booking.cropGrade && (
+                                          <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-800">
+                                            {booking.cropGrade}
+                                          </span>
+                                        )}
+                                        <span>•</span>
+                                        <span>
+                                          <strong>{booking.quantity ?? 0}</strong> Quintals
+                                        </span>
+                                        <span>•</span>
+                                        <span className="text-gray-500">
+                                          Slot: {booking.fullTime ?? booking.time ?? "Regular"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* ACTIONS */}
+                                  <div className="flex flex-wrap items-center gap-3">
+                                    <StatusBadge status={status} />
+
+                                    {status === "WAITING" && (
+                                      <button
+                                        onClick={() => handleVerifyFarmer(booking)}
+                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                      >
+                                        Verify Farmer
+                                        <ArrowRight className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+
+                                    {status === "VERIFIED" && (
+                                      <button
+                                        onClick={() => handleCallFarmer(booking)}
+                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                      >
+                                        Call Farmer
+                                        <ArrowRight className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+
+                                    {status === "CALLED" && (
+                                      <button
+                                        onClick={() => handleOpenProcurement(booking)}
+                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                      >
+                                        Open Procurement
+                                        <ArrowRight className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+
+                                    {status === "PROCESSING" && (
+                                      <button
+                                        onClick={() => handleOpenProcurement(booking)}
+                                        className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-white px-4 py-2.5 text-xs font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9]"
+                                      >
+                                        View Procurement
+                                        <ArrowRight className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              // UNIFIED FLAT QUEUE LIST VIEW
+              <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-6 sm:px-7">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      Live Farmer Queue
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Showing {filteredQueue.length} farmers across selected centres.
+                    </p>
+                  </div>
+                  <Ticket className="h-7 w-7 text-[#2E7D32]" />
+                </div>
+
+                {filteredQueue.length === 0 ? (
+                  <div className="px-6 py-16 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E8F5E9]">
+                      <Users className="h-7 w-7 text-[#2E7D32]" />
+                    </div>
+                    <h3 className="mt-5 text-lg font-bold text-gray-900">
+                      No active farmers found
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-600">
+                      No farmers match the current location, centre, or search filter.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {filteredQueue.map((booking, index) => {
+                      const status = getStatus(booking);
+                      const isCurrent =
+                        currentFarmer?.bookingId &&
+                        booking.bookingId === currentFarmer.bookingId;
+
+                      return (
+                        <div
+                          key={booking.bookingId ?? `${booking.token}-${index}`}
+                          className={`border-b border-gray-100 px-6 py-5 last:border-b-0 sm:px-7 ${
+                            isCurrent ? "bg-[#F1F8F2]" : "bg-white"
+                          }`}
+                        >
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex min-w-0 items-center gap-4">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E8F5E9] text-sm font-bold text-[#2E7D32]">
+                                {booking.token ?? "—"}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h4 className="font-bold text-gray-900">
+                                    {booking.farmerName ?? "Farmer"}
+                                  </h4>
+                                  {isCurrent && (
+                                    <span className="text-xs font-bold text-[#2E7D32]">
+                                      CURRENT
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-1 text-xs text-gray-600">
+                                  {booking.crop ?? "Crop"} {booking.cropGrade ? `(${booking.cropGrade})` : ""} • {booking.quantity ?? 0} Quintals • Slot: {booking.fullTime ?? booking.time ?? "Regular"}
+                                </p>
+                                <p className="mt-0.5 text-xs text-[#2E7D32] font-semibold">
+                                  📍 {booking.centre ?? "Centre"} ({booking.location ?? "Location"})
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3">
+                              <StatusBadge status={status} />
+
+                              {status === "WAITING" && (
+                                <button
+                                  onClick={() => handleVerifyFarmer(booking)}
+                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                >
+                                  Verify Farmer
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+
+                              {status === "VERIFIED" && (
+                                <button
+                                  onClick={() => handleCallFarmer(booking)}
+                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                >
+                                  Call Farmer
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+
+                              {status === "CALLED" && (
+                                <button
+                                  onClick={() => handleOpenProcurement(booking)}
+                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                >
+                                  Open Procurement
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+
+                              {status === "PROCESSING" && (
+                                <button
+                                  onClick={() => handleOpenProcurement(booking)}
+                                  className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-white px-4 py-2.5 text-xs font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9]"
+                                >
+                                  View Procurement
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
-
               </div>
-
             )}
-
           </div>
 
           {/* ==================================================
@@ -1012,13 +1416,17 @@ export default function OfficialDashboardPage() {
                 <p className="mt-3 text-sm text-gray-600">
                   {currentFarmer.crop ??
                     "Crop"}{" "}
-                  •{" "}
+                  {currentFarmer.cropGrade ? `(${currentFarmer.cropGrade})` : ""} •{" "}
                   {currentFarmer.quantity ??
                     0}{" "}
                   Quintals
                 </p>
 
-                <p className="mt-2 text-sm text-gray-600">
+                <p className="mt-1.5 text-xs font-semibold text-[#2E7D32]">
+                  📍 {currentFarmer.centre ?? "Procurement Centre"} ({currentFarmer.location ?? "Yard"})
+                </p>
+
+                <p className="mt-1 text-xs text-gray-500">
                   Slot:{" "}
                   {currentFarmer.fullTime ??
                     currentFarmer.time ??

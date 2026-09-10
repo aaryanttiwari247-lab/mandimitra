@@ -55,6 +55,7 @@ export type Booking = {
   date: string;
   centre: string;
   centreId?: string;
+  location?: string;
   distance?: string;
 
   time: string;

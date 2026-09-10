@@ -1,4 +1,5 @@
 import { Booking } from "./types";
+import { generateSeedBookings } from "./seed-data";
 
 export const STORAGE_KEYS = {
   BOOKING: "smartProcurementBooking",
@@ -22,33 +23,8 @@ function dispatchCustom(eventName: string) {
 
 // Global server-side fallback queue for cross-tab & cross-device sync
 const globalForQueue = globalThis as unknown as { __mandiMitraQueue?: Booking[] };
-if (!globalForQueue.__mandiMitraQueue) {
-  globalForQueue.__mandiMitraQueue = [
-    {
-      bookingId: "BOOK-INIT-001",
-      tokenNumber: 101,
-      token: "A101",
-      farmerId: "FMR9801",
-      farmerName: "Rameshwar Singh",
-      farmerMobile: "9876543210",
-      crop: "Wheat (Grade A)",
-      quantity: 45,
-      date: new Date().toISOString().split("T")[0],
-      centre: "Lakshmipur Procurement Centre",
-      distance: "4.7 km",
-      time: "10:00 AM",
-      fullTime: "10:00 AM – 10:30 AM",
-      availableSlots: 10,
-      queuePosition: 1,
-      waitTime: 15,
-      status: "WAITING",
-      queueStatus: "WAITING",
-      procurementStatus: "WAITING",
-      arrivalTime: "09:50 AM",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
+if (!globalForQueue.__mandiMitraQueue || globalForQueue.__mandiMitraQueue.length <= 1) {
+  globalForQueue.__mandiMitraQueue = generateSeedBookings();
 }
 
 export function getStoredQueue(): Booking[] {
@@ -57,11 +33,24 @@ export function getStoredQueue(): Booking[] {
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.QUEUE);
-    if (!raw) return [];
+    if (!raw) {
+      const seeded = generateSeedBookings();
+      localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(seeded));
+      return seeded;
+    }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed) || parsed.length <= 1) {
+      const seeded = generateSeedBookings();
+      localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(seeded));
+      return seeded;
+    }
+    return parsed;
   } catch {
-    return [];
+    const seeded = generateSeedBookings();
+    try {
+      localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(seeded));
+    } catch {}
+    return seeded;
   }
 }
 

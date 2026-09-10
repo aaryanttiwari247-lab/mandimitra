@@ -1,34 +1,7 @@
 import { NextResponse } from "next/server";
 import { calculateBestCentreAndSlot, CentreCongestion, SlotCongestion } from "@/lib/recommendation-engine";
 import { getStoredQueue } from "@/lib/procurement-store";
-
-// Default Centres metadata
-const DEFAULT_CENTRES = [
-  {
-    centreId: "centre_lakshmipur",
-    name: "Lakshmipur Procurement Centre",
-    distanceKm: 4.7,
-    baysAvailable: 6,
-    processingSpeedPerQtlMin: 1.2,
-    baseWait: 24,
-  },
-  {
-    centreId: "centre_rampur",
-    name: "Rampur Procurement Centre",
-    distanceKm: 2.0,
-    baysAvailable: 4,
-    processingSpeedPerQtlMin: 1.8,
-    baseWait: 95,
-  },
-  {
-    centreId: "centre_shivpur",
-    name: "Shivpur Procurement Centre",
-    distanceKm: 6.2,
-    baysAvailable: 5,
-    processingSpeedPerQtlMin: 1.5,
-    baseWait: 48,
-  },
-];
+import { getCentresByLocation } from "@/lib/locations-centres";
 
 const DEFAULT_SLOTS = [
   { slotId: "s1", timeWindow: "10:00 AM – 10:30 AM", shortTime: "10:00 AM", maxCapacity: 15, bookedCount: 15 },
@@ -41,27 +14,33 @@ const DEFAULT_SLOTS = [
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { crop = "Cotton", quantity = 30, preferredSlot = "10:30 AM" } = body;
+    const { crop = "Wheat", quantity = 30, preferredSlot = "10:30 AM", location = "Bhopal" } = body;
 
     // Read current queue to calculate live congestion
     const liveQueue = getStoredQueue();
 
-    const centresData: CentreCongestion[] = DEFAULT_CENTRES.map((c) => {
+    // Get centres allotted to the requested location
+    const allottedCentres = getCentresByLocation(location);
+
+    const centresData: CentreCongestion[] = allottedCentres.map((c) => {
       const activeForCentre = liveQueue.filter(
-        (b) => (b.centre?.toLowerCase().includes(c.name.toLowerCase().split(" ")[0]) || b.centreId === c.centreId) &&
-               b.status !== "COMPLETED" && b.status !== "CANCELLED"
+        (b) =>
+          (b.centreId === c.id || (b.centre && b.centre.toLowerCase() === c.name.toLowerCase())) &&
+          b.status !== "COMPLETED" &&
+          b.status !== "CANCELLED"
       );
       const queueCount = activeForCentre.length;
-      const dynamicWait = Math.max(c.baseWait, queueCount * 12 + Math.round(Number(quantity) * 0.4));
+      const dynamicWait = Math.max(c.baseWaitMinutes, queueCount * 4);
+      const numericDist = parseFloat(c.distance) || 4.5;
 
       return {
-        centreId: c.centreId,
+        centreId: c.id,
         name: c.name,
-        distanceKm: c.distanceKm,
+        distanceKm: numericDist,
         activeQueueCount: queueCount,
         estimatedWaitMinutes: dynamicWait,
-        baysAvailable: c.baysAvailable,
-        processingSpeedPerQtlMin: c.processingSpeedPerQtlMin,
+        baysAvailable: c.bays,
+        processingSpeedPerQtlMin: 1.4,
       };
     });
 

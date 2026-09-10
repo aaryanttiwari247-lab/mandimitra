@@ -1,35 +1,38 @@
 import { NextResponse } from "next/server";
 import { getStoredQueue } from "@/lib/procurement-store";
+import { PROCUREMENT_CENTRES, getCentresByLocation } from "@/lib/locations-centres";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const locationParam = searchParams.get("location");
+
   const queue = getStoredQueue();
+  const baseCentres = locationParam ? getCentresByLocation(locationParam) : PROCUREMENT_CENTRES;
 
-  const centres = [
-    {
-      id: "centre_lakshmipur",
-      name: "Lakshmipur Procurement Centre",
-      distance: "4.7 km away",
-      farmers: 19 + queue.filter(b => b.centre?.includes("Lakshmipur") && b.status !== "COMPLETED").length,
-      wait: 24,
-      recommended: true,
-    },
-    {
-      id: "centre_rampur",
-      name: "Rampur Procurement Centre",
-      distance: "2.0 km away",
-      farmers: 87 + queue.filter(b => b.centre?.includes("Rampur") && b.status !== "COMPLETED").length,
-      wait: 95,
-      recommended: false,
-    },
-    {
-      id: "centre_shivpur",
-      name: "Shivpur Procurement Centre",
-      distance: "6.2 km away",
-      farmers: 41 + queue.filter(b => b.centre?.includes("Shivpur") && b.status !== "COMPLETED").length,
-      wait: 48,
-      recommended: false,
-    },
-  ];
+  const centres = baseCentres.map((c) => {
+    const activeAtCentre = queue.filter(
+      (b) =>
+        (b.centreId === c.id || (b.centre && b.centre.toLowerCase() === c.name.toLowerCase())) &&
+        b.status !== "COMPLETED" &&
+        b.status !== "CANCELLED"
+    );
+    const activeCount = activeAtCentre.length;
+    const dynamicWait = Math.max(c.baseWaitMinutes, activeCount * 4);
+
+    return {
+      id: c.id,
+      name: c.name,
+      location: c.location,
+      state: c.state,
+      distance: c.distance,
+      farmers: activeCount,
+      wait: dynamicWait,
+      bays: c.bays,
+      contactNumber: c.contactNumber,
+      recommended: c.recommended ?? false,
+    };
+  });
 
   return NextResponse.json({ success: true, centres });
 }
+
