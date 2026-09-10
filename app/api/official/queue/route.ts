@@ -32,18 +32,33 @@ export async function POST(req: Request) {
     }
 
     const queue = getStoredQueue();
+    const targetBookingId = (booking.bookingId || "").trim().toUpperCase();
+    const targetToken = (booking.token || "").trim().toUpperCase();
+
     const idx = queue.findIndex(
-      (b) => (booking.bookingId && b.bookingId === booking.bookingId) || (booking.token && b.token === booking.token)
+      (b) =>
+        (targetBookingId && b.bookingId && b.bookingId.toUpperCase() === targetBookingId) ||
+        (targetToken && b.token && b.token.toUpperCase() === targetToken)
     );
 
+    let savedItem: any;
     if (idx !== -1) {
-      queue[idx] = { ...queue[idx], ...booking, updatedAt: new Date().toISOString() };
+      savedItem = {
+        ...queue[idx],
+        ...booking,
+        updatedAt: booking.updatedAt || new Date().toISOString(),
+      };
+      queue[idx] = savedItem;
     } else {
-      queue.push(booking);
+      savedItem = {
+        ...booking,
+        updatedAt: booking.updatedAt || new Date().toISOString(),
+      };
+      queue.push(savedItem);
     }
 
     saveStoredQueue(queue);
-    return NextResponse.json({ success: true, queue });
+    return NextResponse.json({ success: true, queue, booking: savedItem });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 });
   }

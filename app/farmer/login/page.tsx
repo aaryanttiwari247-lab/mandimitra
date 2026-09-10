@@ -7,7 +7,6 @@ import {
   Phone,
   RefreshCw,
   Sprout,
-  Volume2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -397,13 +396,6 @@ export default function FarmerLogin() {
               </>
             )}
           </div>
-
-          <button
-            className="mx-auto mt-6 flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:border-[#2E7D32] hover:text-[#2E7D32]"
-          >
-            <Volume2 className="h-4 w-4" />
-            Listen / Voice Help
-          </button>
         </div>
       </section>
     </main>

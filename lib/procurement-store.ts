@@ -112,10 +112,16 @@ export function updateBookingInAllStores(
   bookingId: string,
   updates: Partial<Booking>
 ): Booking | null {
+  const norm = (bookingId || "").trim().toUpperCase();
+
   // 1. If on server, update globalForQueue
   if (typeof window === "undefined") {
     const queue = globalForQueue.__mandiMitraQueue || [];
-    const idx = queue.findIndex((b) => b.bookingId === bookingId || b.token === bookingId);
+    const idx = queue.findIndex(
+      (b) =>
+        (b.bookingId && b.bookingId.toUpperCase() === norm) ||
+        (b.token && b.token.toUpperCase() === norm)
+    );
     if (idx !== -1) {
       queue[idx] = { ...queue[idx], ...updates, updatedAt: new Date().toISOString() };
       globalForQueue.__mandiMitraQueue = queue;
@@ -128,7 +134,11 @@ export function updateBookingInAllStores(
 
   // 1. Update queue
   const queue = getStoredQueue();
-  const queueIndex = queue.findIndex((b) => b.bookingId === bookingId);
+  const queueIndex = queue.findIndex(
+    (b) =>
+      (b.bookingId && b.bookingId.toUpperCase() === norm) ||
+      (b.token && b.token.toUpperCase() === norm)
+  );
   if (queueIndex !== -1) {
     queue[queueIndex] = {
       ...queue[queueIndex],
@@ -141,7 +151,11 @@ export function updateBookingInAllStores(
 
   // 2. Update current booking if matched
   const current = getStoredCurrentBooking();
-  if (current && current.bookingId === bookingId) {
+  if (
+    current &&
+    ((current.bookingId && current.bookingId.toUpperCase() === norm) ||
+      (current.token && current.token.toUpperCase() === norm))
+  ) {
     const updated = {
       ...current,
       ...updates,
@@ -153,7 +167,11 @@ export function updateBookingInAllStores(
 
   // 3. Update history
   const history = getStoredHistory();
-  const historyIndex = history.findIndex((b) => b.bookingId === bookingId);
+  const historyIndex = history.findIndex(
+    (b) =>
+      (b.bookingId && b.bookingId.toUpperCase() === norm) ||
+      (b.token && b.token.toUpperCase() === norm)
+  );
   if (historyIndex !== -1) {
     history[historyIndex] = {
       ...history[historyIndex],

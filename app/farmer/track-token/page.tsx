@@ -15,11 +15,12 @@ import {
   Sprout,
   Ticket,
   Truck,
-  Volume2,
+  Users,
   Wheat,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { getFarmerSession, FarmerUser } from "@/lib/farmer-auth";
 
 type Booking = {
   bookingId?: string;
@@ -60,14 +61,6 @@ type Booking = {
   updatedAt?: string;
 };
 
-type FarmerSession = {
-  farmerId?: string;
-  id?: string;
-  userId?: string;
-  farmerName?: string;
-  name?: string;
-};
-
 type DisplayStatus =
   | "WAITING"
   | "CALLED"
@@ -75,188 +68,219 @@ type DisplayStatus =
   | "PROCESSING"
   | "COMPLETED";
 
-export default function FarmerTrackToken() {
+const normalizeToken = (t?: string | number | null): string => {
+  if (!t) return "";
+  return String(t).trim().replace(/^#/, "").toUpperCase();
+};
+
+const isTokenMatch = (b: Booking | null, target: string): boolean => {
+  if (!b || !target) return false;
+  const normTarget = normalizeToken(target);
+  if (!normTarget) return false;
+  const bToken = normalizeToken(b.token);
+  const bId = normalizeToken(b.bookingId);
+  const bNum = b.tokenNumber != null ? `A${b.tokenNumber}`.toUpperCase() : "";
+  const bNumRaw = b.tokenNumber != null ? String(b.tokenNumber) : "";
+  return (
+    bToken === normTarget ||
+    bId === normTarget ||
+    bNum === normTarget ||
+    bNumRaw === normTarget
+  );
+};
+
+const belongsToFarmer = (b: Booking | null, farmer: FarmerUser | null): boolean => {
+  if (!b || !farmer) return false;
+  if (b.farmerMobile && farmer.mobile && String(b.farmerMobile) === String(farmer.mobile)) return true;
+  if (
+    b.farmerId &&
+    (b.farmerId === farmer.farmerId ||
+      b.farmerId === farmer.farmerCode ||
+      b.farmerId === `FMR${farmer.mobile.slice(-4)}`)
+  ) {
+    return true;
+  }
+  return false;
+};
+
+function TrackTokenContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tokenParam = searchParams.get("token");
   const { t } = useLanguage();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] =
-    useState<Date | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // ============================================================
-  // GET CURRENT FARMER ID
+  // LOAD BOOKING (LOCAL + LIVE SERVER SYNC)
   // ============================================================
 
-  const getCurrentFarmerId = (): string | null => {
+  const loadBooking = useCallback(async () => {
     try {
-      const possibleKeys = [
-        "farmerSession",
-        "smartProcurementFarmer",
-        "farmer",
-        "currentFarmer",
-        "smartProcurementUser",
-      ];
+      const farmer = getFarmerSession();
+      const cleanTokenParam = normalizeToken(tokenParam);
 
-      for (const key of possibleKeys) {
-        const raw = localStorage.getItem(key);
-
-        if (!raw) continue;
-
-        try {
-          const parsed: FarmerSession = JSON.parse(raw);
-
-          const id =
-            parsed.farmerId ??
-            parsed.id ??
-            parsed.userId;
-
-          if (id) {
-            return String(id);
-          }
-        } catch {
-          // Ignore invalid JSON and continue.
-        }
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  // ============================================================
-  // LOAD CURRENT FARMER BOOKING
-  // ============================================================
-
-  const loadBooking = useCallback(() => {
-    try {
-      const queueData = localStorage.getItem(
-        "smartProcurementQueue"
-      );
-
-      const currentBookingData =
-        localStorage.getItem(
-          "smartProcurementBooking"
-        );
+      const queueData = localStorage.getItem("smartProcurementQueue");
+      const currentBookingData = localStorage.getItem("smartProcurementBooking");
 
       let queue: Booking[] = [];
-
       if (queueData) {
         try {
           const parsed = JSON.parse(queueData);
-
-          if (Array.isArray(parsed)) {
-            queue = parsed;
-          }
+          if (Array.isArray(parsed)) queue = parsed;
         } catch {
           queue = [];
         }
       }
 
       let currentBooking: Booking | null = null;
-
       if (currentBookingData) {
         try {
-          currentBooking =
-            JSON.parse(currentBookingData);
+          currentBooking = JSON.parse(currentBookingData);
         } catch {
           currentBooking = null;
         }
       }
 
-      const farmerId = getCurrentFarmerId();
-
       let foundBooking: Booking | null = null;
 
-      // ========================================================
-      // 1. BEST MATCH — BOOKING ID
-      // ========================================================
-
-      if (currentBooking?.bookingId) {
-        foundBooking =
-          queue.find(
-            (item) =>
-              item.bookingId ===
-              currentBooking?.bookingId
-          ) ?? null;
+      // 1. URL search param match
+      if (cleanTokenParam) {
+        if (isTokenMatch(currentBooking, cleanTokenParam)) {
+          foundBooking = currentBooking;
+        } else {
+          foundBooking = queue.find((item) => isTokenMatch(item, cleanTokenParam)) ?? null;
+        }
       }
 
-      // ========================================================
-      // 2. MATCH CURRENT TOKEN
-      // ========================================================
+      // 2. Booking ID match from currentBooking
+      if (!foundBooking && currentBooking?.bookingId) {
+        foundBooking =
+          queue.find((item) => item.bookingId === currentBooking?.bookingId) ?? currentBooking;
+      }
 
+      // 3. Current token match from currentBooking
       if (!foundBooking && currentBooking?.token) {
         foundBooking =
-          queue.find(
-            (item) =>
-              item.token ===
-              currentBooking?.token
-          ) ?? null;
+          queue.find((item) => isTokenMatch(item, currentBooking?.token || "")) ?? currentBooking;
       }
 
-      // ========================================================
-      // 3. MATCH CURRENT FARMER ID
-      // ========================================================
-
-      if (!foundBooking && farmerId) {
-        const farmerBookings = queue.filter(
-          (item) =>
-            item.farmerId &&
-            String(item.farmerId) ===
-              String(farmerId)
-        );
-
+      // 4. Current Farmer match in queue
+      if (!foundBooking && farmer) {
+        const farmerBookings = queue.filter((item) => belongsToFarmer(item, farmer));
         if (farmerBookings.length > 0) {
           foundBooking =
             [...farmerBookings].sort(
               (a, b) =>
-                new Date(
-                  b.createdAt ?? 0
-                ).getTime() -
-                new Date(
-                  a.createdAt ?? 0
-                ).getTime()
+                new Date(b.createdAt ?? 0).getTime() -
+                new Date(a.createdAt ?? 0).getTime()
             )[0] ?? null;
         }
       }
 
-      // ========================================================
-      // 4. USE CURRENT BOOKING ONLY IF IT BELONGS TO USER
-      // ========================================================
-
+      // 5. Current booking fallback if belongs to farmer (or no farmer session)
       if (!foundBooking && currentBooking) {
-        if (
-          !currentBooking.farmerId ||
-          !farmerId ||
-          String(currentBooking.farmerId) ===
-            String(farmerId)
-        ) {
+        if (!farmer || belongsToFarmer(currentBooking, farmer)) {
           foundBooking = currentBooking;
         }
       }
 
-      // ========================================================
-      // IMPORTANT:
-      // DO NOT FALL BACK TO RANDOM / NEWEST QUEUE ITEM.
-      //
-      // This prevents A103/A104/A105/etc. from being shown
-      // for another farmer.
-      // ========================================================
+      // 6. Last resort: latest booking from queue
+      if (!foundBooking && queue.length > 0) {
+        foundBooking =
+          [...queue].sort(
+            (a, b) =>
+              new Date(b.createdAt ?? 0).getTime() -
+              new Date(a.createdAt ?? 0).getTime()
+          )[0] ?? null;
+      }
 
-      setBooking(foundBooking);
-      setLastUpdated(new Date());
+      if (foundBooking) {
+        setBooking((prev) => {
+          if (prev && prev.updatedAt && foundBooking?.updatedAt) {
+            if (new Date(prev.updatedAt).getTime() > new Date(foundBooking.updatedAt).getTime()) {
+              return prev;
+            }
+          }
+          return foundBooking;
+        });
+        setLastUpdated(new Date());
+        setLoading(false);
+      }
+
+      // 7. LIVE SERVER SYNC (CRITICAL FOR CROSS-DEVICE & VERIFICATION UPDATES)
+      const tokenToQuery =
+        cleanTokenParam ||
+        normalizeToken(foundBooking?.token) ||
+        normalizeToken(foundBooking?.bookingId) ||
+        normalizeToken(currentBooking?.token) ||
+        normalizeToken(currentBooking?.bookingId) ||
+        (farmer?.mobile ? farmer.mobile : "") ||
+        (farmer?.farmerId ? farmer.farmerId : "");
+
+      if (tokenToQuery) {
+        try {
+          const res = await fetch(`/api/bookings/track/${encodeURIComponent(tokenToQuery)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.booking) {
+              const liveBooking: Booking = data.booking;
+              setBooking(liveBooking);
+              setLastUpdated(new Date());
+
+              try {
+                localStorage.setItem("smartProcurementBooking", JSON.stringify(liveBooking));
+                const freshQueue = [...queue];
+                const qIdx = freshQueue.findIndex(
+                  (b) =>
+                    (liveBooking.bookingId && b.bookingId === liveBooking.bookingId) ||
+                    isTokenMatch(b, liveBooking.token || "")
+                );
+                if (qIdx !== -1) {
+                  freshQueue[qIdx] = { ...freshQueue[qIdx], ...liveBooking };
+                } else {
+                  freshQueue.push(liveBooking);
+                }
+                localStorage.setItem("smartProcurementQueue", JSON.stringify(freshQueue));
+              } catch {}
+            }
+          }
+        } catch (fetchErr) {
+          console.warn("Live token tracking fetch error:", fetchErr);
+        }
+      }
+
+      // Also query /api/official/queue if no booking found locally
+      if (!foundBooking && (farmer || cleanTokenParam)) {
+        try {
+          const qRes = await fetch("/api/official/queue");
+          if (qRes.ok) {
+            const qData = await qRes.json();
+            if (qData.success && Array.isArray(qData.queue)) {
+              let match: Booking | undefined;
+              if (cleanTokenParam) {
+                match = qData.queue.find((b: Booking) => isTokenMatch(b, cleanTokenParam));
+              }
+              if (!match && farmer) {
+                match = qData.queue.find((b: Booking) => belongsToFarmer(b, farmer));
+              }
+              if (match) {
+                setBooking(match);
+                setLastUpdated(new Date());
+                localStorage.setItem("smartProcurementBooking", JSON.stringify(match));
+              }
+            }
+          }
+        } catch {}
+      }
     } catch (error) {
-      console.error(
-        "Unable to load procurement booking:",
-        error
-      );
-
-      setBooking(null);
+      console.error("Unable to load procurement booking:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tokenParam]);
 
   // ============================================================
   // INITIAL LOAD + LIVE UPDATES
@@ -275,34 +299,21 @@ export default function FarmerTrackToken() {
       loadBooking();
     };
 
-    window.addEventListener(
-      "storage",
-      handleStorage
-    );
+    const handleBookingUpdate = () => {
+      loadBooking();
+    };
 
-    window.addEventListener(
-      "smartProcurementQueueUpdated",
-      handleQueueUpdate
-    );
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("smartProcurementQueueUpdated", handleQueueUpdate);
+    window.addEventListener("smartProcurementBookingUpdated", handleBookingUpdate);
 
-    const interval = window.setInterval(
-      loadBooking,
-      3000
-    );
+    const interval = window.setInterval(loadBooking, 2500);
 
     return () => {
       clearTimeout(timer);
-
-      window.removeEventListener(
-        "storage",
-        handleStorage
-      );
-
-      window.removeEventListener(
-        "smartProcurementQueueUpdated",
-        handleQueueUpdate
-      );
-
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("smartProcurementQueueUpdated", handleQueueUpdate);
+      window.removeEventListener("smartProcurementBookingUpdated", handleBookingUpdate);
       window.clearInterval(interval);
     };
   }, [loadBooking]);
@@ -479,16 +490,6 @@ export default function FarmerTrackToken() {
   };
 
   // ============================================================
-  // VOICE
-  // ============================================================
-
-  const handleVoiceHelp = () => {
-    alert(
-      "Voice assistance will be connected soon."
-    );
-  };
-
-  // ============================================================
   // LOADING
   // ============================================================
 
@@ -661,7 +662,7 @@ export default function FarmerTrackToken() {
                   <div className="mt-3 flex flex-wrap items-center gap-3">
 
                     <span className="text-5xl font-bold tracking-tight">
-                      #{booking.token ?? "A---"}
+                      #{String(booking.token || (booking.tokenNumber ? `A${booking.tokenNumber}` : "---")).replace(/^#/, "")}
                     </span>
 
                     <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
@@ -1007,34 +1008,18 @@ export default function FarmerTrackToken() {
               ACTIONS
           ==================================================== */}
 
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-
+          <div className="mt-7">
             <button
               onClick={() =>
                 router.push(
                   "/farmer/dashboard"
                 )
               }
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#2E7D32] hover:text-[#2E7D32]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-[#2E7D32] hover:text-[#2E7D32] sm:w-auto"
             >
-
               <ArrowLeft className="h-4 w-4" />
-
               Back to Dashboard
-
             </button>
-
-            <button
-              onClick={handleVoiceHelp}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#2E7D32] hover:text-[#2E7D32]"
-            >
-
-              <Volume2 className="h-4 w-4" />
-
-              Listen / Voice Assistance
-
-            </button>
-
           </div>
 
           <p className="mt-5 text-center text-xs text-gray-400">
@@ -1046,6 +1031,31 @@ export default function FarmerTrackToken() {
       </section>
 
     </main>
+  );
+}
+
+// ================================================================
+// EXPORT DEFAULT WITH SUSPENSE FOR USE_SEARCH_PARAMS
+// ================================================================
+
+export default function FarmerTrackToken() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#F7F9F5]">
+          <div className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E8F5E9]">
+              <Sprout className="h-7 w-7 animate-pulse text-[#2E7D32]" />
+            </div>
+            <p className="mt-4 text-sm font-medium text-gray-600">
+              Loading token tracker...
+            </p>
+          </div>
+        </main>
+      }
+    >
+      <TrackTokenContent />
+    </Suspense>
   );
 }
 

@@ -79,72 +79,69 @@ function VerifyContent() {
     setLoading(true);
     setError("");
 
-    try {
-      if (!tokenFromUrl) {
-        setError("No token was provided.");
-        setBooking(null);
-        setLoading(false);
-        return;
-      }
-
-      const queueData =
-        localStorage.getItem(
-          "smartProcurementQueue"
-        );
-
-      if (!queueData) {
-        setError(
-          "No procurement queue was found."
-        );
-        setBooking(null);
-        setLoading(false);
-        return;
-      }
-
-      const queue: Booking[] =
-        JSON.parse(queueData);
-
-      if (!Array.isArray(queue)) {
-        setError(
-          "Invalid procurement queue."
-        );
-        setBooking(null);
-        setLoading(false);
-        return;
-      }
-
-      const found = queue.find(
-        (item) =>
-          String(item.token ?? "")
-            .toUpperCase() ===
-          String(tokenFromUrl)
-            .toUpperCase()
-      );
-
-      if (!found) {
-        setError(
-          `No booking found for token ${tokenFromUrl}.`
-        );
-        setBooking(null);
-        setLoading(false);
-        return;
-      }
-
-      setBooking(found);
-    } catch (err) {
-      console.error(
-        "Unable to load farmer booking:",
-        err
-      );
-
-      setError(
-        "Unable to load farmer details."
-      );
-
+    if (!tokenFromUrl) {
+      setError("No token was provided.");
       setBooking(null);
-    } finally {
+      setLoading(false);
+      return;
+    }
+
+    let foundFromLocal: Booking | null = null;
+    try {
+      const queueData = localStorage.getItem("smartProcurementQueue");
+      if (queueData) {
+        const queue: Booking[] = JSON.parse(queueData);
+        if (Array.isArray(queue)) {
+          foundFromLocal =
+            queue.find(
+              (item) =>
+                String(item.token ?? "").toUpperCase() === String(tokenFromUrl).toUpperCase() ||
+                String(item.bookingId ?? "").toUpperCase() === String(tokenFromUrl).toUpperCase()
+            ) ?? null;
+        }
+      }
+    } catch {}
+
+    if (foundFromLocal) {
+      setBooking(foundFromLocal);
       setLoading(false);
     }
+
+    // Also fetch live from server to ensure freshest data
+    fetch(`/api/bookings/track/${encodeURIComponent(tokenFromUrl)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.booking) {
+          setBooking(data.booking);
+          setError("");
+          try {
+            const queueData = localStorage.getItem("smartProcurementQueue");
+            const queue: Booking[] = queueData ? JSON.parse(queueData) : [];
+            const idx = queue.findIndex(
+              (b) =>
+                (b.token && b.token.toUpperCase() === String(tokenFromUrl).toUpperCase()) ||
+                (b.bookingId && b.bookingId === data.booking.bookingId)
+            );
+            if (idx !== -1) {
+              queue[idx] = { ...queue[idx], ...data.booking };
+            } else {
+              queue.push(data.booking);
+            }
+            localStorage.setItem("smartProcurementQueue", JSON.stringify(queue));
+          } catch {}
+        } else if (!foundFromLocal) {
+          setError(`No booking found for token ${tokenFromUrl}.`);
+        }
+      })
+      .catch((err) => {
+        console.warn("Unable to fetch live booking from server:", err);
+        if (!foundFromLocal) {
+          setError(`No booking found for token ${tokenFromUrl}.`);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [tokenFromUrl]);
 
   useEffect(() => {
@@ -375,8 +372,8 @@ function VerifyContent() {
           const sameToken =
             booking.token &&
             currentBooking.token &&
-            booking.token.toUpperCase() ===
-              currentBooking.token.toUpperCase();
+            booking.token.toUpperCase().replace(/^#/, "") ===
+              currentBooking.token.toUpperCase().replace(/^#/, "");
 
           if (
             sameBooking ||
@@ -395,7 +392,7 @@ function VerifyContent() {
       }
 
       // ----------------------------------------------------------
-      // NOTIFY OTHER PAGES
+      // NOTIFY OTHER TABS / PAGES
       // ----------------------------------------------------------
 
       window.dispatchEvent(
@@ -403,6 +400,32 @@ function VerifyContent() {
           "smartProcurementQueueUpdated"
         )
       );
+      window.dispatchEvent(
+        new Event(
+          "smartProcurementBookingUpdated"
+        )
+      );
+
+      // ----------------------------------------------------------
+      // SYNC WITH BACKEND SERVER (CROSS-DEVICE & REAL-TIME SYNC)
+      // ----------------------------------------------------------
+      const identifier = booking.bookingId || booking.token || "";
+      if (identifier) {
+        fetch(`/api/official/queue/${encodeURIComponent(identifier)}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "VERIFIED",
+            verifiedBy: "Procurement Officer",
+          }),
+        }).catch((err) => console.warn("Failed to sync verify status:", err));
+      }
+
+      fetch("/api/official/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedBooking),
+      }).catch((err) => console.warn("Failed to sync verify queue:", err));
 
       // ----------------------------------------------------------
       // SUCCESS

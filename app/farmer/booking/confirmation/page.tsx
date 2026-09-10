@@ -582,7 +582,7 @@ export default function BookingConfirmationPage() {
               <button
                 onClick={() =>
                   router.push(
-                    "/farmer/track-token"
+                    `/farmer/track-token?token=${encodeURIComponent(booking.token || token || "")}`
                   )
                 }
                 className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256428]"
@@ -664,11 +664,14 @@ export default function BookingConfirmationPage() {
             </button>
 
             <button
-              onClick={() =>
+              onClick={() => {
+                const cleanToken = String(booking.token || token || "").replace(/^#/, "").trim();
                 router.push(
-                  "/farmer/track-token"
-                )
-              }
+                  cleanToken
+                    ? `/farmer/track-token?token=${encodeURIComponent(cleanToken)}`
+                    : "/farmer/track-token"
+                );
+              }}
               className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#256428]"
             >
 

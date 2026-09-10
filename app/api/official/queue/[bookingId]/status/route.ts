@@ -6,7 +6,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ bookingId: string }> }
 ) {
-  const { bookingId } = await params;
+  const { bookingId: rawId } = await params;
+  const bookingId = decodeURIComponent(rawId || "").trim();
   const body = await req.json();
   const { status, verifiedBy, officialId } = body;
 

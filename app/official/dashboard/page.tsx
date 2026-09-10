@@ -140,15 +140,36 @@ export default function OfficialDashboardPage() {
         if (data.success && Array.isArray(data.queue)) {
           setQueue((prev) => {
             const map = new Map<string, Booking>();
-            // Add server items
-            data.queue.forEach((b: Booking) => {
-              const key = b.bookingId || b.token || "";
-              if (key) map.set(key, b);
-            });
-            // Merge with any local items
+            const prevMap = new Map<string, Booking>();
             prev.forEach((b: Booking) => {
-              const key = b.bookingId || b.token || "";
-              if (key && !map.has(key)) map.set(key, b);
+              const key = (b.bookingId || b.token || "").toUpperCase();
+              if (key) prevMap.set(key, b);
+            });
+
+            data.queue.forEach((serverItem: Booking) => {
+              const key = (serverItem.bookingId || serverItem.token || "").toUpperCase();
+              if (!key) return;
+              const localItem = prevMap.get(key);
+              if (localItem) {
+                const localTime = new Date(localItem.updatedAt || 0).getTime();
+                const serverTime = new Date(serverItem.updatedAt || 0).getTime();
+                if (localTime > serverTime) {
+                  map.set(key, localItem);
+                  fetch("/api/official/queue", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(localItem),
+                  }).catch(() => {});
+                  return;
+                }
+              }
+              map.set(key, serverItem);
+            });
+
+            prevMap.forEach((localItem, key) => {
+              if (!map.has(key)) {
+                map.set(key, localItem);
+              }
             });
 
             const merged = Array.from(map.values());
@@ -463,11 +484,59 @@ export default function OfficialDashboardPage() {
 
       setQueue(updatedQueue);
 
+      // Update current booking in localStorage if matched
+      try {
+        const currentBookingData = localStorage.getItem("smartProcurementBooking");
+        if (currentBookingData) {
+          const currentBooking: Booking = JSON.parse(currentBookingData);
+          const sameBooking = booking.bookingId && currentBooking.bookingId === booking.bookingId;
+          const sameToken = booking.token && currentBooking.token && booking.token.toUpperCase() === currentBooking.token.toUpperCase();
+          if (sameBooking || sameToken) {
+            localStorage.setItem("smartProcurementBooking", JSON.stringify({
+              ...currentBooking,
+              status: "CALLED",
+              queueStatus: "CALLED",
+              procurementStatus: "CALLED",
+              calledAt: now,
+              updatedAt: now,
+            }));
+          }
+        }
+      } catch {}
+
       window.dispatchEvent(
         new Event(
           "smartProcurementQueueUpdated"
         )
       );
+      window.dispatchEvent(
+        new Event(
+          "smartProcurementBookingUpdated"
+        )
+      );
+
+      // Sync CALLED status to server
+      const identifier = booking.bookingId || booking.token || "";
+      if (identifier) {
+        fetch(`/api/official/queue/${encodeURIComponent(identifier)}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "CALLED" }),
+        }).catch(() => {});
+      }
+
+      fetch("/api/official/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...booking,
+          status: "CALLED",
+          queueStatus: "CALLED",
+          procurementStatus: "CALLED",
+          calledAt: now,
+          updatedAt: now,
+        }),
+      }).catch(() => {});
 
       router.push(
         `/official/procurement?token=${encodeURIComponent(

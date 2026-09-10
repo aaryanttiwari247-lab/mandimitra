@@ -9,7 +9,6 @@ import {
   MapPin,
   Sparkles,
   Sprout,
-  Volume2,
   Wheat,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -950,18 +949,6 @@ export default function BookProcurementSlot() {
             {!loading && (
               <ArrowRight className="h-5 w-5" />
             )}
-          </button>
-
-          {/* VOICE */}
-
-          <button
-            onClick={() =>
-              alert("Voice assistance will be connected later.")
-            }
-            className="mx-auto mt-6 flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#2E7D32] hover:text-[#2E7D32]"
-          >
-            <Volume2 className="h-4 w-4" />
-            Listen / Voice Assistance
           </button>
         </div>
       </section>

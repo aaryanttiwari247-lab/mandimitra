@@ -15,7 +15,6 @@ import {
   Ticket,
   Truck,
   Users,
-  Volume2,
   Wheat,
 } from "lucide-react";
 
@@ -152,6 +151,24 @@ export default function FarmerDashboard() {
     }
 
     setBooking(currentBooking);
+
+    // 3. Fetch live server queue to sync verification/procurement status across devices
+    if (currentFarmer) {
+      fetch("/api/official/queue")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.queue)) {
+            const liveMatch = data.queue.find((item: Booking) => belongsToFarmer(item));
+            if (liveMatch) {
+              setBooking(liveMatch);
+              try {
+                localStorage.setItem("smartProcurementBooking", JSON.stringify(liveMatch));
+              } catch {}
+            }
+          }
+        })
+        .catch(() => {});
+    }
   }, [router]);
 
   // ============================================================
@@ -171,6 +188,10 @@ export default function FarmerDashboard() {
       loadBooking();
       setCheckingAuth(false);
     }, 0);
+
+    const pollInterval = setInterval(() => {
+      loadBooking();
+    }, 3000);
 
     // ----------------------------------------------------------
     // Listen for booking changes.
@@ -229,6 +250,8 @@ export default function FarmerDashboard() {
         "smartProcurementQueueUpdated",
         handleQueueUpdate
       );
+
+      clearInterval(pollInterval);
     };
   }, [router, loadBooking]);
 
@@ -255,17 +278,16 @@ export default function FarmerDashboard() {
   // ============================================================
 
   const handleTrackToken = () => {
-    router.push("/farmer/track-token");
-  };
-
-  // ============================================================
-  // VOICE ASSISTANCE
-  // ============================================================
-
-  const handleVoiceHelp = () => {
-    alert(
-      "Voice assistance will be connected soon."
-    );
+    const rawToken =
+      booking?.token ||
+      (booking?.tokenNumber ? `A${booking.tokenNumber}` : "") ||
+      booking?.bookingId;
+    const token = rawToken ? String(rawToken).replace(/^#/, "").trim() : "";
+    if (token) {
+      router.push(`/farmer/track-token?token=${encodeURIComponent(token)}`);
+    } else {
+      router.push("/farmer/track-token");
+    }
   };
 
   // ============================================================
@@ -375,17 +397,7 @@ export default function FarmerDashboard() {
           {/* RIGHT SIDE */}
 
           <div className="flex items-center gap-4">
-            {/* VOICE HELP */}
-
             <LanguageSelector />
-
-            <button
-              onClick={handleVoiceHelp}
-              className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-[#2E7D32] hover:text-[#2E7D32] sm:flex"
-            >
-              <Volume2 className="h-4 w-4" />
-              {t("common.voiceHelp")}
-            </button>
 
             <div className="hidden h-9 w-px bg-gray-200 sm:block" />
 
@@ -806,19 +818,6 @@ export default function FarmerDashboard() {
             </div>
           </div>
         )}
-
-        {/* ====================================================
-            VOICE ASSISTANCE
-        ==================================================== */}
-
-        <button
-          onClick={handleVoiceHelp}
-          className="mx-auto mt-7 flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:border-[#2E7D32] hover:text-[#2E7D32]"
-        >
-          <Volume2 className="h-4 w-4" />
-
-          Listen / Voice Assistance
-        </button>
       </section>
     </main>
   );
