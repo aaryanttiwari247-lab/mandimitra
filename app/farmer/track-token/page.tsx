@@ -316,7 +316,11 @@ function TrackTokenContent() {
     window.addEventListener("smartProcurementQueueUpdated", handleQueueUpdate);
     window.addEventListener("smartProcurementBookingUpdated", handleBookingUpdate);
 
-    const interval = window.setInterval(loadBooking, 2500);
+    const interval = window.setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadBooking();
+      }
+    }, 10000);
 
     return () => {
       clearTimeout(timer);

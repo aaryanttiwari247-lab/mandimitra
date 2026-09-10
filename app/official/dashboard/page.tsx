@@ -181,11 +181,14 @@ export default function OfficialDashboardPage() {
       }
     } catch {}
 
-    // 2. Fetch live server queue (for cross-device & cross-tab sync)
+    // 2. Fetch live server queue (READ-ONLY GET — no background POST loops)
     fetch("/api/official/queue")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
       .then((data) => {
-        if (data.success && Array.isArray(data.queue)) {
+        if (data && data.success && Array.isArray(data.queue)) {
           setQueue((prev) => {
             const map = new Map<string, Booking>();
             const prevMap = new Map<string, Booking>();
@@ -203,11 +206,6 @@ export default function OfficialDashboardPage() {
                 const serverTime = new Date(serverItem.updatedAt || 0).getTime();
                 if (localTime > serverTime) {
                   map.set(key, localItem);
-                  fetch("/api/official/queue", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(localItem),
-                  }).catch(() => {});
                   return;
                 }
               }
@@ -234,16 +232,17 @@ export default function OfficialDashboardPage() {
   }, []);
 
   // ============================================================
-  // REAL-TIME POLLING (AUTO-REFRESH EVERY 3 SECONDS)
+  // REAL-TIME POLLING (POLITE 10-SECOND REFRESH)
   // ============================================================
 
   useEffect(() => {
     loadQueue();
 
-    // Auto-poll every 3 seconds so farmer bookings show up without refreshing
     const pollTimer = setInterval(() => {
-      loadQueue();
-    }, 3000);
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadQueue();
+      }
+    }, 10000);
 
     const handleStorage = (event: StorageEvent) => {
       if (

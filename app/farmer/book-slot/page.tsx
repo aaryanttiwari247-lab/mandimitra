@@ -140,7 +140,7 @@ export default function BookProcurementSlot() {
       }
     };
 
-    const timer = setTimeout(fetchRec, 200);
+    const timer = setTimeout(fetchRec, 600);
     return () => {
       isMounted = false;
       clearTimeout(timer);

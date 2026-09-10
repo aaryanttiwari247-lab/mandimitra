@@ -224,8 +224,10 @@ export default function FarmerDashboard() {
     }, 0);
 
     const pollInterval = setInterval(() => {
-      loadBooking();
-    }, 3000);
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadBooking();
+      }
+    }, 10000);
 
     // ----------------------------------------------------------
     // Listen for booking changes.
