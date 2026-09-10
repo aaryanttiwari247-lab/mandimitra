@@ -1,20 +1,11 @@
 import { NextResponse } from "next/server";
 import { updateBookingInAllStores } from "@/lib/procurement-store";
-
-// Minimum Support Price (₹ / quintal)
-const MSP_RATES: Record<string, number> = {
-  Cotton: 7121,
-  Wheat: 2275,
-  Soybean: 4892,
-  Mustard: 5650,
-  Paddy: 2300,
-  Gram: 5440,
-};
+import { CropGrade, getMspRate } from "@/lib/msp-rates";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { bookingId, grossWeightKg, tareWeightKg, moisturePercentage = 8.5 } = body;
+    const { bookingId, grossWeightKg, tareWeightKg, moisturePercentage = 8.5, cropGrade = "Grade A" } = body;
 
     if (!bookingId || grossWeightKg === undefined || tareWeightKg === undefined) {
       return NextResponse.json({ success: false, message: "Missing weight details" }, { status: 400 });
@@ -32,24 +23,32 @@ export async function POST(req: Request) {
     }
 
     const finalPayableWeightQtl = Number(Math.max(0, netWeightQtl - moistureDeductionQtl).toFixed(2));
+    const assignedGrade = (cropGrade as CropGrade) || "Grade A";
 
     // Update booking status to COMPLETED
+    const existing = updateBookingInAllStores(bookingId, {});
+    const crop = existing?.crop || "Wheat";
+    const mspPerQtl = getMspRate(crop, assignedGrade);
+    const totalPayoutAmount = Number((finalPayableWeightQtl * mspPerQtl).toFixed(2));
+
     const updated = updateBookingInAllStores(bookingId, {
       status: "COMPLETED",
       queueStatus: "COMPLETED",
       procurementStatus: "COMPLETED",
+      cropGrade: assignedGrade,
+      mspRate: mspPerQtl,
+      totalPayout: Math.round(totalPayoutAmount),
+      actualQuantity: finalPayableWeightQtl,
+      paymentStatus: "APPROVED",
       completedAt: new Date().toISOString(),
     });
-
-    const crop = updated?.crop || "Cotton";
-    const mspPerQtl = MSP_RATES[crop] || 7121;
-    const totalPayoutAmount = Number((finalPayableWeightQtl * mspPerQtl).toFixed(2));
 
     const receipt = {
       bookingId,
       token: updated?.token,
       farmerName: updated?.farmerName,
       crop,
+      cropGrade: assignedGrade,
       grossWeightKg: Number(grossWeightKg),
       tareWeightKg: Number(tareWeightKg),
       netWeightQtl,
@@ -57,7 +56,7 @@ export async function POST(req: Request) {
       moistureDeductionQtl,
       finalPayableWeightQtl,
       mspPerQtl,
-      totalPayoutAmount,
+      totalPayoutAmount: Math.round(totalPayoutAmount),
       currency: "INR",
       recordedAt: new Date().toISOString(),
     };

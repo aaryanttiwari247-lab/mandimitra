@@ -9,7 +9,7 @@ export async function PATCH(
   const { bookingId: rawId } = await params;
   const bookingId = decodeURIComponent(rawId || "").trim();
   const body = await req.json();
-  const { status, verifiedBy, officialId } = body;
+  const { status, verifiedBy, officialId, cropGrade, mspRate, totalPayout, actualQuantity, paymentStatus } = body;
 
   const validStatuses: BookingStatus[] = ["WAITING", "CALLED", "VERIFIED", "PROCESSING", "COMPLETED", "CANCELLED"];
   if (!validStatuses.includes(status)) {
@@ -21,6 +21,12 @@ export async function PATCH(
     queueStatus: status,
     procurementStatus: status,
   };
+
+  if (cropGrade) updates.cropGrade = cropGrade;
+  if (mspRate !== undefined) updates.mspRate = Number(mspRate);
+  if (totalPayout !== undefined) updates.totalPayout = Number(totalPayout);
+  if (actualQuantity !== undefined) updates.actualQuantity = Number(actualQuantity);
+  if (paymentStatus) updates.paymentStatus = paymentStatus;
 
   const now = new Date().toISOString();
   if (status === "CALLED") updates.calledAt = now;

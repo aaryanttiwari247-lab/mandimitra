@@ -7,10 +7,12 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import {
   ArrowLeft,
   ArrowRight,
+  Award,
   Bell,
   CalendarDays,
   CheckCircle2,
   Clock3,
+  IndianRupee,
   MapPin,
   Sprout,
   Ticket,
@@ -21,6 +23,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { getFarmerSession, FarmerUser } from "@/lib/farmer-auth";
+import { formatINR } from "@/lib/msp-rates";
 
 type Booking = {
   bookingId?: string;
@@ -33,6 +36,12 @@ type Booking = {
 
   crop?: string;
   quantity?: number;
+
+  cropGrade?: "Grade A" | "Grade B" | "Grade C" | "Grade D";
+  mspRate?: number;
+  totalPayout?: number;
+  actualQuantity?: number;
+  paymentStatus?: string;
 
   date?: string;
   centre?: string;
@@ -832,7 +841,7 @@ function TrackTokenContent() {
               Details associated with your active procurement token.
             </p>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
               <DetailCard
                 icon={
@@ -870,16 +879,83 @@ function TrackTokenContent() {
                 }
                 label="Quantity"
                 value={
-                  booking.quantity !==
-                  undefined
+                  booking.actualQuantity !== undefined
+                    ? `${booking.actualQuantity} Quintals (Weighed)`
+                    : booking.quantity !== undefined
                     ? `${booking.quantity} Quintals`
                     : "Not available"
+                }
+              />
+
+              <DetailCard
+                icon={
+                  <Award className="h-5 w-5 text-[#2E7D32]" />
+                }
+                label="Quality Grade"
+                value={
+                  booking.cropGrade
+                    ? `${booking.cropGrade}`
+                    : "Pending Official Grading"
+                }
+              />
+
+              <DetailCard
+                icon={
+                  <IndianRupee className="h-5 w-5 text-[#2E7D32]" />
+                }
+                label="Applied MSP Rate"
+                value={
+                  booking.mspRate
+                    ? `₹${booking.mspRate.toLocaleString("en-IN")} / quintal`
+                    : "Assessed at Mandi"
                 }
               />
 
             </div>
 
           </div>
+
+          {/* ====================================================
+              DBT SETTLEMENT & PAYOUT ADVICE (WHEN GRADED)
+          ==================================================== */}
+
+          {(booking.cropGrade || booking.totalPayout) && (
+            <div className="mt-5 rounded-3xl border-2 border-[#2E7D32] bg-[#E8F5E9] p-6 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#2E7D32] text-white shadow-xs">
+                    <Award className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#2E7D32]">
+                        Direct Bank Transfer (DBT) Payout Advice
+                      </span>
+                      <span className="rounded-md bg-[#2E7D32] px-2 py-0.5 text-xs font-bold text-white">
+                        {booking.cropGrade || "Grade A"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-base font-bold text-gray-900">
+                      {booking.crop} • {booking.actualQuantity || booking.quantity || 0} Quintals @ ₹{(booking.mspRate || 0).toLocaleString("en-IN")}/quintal
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Payment Status: <strong className="text-[#2E7D32]">{currentStatus === "COMPLETED" ? "APPROVED FOR DIRECT DISBURSAL" : "CALCULATED & PENDING COMPLETION"}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-left sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-[#CDE8D0]">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#2E7D32]">
+                    Total Farmer Payout
+                  </p>
+                  <p className="mt-0.5 text-3xl font-black text-[#2E7D32]">
+                    {formatINR(booking.totalPayout || 0)}
+                  </p>
+                  <p className="text-[11px] text-gray-500">Credited to Aadhaar-linked Bank A/C</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ====================================================
               SLOT INFORMATION

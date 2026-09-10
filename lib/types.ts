@@ -68,6 +68,12 @@ export type Booking = {
   queueStatus?: string;
   procurementStatus?: string;
 
+  cropGrade?: "Grade A" | "Grade B" | "Grade C" | "Grade D";
+  mspRate?: number; // In Rs./quintal
+  totalPayout?: number; // quantity * mspRate
+  actualQuantity?: number; // Weighed quantity in quintals
+  paymentStatus?: "PENDING" | "CALCULATED" | "APPROVED" | "PAID";
+
   calledAt?: string | null;
   processingStartedAt?: string | null;
   completedAt?: string | null;
@@ -78,3 +84,4 @@ export type Booking = {
   createdAt: string;
   updatedAt: string;
 };
+
