@@ -259,6 +259,36 @@ export const CROP_MSP_RATES: CropMspRate[] = [
       },
     },
   },
+  {
+    id: "bajra",
+    name: "Bajra / Pearl Millet",
+    nameHi: "बाजरा",
+    category: "Cereal",
+    unit: "quintal",
+    standardMsp: 2625,
+    grades: {
+      "Grade A": {
+        price: 2625,
+        label: "Bold Gray Premium",
+        specs: "Moisture < 12%, Foreign matter < 1%, Free of molds",
+      },
+      "Grade B": {
+        price: 2500,
+        label: "Standard Grain (FAQ)",
+        specs: "Moisture 12–13%, Foreign matter < 2%, Broken < 3%",
+      },
+      "Grade C": {
+        price: 2350,
+        label: "Feed / Commercial",
+        specs: "Moisture 13–14%, Foreign matter < 3%, Slight discoloration",
+      },
+      "Grade D": {
+        price: 2150,
+        label: "Distillery / Low Grade",
+        specs: "Moisture 14–15%, High broken/shriveled > 5%",
+      },
+    },
+  },
 ];
 
 export function normalizeCropName(cropStr?: string): string {
@@ -272,6 +302,7 @@ export function normalizeCropName(cropStr?: string): string {
   if (clean.includes("maize") || clean.includes("makka") || clean.includes("मक्का") || clean.includes("corn")) return "maize";
   if (clean.includes("cotton") || clean.includes("kapas") || clean.includes("कपास")) return "cotton";
   if (clean.includes("barley") || clean.includes("jau") || clean.includes("जौ")) return "barley";
+  if (clean.includes("bajra") || clean.includes("millet") || clean.includes("बाजरा")) return "bajra";
   return "wheat";
 }
 

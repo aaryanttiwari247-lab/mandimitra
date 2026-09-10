@@ -12,12 +12,13 @@ import {
   Wheat,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 import { getFarmerSession } from "@/lib/farmer-auth";
 import { Booking } from "@/lib/types";
+import { CROP_MSP_RATES, getCropMspData, formatINR } from "@/lib/msp-rates";
 
 
 type SmartRecommendation = {
@@ -105,9 +106,13 @@ export default function BookProcurementSlot() {
 
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  const [crop, setCrop] = useState("Cotton");
+  const [crop, setCrop] = useState("Wheat");
   const [quantity, setQuantity] = useState("");
   const [date, setDate] = useState("");
+
+  const selectedCropMsp = useMemo(() => {
+    return getCropMspData(crop);
+  }, [crop]);
 
   const [selectedCentre, setSelectedCentre] = useState(
     "Lakshmipur Procurement Centre"
@@ -714,9 +719,14 @@ export default function BookProcurementSlot() {
               {/* CROP */}
 
               <div className="mt-7">
-                <label className="text-sm font-semibold text-gray-800">
-                  Crop
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-gray-800">
+                    Crop (MSP Supported)
+                  </label>
+                  <span className="text-xs font-bold text-[#2E7D32]">
+                    Base MSP: ₹{selectedCropMsp.standardMsp.toLocaleString("en-IN")} / quintal
+                  </span>
+                </div>
 
                 <div className="relative mt-2">
                   <Wheat className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#2E7D32]" />
@@ -724,15 +734,34 @@ export default function BookProcurementSlot() {
                   <select
                     value={crop}
                     onChange={(e) => setCrop(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3.5 pl-12 text-base font-medium text-black outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3.5 pl-12 pr-10 text-base font-semibold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                   >
-                    <option value="Cotton">Cotton</option>
-                    <option value="Wheat">Wheat</option>
-                    <option value="Rice">Rice</option>
-                    <option value="Maize">Maize</option>
-                    <option value="Bajra">Bajra</option>
-                    <option value="Barley">Barley</option>
+                    {CROP_MSP_RATES.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} ({c.nameHi}) — ₹{c.standardMsp.toLocaleString("en-IN")} / quintal
+                      </option>
+                    ))}
                   </select>
+                </div>
+
+                {/* LIVE MSP QUALITY GRADES & PAYOUT ESTIMATE */}
+                <div className="mt-3 rounded-2xl border border-[#CDE8D0] bg-[#F1F8F2] p-3.5 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold text-[#2E7D32]">
+                      Quality Grade Rates (₹/quintal):
+                    </span>
+                    <span className="text-gray-700">
+                      Grade A: <strong>₹{selectedCropMsp.grades["Grade A"].price.toLocaleString("en-IN")}</strong> • Grade D: <strong>₹{selectedCropMsp.grades["Grade D"].price.toLocaleString("en-IN")}</strong>
+                    </span>
+                  </div>
+                  {Number(quantity) > 0 && (
+                    <div className="mt-2 pt-2 border-t border-[#CDE8D0] flex items-center justify-between text-gray-700">
+                      <span>Estimated Payout ({quantity} qtl @ Base MSP):</span>
+                      <strong className="text-sm font-black text-[#2E7D32]">
+                        {formatINR(Number(quantity) * selectedCropMsp.standardMsp)}
+                      </strong>
+                    </div>
+                  )}
                 </div>
               </div>
 
