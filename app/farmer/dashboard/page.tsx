@@ -31,6 +31,7 @@ import {
   clearFarmerSession,
   FarmerUser,
 } from "@/lib/farmer-auth";
+import { subscribeProcurementUpdates } from "@/lib/cross-tab-sync";
 
 import {
   CROP_MSP_RATES,
@@ -269,8 +270,15 @@ export default function FarmerDashboard() {
       handleQueueUpdate
     );
 
+    const unsubscribe = subscribeProcurementUpdates((msg) => {
+      if (msg.type === "STATUS_UPDATED" || msg.type === "QUEUE_UPDATED") {
+        loadBooking();
+      }
+    });
+
     return () => {
       clearTimeout(timer);
+      unsubscribe();
 
       window.removeEventListener(
         "storage",

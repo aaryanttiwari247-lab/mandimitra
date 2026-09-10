@@ -1,5 +1,6 @@
 import { Booking } from "./types";
 import { generateSeedBookings } from "./seed-data";
+import { broadcastProcurementUpdate } from "./cross-tab-sync";
 
 export const STORAGE_KEYS = {
   BOOKING: "smartProcurementBooking",
@@ -21,8 +22,36 @@ function dispatchCustom(eventName: string) {
   }
 }
 
+export function normalizeTokenClean(t?: string | number | null): string {
+  if (t == null) return "";
+  return String(t).trim().replace(/^#/, "").toUpperCase();
+}
+
+export function matchesBookingIdentifier(b: Booking | null | undefined, query?: string | number | null): boolean {
+  if (!b || !query) return false;
+  const clean = normalizeTokenClean(query);
+  if (!clean) return false;
+
+  const bToken = normalizeTokenClean(b.token);
+  const bId = normalizeTokenClean(b.bookingId);
+  const bFmrId = normalizeTokenClean(b.farmerId);
+  const bMob = normalizeTokenClean(b.farmerMobile);
+  const bNum = b.tokenNumber != null ? `A${b.tokenNumber}`.toUpperCase() : "";
+  const bNumRaw = b.tokenNumber != null ? String(b.tokenNumber) : "";
+
+  return (
+    bToken === clean ||
+    bId === clean ||
+    bFmrId === clean ||
+    bMob === clean ||
+    bNum === clean ||
+    bNumRaw === clean
+  );
+}
+
 // Global server-side fallback queue for cross-tab & cross-device sync
 const globalForQueue = globalThis as unknown as { __mandiMitraQueue?: Booking[] };
+
 if (!globalForQueue.__mandiMitraQueue || globalForQueue.__mandiMitraQueue.length <= 1) {
   globalForQueue.__mandiMitraQueue = generateSeedBookings();
 }
@@ -101,16 +130,12 @@ export function updateBookingInAllStores(
   bookingId: string,
   updates: Partial<Booking>
 ): Booking | null {
-  const norm = (bookingId || "").trim().toUpperCase();
+  const norm = normalizeTokenClean(bookingId);
 
   // 1. If on server, update globalForQueue
   if (typeof window === "undefined") {
-    const queue = globalForQueue.__mandiMitraQueue || [];
-    const idx = queue.findIndex(
-      (b) =>
-        (b.bookingId && b.bookingId.toUpperCase() === norm) ||
-        (b.token && b.token.toUpperCase() === norm)
-    );
+    const queue = getStoredQueue();
+    const idx = queue.findIndex((b) => matchesBookingIdentifier(b, norm));
     if (idx !== -1) {
       queue[idx] = { ...queue[idx], ...updates, updatedAt: new Date().toISOString() };
       globalForQueue.__mandiMitraQueue = queue;
@@ -123,11 +148,7 @@ export function updateBookingInAllStores(
 
   // 1. Update queue
   const queue = getStoredQueue();
-  const queueIndex = queue.findIndex(
-    (b) =>
-      (b.bookingId && b.bookingId.toUpperCase() === norm) ||
-      (b.token && b.token.toUpperCase() === norm)
-  );
+  const queueIndex = queue.findIndex((b) => matchesBookingIdentifier(b, norm));
   if (queueIndex !== -1) {
     queue[queueIndex] = {
       ...queue[queueIndex],
@@ -140,11 +161,7 @@ export function updateBookingInAllStores(
 
   // 2. Update current booking if matched
   const current = getStoredCurrentBooking();
-  if (
-    current &&
-    ((current.bookingId && current.bookingId.toUpperCase() === norm) ||
-      (current.token && current.token.toUpperCase() === norm))
-  ) {
+  if (current && matchesBookingIdentifier(current, norm)) {
     const updated = {
       ...current,
       ...updates,
@@ -156,11 +173,7 @@ export function updateBookingInAllStores(
 
   // 3. Update history
   const history = getStoredHistory();
-  const historyIndex = history.findIndex(
-    (b) =>
-      (b.bookingId && b.bookingId.toUpperCase() === norm) ||
-      (b.token && b.token.toUpperCase() === norm)
-  );
+  const historyIndex = history.findIndex((b) => matchesBookingIdentifier(b, norm));
   if (historyIndex !== -1) {
     history[historyIndex] = {
       ...history[historyIndex],
@@ -168,6 +181,17 @@ export function updateBookingInAllStores(
       updatedAt: new Date().toISOString(),
     };
     saveStoredHistory(history);
+  }
+
+  // 4. Cross-tab real-time broadcast
+  if (updatedBooking) {
+    broadcastProcurementUpdate({
+      type: "STATUS_UPDATED",
+      token: updatedBooking.token,
+      bookingId: updatedBooking.bookingId,
+      status: updatedBooking.status,
+      booking: updatedBooking,
+    });
   }
 
   return updatedBooking;

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { broadcastProcurementUpdate } from "@/lib/cross-tab-sync";
 
 type Booking = {
   bookingId?: string;
@@ -405,6 +406,15 @@ function VerifyContent() {
           "smartProcurementBookingUpdated"
         )
       );
+
+      // Real-time broadcast to farmer tabs
+      broadcastProcurementUpdate({
+        type: "STATUS_UPDATED",
+        token: booking.token,
+        bookingId: booking.bookingId,
+        status: "VERIFIED",
+        booking: updatedBooking as any,
+      });
 
       // ----------------------------------------------------------
       // SYNC WITH BACKEND SERVER (CROSS-DEVICE & REAL-TIME SYNC)

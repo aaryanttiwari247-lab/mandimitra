@@ -13,6 +13,7 @@ import {
   Truck,
   User,
   Wheat,
+  ShieldCheck,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -22,6 +23,7 @@ import {
   calculatePayout,
   formatINR,
 } from "@/lib/msp-rates";
+import { broadcastProcurementUpdate } from "@/lib/cross-tab-sync";
 
 type Booking = {
   bookingId?: string;
@@ -409,6 +411,15 @@ function ProcurementContent() {
         )
       );
 
+      // Real-time broadcast to farmer tabs
+      broadcastProcurementUpdate({
+        type: "STATUS_UPDATED",
+        token: booking.token,
+        bookingId: booking.bookingId,
+        status: newStatus,
+        booking: updatedBooking as any,
+      });
+
       // Sync with server API (cross-tab & cross-device)
       const identifier = booking.bookingId || booking.token || "";
       if (identifier) {
@@ -572,6 +583,17 @@ function ProcurementContent() {
     );
 
     router.push(url);
+  };
+
+  const handleQuickVerify = () => {
+    if (!booking) return;
+    const confirmed = window.confirm(
+      `Quick Verification for Farmer ${booking.farmerName ?? ""} (Token #${booking.token}):\n• Produce: ${booking.crop}\n• Quantity: ${booking.quantity} quintals\n• Centre: ${booking.centre}\n\nVerify this farmer now and proceed immediately to MSP Quality Grading?`
+    );
+    if (!confirmed) return;
+    updateProcurementStatus("VERIFIED", {
+      verifiedBy: "Procurement Officer",
+    });
   };
 
   // ============================================================
@@ -1015,30 +1037,35 @@ function ProcurementContent() {
 
           <div className="mt-7 rounded-3xl border border-[#CDE8D0] bg-[#F1F8F2] p-6 sm:p-8">
 
-            {/* WAITING */}
-
-            {currentStatus ===
-              "WAITING" && (
+            {/* WAITING OR CALLED */}
+            {currentStatus === "WAITING" && (
               <div>
-
-                <h2 className="font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-900">
                   Farmer Verification Required
                 </h2>
-
                 <p className="mt-1 text-sm text-gray-600">
-                  This farmer must be verified before procurement can begin.
+                  This farmer must be verified before procurement grading and weighbridge entry can begin.
                 </p>
 
-                <button
-                  onClick={
-                    handleVerifyFarmer
-                  }
-                  disabled={!booking.token}
-                  className="mt-5 rounded-xl bg-[#2E7D32] px-6 py-3.5 text-sm font-bold text-white hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Verify Farmer
-                </button>
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleQuickVerify}
+                    disabled={!booking.token || actionLoading}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Quick Verify at Counter & Proceed to Grading
+                  </button>
 
+                  <button
+                    onClick={handleVerifyFarmer}
+                    disabled={!booking.token || actionLoading}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm font-bold text-gray-700 hover:border-[#2E7D32] hover:text-[#2E7D32] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#2E7D32]" />
+                    Open Full Document Verification (Aadhaar/Land)
+                  </button>
+                </div>
               </div>
             )}
 

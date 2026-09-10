@@ -28,6 +28,7 @@ import {
   getCentresByLocation,
   ProcurementCentre,
 } from "@/lib/locations-centres";
+import { broadcastProcurementUpdate, subscribeProcurementUpdates } from "@/lib/cross-tab-sync";
 
 type Booking = {
   bookingId?: string;
@@ -261,8 +262,15 @@ export default function OfficialDashboardPage() {
     window.addEventListener("storage", handleStorage);
     window.addEventListener("smartProcurementQueueUpdated", handleQueueUpdate);
 
+    const unsubscribe = subscribeProcurementUpdates((msg) => {
+      if (msg.type === "STATUS_UPDATED" || msg.type === "QUEUE_UPDATED" || msg.type === "BOOKING_CREATED") {
+        loadQueue();
+      }
+    });
+
     return () => {
       clearInterval(pollTimer);
+      unsubscribe();
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("smartProcurementQueueUpdated", handleQueueUpdate);
     };
@@ -661,6 +669,22 @@ export default function OfficialDashboardPage() {
           "smartProcurementBookingUpdated"
         )
       );
+
+      // Real-time broadcast to farmer tabs
+      broadcastProcurementUpdate({
+        type: "STATUS_UPDATED",
+        token: booking.token,
+        bookingId: booking.bookingId,
+        status: "CALLED",
+        booking: {
+          ...booking,
+          status: "CALLED",
+          queueStatus: "CALLED",
+          procurementStatus: "CALLED",
+          calledAt: now,
+          updatedAt: now,
+        } as any,
+      });
 
       // Sync CALLED status to server
       const identifier = booking.bookingId || booking.token || "";

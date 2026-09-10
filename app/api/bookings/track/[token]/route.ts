@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStoredQueue } from "@/lib/procurement-store";
+import { getStoredQueue, matchesBookingIdentifier, normalizeTokenClean } from "@/lib/procurement-store";
 import { calculatePredictiveWaitTime } from "@/lib/token-service";
 
 export async function GET(
@@ -8,26 +8,19 @@ export async function GET(
 ) {
   const { token } = await params;
   const queue = getStoredQueue();
-  const cleanQuery = decodeURIComponent(token || "").trim().toUpperCase().replace(/^#/, "");
+  const cleanQuery = normalizeTokenClean(decodeURIComponent(token || ""));
 
-  const found = queue.find(
-    (b) => {
-      const bToken = (b.token || "").toUpperCase().replace(/^#/, "");
-      const bId = (b.bookingId || "").toUpperCase();
-      const bFmrId = (b.farmerId || "").toUpperCase();
-      const bMob = (b.farmerMobile || "").toUpperCase();
-      const bNum = b.tokenNumber != null ? `A${b.tokenNumber}`.toUpperCase() : "";
-      const bNumRaw = b.tokenNumber != null ? String(b.tokenNumber) : "";
-      return (
-        (bToken && bToken === cleanQuery) ||
-        (bId && bId === cleanQuery) ||
-        (bFmrId && bFmrId === cleanQuery) ||
-        (bMob && bMob === cleanQuery) ||
-        (bNum && bNum === cleanQuery) ||
-        (bNumRaw && bNumRaw === cleanQuery)
-      );
-    }
+  // 1. Exact Token or Booking ID match first
+  let found = queue.find(
+    (b) =>
+      (b.token && normalizeTokenClean(b.token) === cleanQuery) ||
+      (b.bookingId && normalizeTokenClean(b.bookingId) === cleanQuery)
   );
+
+  // 2. Fallback: Match by Mobile, FarmerId, or TokenNumber
+  if (!found) {
+    found = queue.find((b) => matchesBookingIdentifier(b, cleanQuery));
+  }
 
   if (!found) {
     return NextResponse.json({ success: false, message: "Token not found" }, { status: 404 });
