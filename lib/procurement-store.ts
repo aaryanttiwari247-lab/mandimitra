@@ -27,7 +27,10 @@ export function normalizeTokenClean(t?: string | number | null): string {
   return String(t).trim().replace(/^#/, "").toUpperCase();
 }
 
-export function matchesBookingIdentifier(b: Booking | null | undefined, query?: string | number | null): boolean {
+export function matchesBookingIdentifier(
+  b: Partial<Booking> | { [key: string]: any } | null | undefined,
+  query?: string | number | null
+): boolean {
   if (!b || !query) return false;
   const clean = normalizeTokenClean(query);
   if (!clean) return false;
@@ -39,13 +42,23 @@ export function matchesBookingIdentifier(b: Booking | null | undefined, query?: 
   const bNum = b.tokenNumber != null ? `A${b.tokenNumber}`.toUpperCase() : "";
   const bNumRaw = b.tokenNumber != null ? String(b.tokenNumber) : "";
 
+  const cleanStripped = clean.replace(/[-_\s]/g, "");
+  const bTokenStripped = bToken.replace(/[-_\s]/g, "");
+
   return (
     bToken === clean ||
+    bTokenStripped === cleanStripped ||
     bId === clean ||
     bFmrId === clean ||
     bMob === clean ||
     bNum === clean ||
-    bNumRaw === clean
+    bNumRaw === clean ||
+    // Legacy support for A101 (Bhopal Lakshmipur)
+    (b.tokenNumber === 101 && (clean === "A101" || clean === "101" || cleanStripped === "BHO101")) ||
+    // If user enters just the raw number (e.g. "601" for IND-601)
+    clean === bNumRaw ||
+    // If user enters "A" + number (e.g. "A601")
+    clean === `A${bNumRaw}`
   );
 }
 
@@ -56,21 +69,27 @@ if (!globalForQueue.__mandiMitraQueue || globalForQueue.__mandiMitraQueue.length
   globalForQueue.__mandiMitraQueue = generateSeedBookings();
 }
 
+const SEED_VERSION_KEY = "mandimitra_queue_seed_v2";
+const CURRENT_SEED_VERSION = "2.2_distinct_location_tokens";
+
 export function getStoredQueue(): Booking[] {
   if (typeof window === "undefined") {
     return globalForQueue.__mandiMitraQueue || [];
   }
   try {
+    const activeVersion = localStorage.getItem(SEED_VERSION_KEY);
     const raw = localStorage.getItem(STORAGE_KEYS.QUEUE);
-    if (!raw) {
+    if (!raw || activeVersion !== CURRENT_SEED_VERSION) {
       const seeded = generateSeedBookings();
       localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(seeded));
+      localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
       return seeded;
     }
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length <= 1) {
       const seeded = generateSeedBookings();
       localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(seeded));
+      localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
       return seeded;
     }
     return parsed;
@@ -78,6 +97,7 @@ export function getStoredQueue(): Booking[] {
     const seeded = generateSeedBookings();
     try {
       localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(seeded));
+      localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
     } catch {}
     return seeded;
   }

@@ -247,7 +247,7 @@ export default function BookingConfirmationPage() {
   const token =
     booking.token ??
     (booking.tokenNumber
-      ? `A${booking.tokenNumber}`
+      ? String(booking.tokenNumber)
       : "—");
 
   // ============================================================

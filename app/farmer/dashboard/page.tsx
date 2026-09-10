@@ -324,7 +324,7 @@ export default function FarmerDashboard() {
   const handleTrackToken = () => {
     const rawToken =
       booking?.token ||
-      (booking?.tokenNumber ? `A${booking.tokenNumber}` : "") ||
+      (booking?.tokenNumber ? String(booking.tokenNumber) : "") ||
       booking?.bookingId;
     const token = rawToken ? String(rawToken).replace(/^#/, "").trim() : "";
     if (token) {
@@ -533,7 +533,7 @@ export default function FarmerDashboard() {
                   <div className="mt-3 flex items-center gap-3">
                     <span className="text-5xl font-bold tracking-tight">
                       #{booking.token ||
-                        `A${booking.tokenNumber}`}
+                        (booking.tokenNumber ? String(booking.tokenNumber) : "---")}
                     </span>
 
                     <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
@@ -830,7 +830,7 @@ export default function FarmerDashboard() {
                       <p className="text-sm text-gray-500">
                         Token #
                         {booking.token ||
-                          `A${booking.tokenNumber}`}{" "}
+                          (booking.tokenNumber ? String(booking.tokenNumber) : "---")}{" "}
                         is active.
                       </p>
                     </div>

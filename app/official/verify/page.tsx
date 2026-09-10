@@ -15,6 +15,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { broadcastProcurementUpdate } from "@/lib/cross-tab-sync";
+import { matchesBookingIdentifier } from "@/lib/procurement-store";
 
 type Booking = {
   bookingId?: string;
@@ -94,11 +95,7 @@ function VerifyContent() {
         const queue: Booking[] = JSON.parse(queueData);
         if (Array.isArray(queue)) {
           foundFromLocal =
-            queue.find(
-              (item) =>
-                String(item.token ?? "").toUpperCase() === String(tokenFromUrl).toUpperCase() ||
-                String(item.bookingId ?? "").toUpperCase() === String(tokenFromUrl).toUpperCase()
-            ) ?? null;
+            queue.find((item) => matchesBookingIdentifier(item, tokenFromUrl)) ?? null;
         }
       }
     } catch {}

@@ -595,7 +595,7 @@ export default function FarmerHistoryPage() {
 
                             <h2 className="text-2xl font-bold text-gray-900">
                               #{booking.token ??
-                                "N/A"}
+                                (booking.tokenNumber ? String(booking.tokenNumber) : "N/A")}
                             </h2>
 
                             <span

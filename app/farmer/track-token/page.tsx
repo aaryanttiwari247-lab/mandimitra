@@ -78,7 +78,7 @@ function TrackTokenContent() {
         const parsed = JSON.parse(qRaw);
         if (Array.isArray(parsed)) {
           const suggestions = parsed.slice(0, 6).map((b) => ({
-            token: String(b.token || `A${b.tokenNumber || "101"}`).replace(/^#/, ""),
+            token: String(b.token || (b.tokenNumber ? String(b.tokenNumber) : "A101")).replace(/^#/, ""),
             name: b.farmerName || "Farmer",
             crop: b.crop || "Produce",
           }));
@@ -88,9 +88,10 @@ function TrackTokenContent() {
       }
     } catch {}
     setQuickTokens([
-      { token: "A101", name: "Rameshwar Singh", crop: "Wheat" },
-      { token: "A102", name: "Harish Patel", crop: "Paddy" },
-      { token: "A105", name: "Gurpreet Singh", crop: "Mustard" },
+      { token: "A101", name: "Rameshwar Singh (Bhopal)", crop: "Wheat" },
+      { token: "SEH-201", name: "Devendra Patel (Sehore)", crop: "Paddy" },
+      { token: "IND-601", name: "Mukesh Chouhan (Indore)", crop: "Soybean" },
+      { token: "KOT-1201", name: "Ramavtar Meena (Kota)", crop: "Mustard" },
     ]);
   }, []);
 
@@ -697,7 +698,7 @@ function TrackTokenContent() {
 
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <span className="text-5xl font-black tracking-tight">
-                      #{String(booking.token || (booking.tokenNumber ? `A${booking.tokenNumber}` : "---")).replace(/^#/, "")}
+                      #{String(booking.token || (booking.tokenNumber ? String(booking.tokenNumber) : "---")).replace(/^#/, "")}
                     </span>
 
                     <span

@@ -25,6 +25,13 @@ import {
   getCentresByLocation,
   ProcurementCentre,
 } from "@/lib/locations-centres";
+import { generateUniqueToken } from "@/lib/token-service";
+import {
+  getStoredQueue,
+  saveStoredQueue,
+  saveStoredCurrentBooking,
+  saveStoredHistory,
+} from "@/lib/procurement-store";
 
 type SmartRecommendation = {
   bestCentre: {
@@ -257,64 +264,15 @@ export default function BookProcurementSlot() {
     setLoading(true);
 
     // ==========================================================
-    // GENERATE TOKEN
+    // GENERATE GUARANTEED UNIQUE TOKEN
     // ==========================================================
 
-    const previousBooking = localStorage.getItem(
-      "smartProcurementBooking"
-    );
-
-    let tokenNumber = 103;
-
-    if (previousBooking) {
-      try {
-        const previous = JSON.parse(previousBooking);
-
-        if (previous.tokenNumber) {
-          tokenNumber = Number(previous.tokenNumber) + 1;
-        }
-      } catch {
-        tokenNumber = 103;
-      }
-    }
-
-    // ----------------------------------------------------------
-    // Also check queue so token numbers do not duplicate.
-    // ----------------------------------------------------------
-
-    const existingQueueRaw = localStorage.getItem(
-      "smartProcurementQueue"
-    );
-
-    let existingQueue: Booking[] = [];
-
-    if (existingQueueRaw) {
-      try {
-        const parsedQueue = JSON.parse(existingQueueRaw);
-
-        if (Array.isArray(parsedQueue)) {
-          existingQueue = parsedQueue;
-        }
-      } catch {
-        existingQueue = [];
-      }
-    }
-
-    const queueTokenNumbers = existingQueue
-      .map((item) => Number(item?.tokenNumber))
-      .filter((number) => !Number.isNaN(number));
-
-    if (queueTokenNumbers.length > 0) {
-      const highestToken = Math.max(...queueTokenNumbers);
-
-      if (highestToken >= tokenNumber) {
-        tokenNumber = highestToken + 1;
-      }
-    }
-
-    if (tokenNumber > 999) {
-      tokenNumber = 103;
-    }
+    const existingQueue = getStoredQueue();
+    const { tokenNumber, token } = generateUniqueToken({
+      location: selectedLocation,
+      centre: selectedCentre,
+      existingBookings: existingQueue,
+    });
 
     // ==========================================================
     // SELECTED SLOT DATA
@@ -347,7 +305,7 @@ export default function BookProcurementSlot() {
 
       tokenNumber,
 
-      token: `A${tokenNumber}`,
+      token,
 
       // --------------------------------------------------------
       // PROCUREMENT DETAILS
@@ -462,60 +420,19 @@ export default function BookProcurementSlot() {
     // 3. ADD TO OFFICIAL QUEUE
     // ==========================================================
 
-    const queueRaw = localStorage.getItem(
-      "smartProcurementQueue"
-    );
-
-    let queue: Booking[] = [];
-
-    if (queueRaw) {
-      try {
-        const parsedQueue = JSON.parse(queueRaw);
-
-        if (Array.isArray(parsedQueue)) {
-          queue = parsedQueue;
-        }
-      } catch {
-        queue = [];
-      }
-    }
-
-    // ----------------------------------------------------------
-    // Prevent duplicate booking
-    // ----------------------------------------------------------
-
-    queue = queue.filter(
+    let queue = getStoredQueue().filter(
       (item) => item?.bookingId !== booking.bookingId
     );
 
-    // ----------------------------------------------------------
-    // Add new booking
-    // ----------------------------------------------------------
-
     queue.push(booking);
-
-    // ----------------------------------------------------------
-    // Recalculate queue positions
-    //
-    // Keep existing official statuses.
-    // ----------------------------------------------------------
 
     queue = queue.map((item, index) => ({
       ...item,
-
       queuePosition: index + 1,
-
       updatedAt: new Date().toISOString(),
     }));
 
-    // ----------------------------------------------------------
-    // Save queue
-    // ----------------------------------------------------------
-
-    localStorage.setItem(
-      "smartProcurementQueue",
-      JSON.stringify(queue)
-    );
+    saveStoredQueue(queue);
 
     // ==========================================================
     // 4. UPDATE CURRENT BOOKING WITH QUEUE POSITION
@@ -523,19 +440,14 @@ export default function BookProcurementSlot() {
 
     const finalBooking = {
       ...booking,
-
       queuePosition:
         queue.findIndex(
           (item) => item?.bookingId === booking.bookingId
         ) + 1,
-
       updatedAt: new Date().toISOString(),
     };
 
-    localStorage.setItem(
-      "smartProcurementBooking",
-      JSON.stringify(finalBooking)
-    );
+    saveStoredCurrentBooking(finalBooking);
 
     // ==========================================================
     // 5. UPDATE HISTORY COPY

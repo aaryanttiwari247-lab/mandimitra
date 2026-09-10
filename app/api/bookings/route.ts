@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { formatSmartToken } from "@/lib/token-service";
+import { generateUniqueToken } from "@/lib/token-service";
 import { getStoredQueue, saveStoredQueue, saveStoredCurrentBooking, saveStoredHistory, getStoredHistory } from "@/lib/procurement-store";
 import { Booking } from "@/lib/types";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { farmerId, farmerName, farmerMobile, crop, quantity, date, centre, time, fullTime, distance } = body;
+    const { farmerId, farmerName, farmerMobile, crop, quantity, date, centre, time, fullTime, distance, location } = body;
 
     if (!farmerId || !crop || !quantity || !date || !centre || !time) {
       return NextResponse.json({ success: false, message: "Missing required booking details" }, { status: 400 });
@@ -14,10 +14,12 @@ export async function POST(req: Request) {
 
     const queue = getStoredQueue();
 
-    // Generate atomic next token
-    const highestTokenNumber = queue.reduce((max, b) => Math.max(max, b.tokenNumber || 100), 102);
-    const tokenNumber = highestTokenNumber + 1;
-    const token = formatSmartToken(centre.split(" ")[0], tokenNumber);
+    // Generate guaranteed unique token based on location/centre
+    const { tokenNumber, token } = generateUniqueToken({
+      location: location || centre,
+      centre,
+      existingBookings: queue,
+    });
 
     const newBooking: Booking = {
       bookingId: `BOOK-${Date.now()}`,

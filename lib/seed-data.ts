@@ -1,6 +1,7 @@
-﻿import { Booking, BookingStatus } from "./types";
+import { Booking, BookingStatus } from "./types";
 import { LOCATIONS_DATA, PROCUREMENT_CENTRES, getCentresByLocation } from "./locations-centres";
 import { CROP_MSP_RATES } from "./msp-rates";
+import { getLocationTokenMeta } from "./token-service";
 
 const FIRST_NAMES = [
   "Rameshwar", "Harish", "Suresh", "Baldev", "Gurpreet", "Kuldeep", "Mahendra",
@@ -87,16 +88,14 @@ export function generateSeedBookings(): Booking[] {
     updatedAt: new Date(Date.now() - 3600000).toISOString(),
   });
 
-  let tokenCounter = 102;
-  const tokenPrefixes = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "R", "S", "T"];
-
-  // Generate 11-13 farmers for EVERY location across all allotted centres
+  // Generate 11-13 farmers for EVERY location across all allotted centres with DISTINCT token numbers
   LOCATIONS_DATA.forEach((loc, locIndex) => {
     const allottedCentres = getCentresByLocation(loc.name);
     const farmerCountForLocation = 11 + (locIndex % 3); // 11 to 13 farmers per location
+    const meta = getLocationTokenMeta(loc.name);
 
     for (let i = 0; i < farmerCountForLocation; i++) {
-      if (loc.name === "Bhopal" && i === 0) continue;
+      if (loc.name === "Bhopal" && i === 0) continue; // Index 0 of Bhopal is Rameshwar Singh (A101)
 
       const centre = allottedCentres[i % allottedCentres.length];
       const firstName = FIRST_NAMES[(locIndex * 7 + i * 3) % FIRST_NAMES.length];
@@ -113,12 +112,13 @@ export function generateSeedBookings(): Booking[] {
       const status = STATUS_DISTRIBUTION[(i + locIndex) % STATUS_DISTRIBUTION.length];
       const slot = TIME_SLOTS[i % TIME_SLOTS.length];
 
-      const prefix = tokenPrefixes[(locIndex + Math.floor(tokenCounter / 100)) % tokenPrefixes.length];
-      const token = `${prefix}${tokenCounter}`;
+      // Each location gets completely unique numbers (e.g. Bhopal 102+, Sehore 201+, Indore 601+)
+      const tokenNumber = meta.base + (i + 1);
+      const token = `${meta.code}-${tokenNumber}`;
 
       const booking: Booking = {
         bookingId: `BOOK-SEED-${loc.id.toUpperCase()}-${String(i + 1).padStart(3, "0")}`,
-        tokenNumber: tokenCounter,
+        tokenNumber,
         token,
         farmerId: `FMR${loc.id.slice(0, 3).toUpperCase()}${100 + i}`,
         farmerName,
@@ -145,7 +145,6 @@ export function generateSeedBookings(): Booking[] {
       };
 
       bookings.push(booking);
-      tokenCounter++;
     }
   });
 
