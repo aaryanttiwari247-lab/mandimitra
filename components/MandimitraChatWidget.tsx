@@ -33,7 +33,13 @@ import {
   LayoutGrid,
   PhoneCall,
 } from "lucide-react";
-import { getMainMenuOptions, MenuItemOption } from "@/lib/ai-assistant-tools";
+import {
+  getMainMenuOptions,
+  MenuItemOption,
+  SUPPORTED_LANGUAGES,
+  SupportedLanguageCode,
+  detectLanguageFromText,
+} from "@/lib/ai-assistant-tools";
 
 interface ChatMessage {
   id: string;
@@ -46,6 +52,132 @@ interface ChatMessage {
   timestamp: string;
 }
 
+const LANGUAGE_SWITCH_MESSAGES: Record<SupportedLanguageCode, string> = {
+  hi: "नमस्ते किसान भाई! 🌾 भाषा बदलकर 'हिन्दी' कर दी गई है। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलें:",
+  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! 🌾 ਬੋਲੀ ਬਦਲ ਕੇ 'ਪੰਜਾਬੀ' ਕਰ ਦਿੱਤੀ ਗਈ ਹੈ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
+  mr: "नमस्कार शेतकरी बंधूंनो! 🌾 भाषा बदलून 'मराठी' केली आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोला:",
+  gu: "નમસ્તે ખેડૂત મિત્ર! 🌾 ભાષા બદલીને 'ગુજરાતી' કરવામાં આવી છે. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલો:",
+  bn: "নমস্কার কৃষক ভাই! 🌾 ভাষা পরিবর্তন করে 'বাংলা' করা হয়েছে। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
+  te: "నమస్కారం రైతు సోదరులారా! 🌾 భాష 'తెలుగు'గా మార్చబడింది. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
+  ta: "வணக்கம் விவசாய தோழரே! 🌾 மொழி 'தமிழ்' என மாற்றப்பட்டுள்ளது. உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
+  en: "Welcome farmer friend! 🌾 Language changed to 'English'. Please tap any service below to proceed or speak your query:",
+};
+
+const INITIAL_GREETING_MESSAGES: Record<SupportedLanguageCode, string> = {
+  hi: "नमस्ते किसान भाई! 🌾 मैं मंडीमित्र एआई खरीद सहायक हूँ। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलकर पूछें:",
+  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! 🌾 ਮੈਂ ਮੰਡੀਮਿੱਤਰ ਏ.ਆਈ. ਖਰੀਦ ਸਹਾਇਕ ਹਾਂ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
+  mr: "नमस्कार शेतकरी बंधूंनो! 🌾 मी मंडीमित्र एआय खरेदी सहाय्यक आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोलून विचारा:",
+  gu: "નમસ્તે ખેડૂત મિત્ર! 🌾 હું મંડીમિત્ર એઆઈ ખરીદ સહાયક છું. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલીને પૂછો:",
+  bn: "নমস্কার কৃষক ভাই! 🌾 আমি মান্ডিমিত্র এআই সংগ্রহ সহকারী। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
+  te: "నమస్కారం రైతు సోదరులారా! 🌾 నేను మండిమిత్ర ఏఐ సేకరణ సహాయకుడిని. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
+  ta: "வணக்கம் விவசாய தோழரே! 🌾 நான் மண்டிமித்ரா ஏஐ கொள்முதல் உதவியாளர். உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
+  en: "Welcome farmer friend! 🌾 I am MandiMitra AI procurement companion. Please tap any service below to proceed or speak your query:",
+};
+
+const ERROR_MESSAGES: Record<SupportedLanguageCode, string> = {
+  hi: "MandiMitra सहायक इस समय उत्तर देने में असमर्थ है। कृपया दोबारा प्रयास करें।",
+  pa: "ਮੰਡੀਮਿੱਤਰ ਸਹਾਇਕ ਇਸ ਵੇਲੇ ਜਵਾਬ ਦੇਣ ਵਿੱਚ ਅਸਮਰੱਥ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+  mr: "मंडीमित्र सहाय्यक सध्या उत्तर देण्यास असमर्थ आहे. कृपया पुन्हा प्रयत्न करा.",
+  gu: "મંડીમિત્ર સહાયક હાલમાં જવાબ આપવામાં અસમર્થ છે. કૃપા કરીને ફરી પ્રયાસ કરો.",
+  bn: "সহকারী এই মুহূর্তে উত্তর দিতে পারছে না। অনুগ্রহ করে আবার চেষ্টা করুন।",
+  te: "మండిమిత్ర సహాయకుడు ప్రస్తుతం స్పందించలేకపోతున్నారు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+  ta: "மண்டிமித்ரா உதவியாளர் தற்போது பதிலளிக்க முடியவில்லை. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.",
+  en: "Assistant is temporarily unavailable. Please try again.",
+};
+
+const getLocalizedQuickActions = (lang: SupportedLanguageCode) => {
+  switch (lang) {
+    case "pa":
+      return [
+        { label: "🌐 ਬੋਲੀ ਬਦਲੋ", prompt: "ਬੋਲੀ", icon: "🌐" },
+        { label: "📋 ਮੁੱਖ ਮੈਨੂ", prompt: "ਮੈਨੂ", icon: "📋" },
+        { label: "📞 ਕੇਂਦਰ ਸੰਪਰਕ", prompt: "ਕੇਂਦਰ ਸੰਪਰਕ", icon: "📞" },
+        { label: "🎫 ਮੇਰਾ ਟੋਕਨ", prompt: "ਟੋਕਨ ਸਥਿਤੀ", icon: "🎫" },
+        { label: "⚖️ ਤੁਲਾਈ ਤੇ ਵਜ਼ਨ", prompt: "ਤੁਲਾਈ ਤੇ ਵਜ਼ਨ", icon: "⚖️" },
+        { label: "💰 ਐੱਮ.ਐੱਸ.ਪੀ. ਭੁਗਤਾਨ", prompt: "ਐੱਮਐੱਸਪੀ ਭੁਗਤਾਨ", icon: "💰" },
+        { label: "🕒 ਆਉਣ ਦਾ ਸਮਾਂ", prompt: "ਆਉਣ ਦਾ ਸਹੀ ਸਮਾਂ", icon: "🕒" },
+        { label: "🚨 ਹੈਲਪਲਾਈਨ", prompt: "ਕਿਸਾਨ ਹੈਲਪਲਾਈਨ", icon: "🚨" },
+      ];
+    case "mr":
+      return [
+        { label: "🌐 भाषा निवडा", prompt: "भाषा", icon: "🌐" },
+        { label: "📋 मुख्य मेनू", prompt: "मेनू", icon: "📋" },
+        { label: "📞 केंद्र संपर्क", prompt: "केंद्र संपर्क", icon: "📞" },
+        { label: "🎫 माझे टोकन", prompt: "टोकन स्थिती", icon: "🎫" },
+        { label: "⚖️ वजन तपासणी", prompt: "वजन तपासणी", icon: "⚖️" },
+        { label: "💰 हमीभाव पेमेंट", prompt: "हमीभाव पेमेंट", icon: "💰" },
+        { label: "🕒 येण्याची वेळ", prompt: "येण्याची वेळ", icon: "🕒" },
+        { label: "🚨 हेल्पलाइन", prompt: "शेतकरी हेल्पलाइन", icon: "🚨" },
+      ];
+    case "gu":
+      return [
+        { label: "🌐 ભાષા બદલો", prompt: "ભાષા", icon: "🌐" },
+        { label: "📋 મુખ્ય મેનુ", prompt: "મેનુ", icon: "📋" },
+        { label: "📞 કેન્દ્ર સંપર્ક", prompt: "કેન્દ્ર સંપર્ક", icon: "📞" },
+        { label: "🎫 મારું ટોકન", prompt: "ટોકન સ્થિતિ", icon: "🎫" },
+        { label: "⚖️ તોલ વજન", prompt: "તોલ વજન", icon: "⚖️" },
+        { label: "💰 ટેકાના ભાવ", prompt: "ટેકાના ભાવ ચૂકવણી", icon: "💰" },
+        { label: "🕒 આવવાનો સમય", prompt: "આવવાનો સમય", icon: "🕒" },
+        { label: "🚨 હેલ્પલાઇન", prompt: "ખેડૂત હેલ્પલાઇન", icon: "🚨" },
+      ];
+    case "te":
+      return [
+        { label: "🌐 భాష మార్చండి", prompt: "భాష", icon: "🌐" },
+        { label: "📋 ప్రధాన మెనూ", prompt: "మెనూ", icon: "📋" },
+        { label: "📞 కేంద్రం సంప్రదించండి", prompt: "కేంద్రం సంప్రదించండి", icon: "📞" },
+        { label: "🎫 నా టోకెన్", prompt: "టోకెన్ స్థితి", icon: "🎫" },
+        { label: "⚖️ తూకం తనిఖీ", prompt: "తూకం తనిఖీ", icon: "⚖️" },
+        { label: "💰 ఎంఎస్‌పి చెల్లింపు", prompt: "ఎంఎస్‌పి చెల్లింపు", icon: "💰" },
+        { label: "🕒 రాక సమయం", prompt: "రాక సమయం", icon: "🕒" },
+        { label: "🚨 హెల్ప్‌లైన్", prompt: "రైతు హెల్ప్‌లైన్", icon: "🚨" },
+      ];
+    case "ta":
+      return [
+        { label: "🌐 மொழி மாற்று", prompt: "மொழி", icon: "🌐" },
+        { label: "📋 முதன்மை பட்டியல்", prompt: "பட்டியல்", icon: "📋" },
+        { label: "📞 மைய தொடர்பு", prompt: "மைய தொடர்பு", icon: "📞" },
+        { label: "🎫 என் டோக்கன்", prompt: "டோக்கன் நிலை", icon: "🎫" },
+        { label: "⚖️ எடை பரிசோதனை", prompt: "எடை பரிசோதனை", icon: "⚖️" },
+        { label: "💰 எம்எஸ்பி பணம்", prompt: "எம்எஸ்பி பணம்", icon: "💰" },
+        { label: "🕒 வருகை நேரம்", prompt: "வருகை நேரம்", icon: "🕒" },
+        { label: "🚨 உதவி மையம்", prompt: "விவசாயி உதவி", icon: "🚨" },
+      ];
+    case "bn":
+      return [
+        { label: "🌐 ভাষা পরিবর্তন", prompt: "ভাষা", icon: "🌐" },
+        { label: "📋 প্রধান মেনু", prompt: "মেনু", icon: "📋" },
+        { label: "📞 কেন্দ্রে যোগাযোগ", prompt: "কেন্দ্রে যোগাযোগ", icon: "📞" },
+        { label: "🎫 আমার টোকেন", prompt: "টোকেন অবস্থা", icon: "🎫" },
+        { label: "⚖️ ফসলের ওজন", prompt: "ফসলের ওজন", icon: "⚖️" },
+        { label: "💰 এমএসপি ও পেমেন্ট", prompt: "এমএসপি ও পেমেন্ট", icon: "💰" },
+        { label: "🕒 আসার সেরা সময়", prompt: "আসার সেরা সময়", icon: "🕒" },
+        { label: "🚨 হেল্পলাইন", prompt: "কৃষক হেল্পলাইন", icon: "🚨" },
+      ];
+    case "en":
+      return [
+        { label: "🌐 Language", prompt: "language", icon: "🌐" },
+        { label: "📋 Main Menu", prompt: "menu", icon: "📋" },
+        { label: "📞 Contact Centre", prompt: "contact centre", icon: "📞" },
+        { label: "🎫 My Token", prompt: "token status", icon: "🎫" },
+        { label: "⚖️ Weighbridge & Quality", prompt: "weighbridge quality", icon: "⚖️" },
+        { label: "💰 MSP Payment", prompt: "msp payment", icon: "💰" },
+        { label: "🕒 Best Arrival Time", prompt: "best arrival time", icon: "🕒" },
+        { label: "🚨 Kisan Helpline", prompt: "kisan helpline", icon: "🚨" },
+      ];
+    default: // hi
+      return [
+        { label: "🌐 भाषा बदलें", prompt: "भाषा", icon: "🌐" },
+        { label: "📋 मुख्य मेनू", prompt: "मेनू", icon: "📋" },
+        { label: "📞 केंद्र संपर्क", prompt: "केंद्र संपर्क", icon: "📞" },
+        { label: "🎫 मेरा टोकन", prompt: "टोकन स्थिति", icon: "🎫" },
+        { label: "⚖️ तुलाई और वजन", prompt: "तुलाई और वजन", icon: "⚖️" },
+        { label: "💰 एमएसपी भुगतान", prompt: "एमएसपी और भुगतान", icon: "💰" },
+        { label: "🕒 आने का समय", prompt: "आने का सही समय", icon: "🕒" },
+        { label: "🚨 किसान हेल्पलाइन", prompt: "किसान हेल्पलाइन", icon: "🚨" },
+      ];
+  }
+};
+
 export function openVoiceAssistant() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("openMandimitraVoiceAssistant"));
@@ -57,23 +189,33 @@ export function MandimitraChatWidget() {
   const { t, language, setLanguage } = useLanguage();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [chatLanguage, setChatLanguage] = useState<SupportedLanguageCode>(() => {
+    if (language === "bn") return "bn";
+    if (language === "en") return "en";
+    return "hi";
+  });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
 
+  // Synchronize chatLanguage when global language changes
+  useEffect(() => {
+    if (language === "hi" || language === "bn" || language === "en") {
+      setChatLanguage(language);
+    }
+  }, [language]);
+
   // Switch chat and application language with instant localized welcome message
-  const handleLanguageChange = (newLang: "hi" | "en" | "bn") => {
-    if (newLang === language) return;
-    setLanguage(newLang);
+  const handleLanguageChange = (newLang: SupportedLanguageCode) => {
+    setChatLanguage(newLang);
+    if (newLang === "hi" || newLang === "en" || newLang === "bn") {
+      setLanguage(newLang as any);
+    }
     stopSpeaking();
 
-    const switchMsg =
-      newLang === "hi"
-        ? "नमस्ते किसान भाई! 🌾 भाषा बदलकर 'हिन्दी' कर दी गई है। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें:"
-        : newLang === "bn"
-        ? "নমস্কার কৃষক ভাই! 🌾 ভাষা পরিবর্তন করে 'বাংলা' করা হয়েছে। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন:"
-        : "Welcome farmer brother! 🌾 Language changed to 'English'. Please tap any service below to proceed:";
+    const switchMsg = LANGUAGE_SWITCH_MESSAGES[newLang] || LANGUAGE_SWITCH_MESSAGES.hi;
 
     const newMsg: ChatMessage = {
       id: `lang-switch-${Date.now()}`,
@@ -150,12 +292,7 @@ export function MandimitraChatWidget() {
   // Initialize greeting message on first mount or language change
   useEffect(() => {
     const greetingText =
-      t("assistant.initialGreeting") ||
-      (language === "hi"
-        ? "नमस्ते किसान भाई! 🌾 मैं मंडीमित्र एआई सहायक हूँ। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलकर पूछें:"
-        : language === "bn"
-        ? "নমস্কার কৃষক ভাই! 🌾 আমি মান্ডিমিত্র সহকারী। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:"
-        : "Welcome farmer brother! 🌾 I am MandiMitra AI. Please tap any service below to proceed or speak your query:");
+      INITIAL_GREETING_MESSAGES[chatLanguage] || INITIAL_GREETING_MESSAGES.hi;
 
     setMessages((prev) => {
       if (prev.length === 0) {
@@ -164,14 +301,14 @@ export function MandimitraChatWidget() {
             id: "greeting-1",
             role: "assistant",
             content: greetingText,
-            menuOptions: getMainMenuOptions(language),
+            menuOptions: getMainMenuOptions(chatLanguage),
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ];
       }
       return prev;
     });
-  }, [t, language]);
+  }, [chatLanguage]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -203,6 +340,16 @@ export function MandimitraChatWidget() {
     // Refresh context from localStorage before sending
     loadFarmerContext();
 
+    // Auto-detect language from script
+    const detected = detectLanguageFromText(messageContent);
+    const activeLang = detected || chatLanguage;
+    if (detected && detected !== chatLanguage) {
+      setChatLanguage(detected);
+      if (detected === "hi" || detected === "en" || detected === "bn") {
+        setLanguage(detected as any);
+      }
+    }
+
     const userMsgId = `user-${Date.now()}`;
     const newMsg: ChatMessage = {
       id: userMsgId,
@@ -231,7 +378,7 @@ export function MandimitraChatWidget() {
           farmerName: farmer?.name,
           farmerMobile: farmer?.mobile,
           activeBooking,
-          language,
+          language: activeLang,
         }),
       });
 
@@ -253,7 +400,7 @@ export function MandimitraChatWidget() {
       // Auto-speak reply if enabled
       if (autoSpeak && data.text) {
         setSpeakingMsgId(assistantMsgId);
-        speakText(data.text, language, () => {
+        speakText(data.text, activeLang, () => {
           setSpeakingMsgId(null);
         });
       }
@@ -261,13 +408,8 @@ export function MandimitraChatWidget() {
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         role: "assistant",
-        content:
-          language === "hi"
-            ? "MandiMitra सहायक इस समय उत्तर देने में असमर्थ है। कृपया दोबारा प्रयास करें।"
-            : language === "bn"
-            ? "সহকারী এই মুহূর্তে উত্তর দিতে পারছে না। অনুগ্রহ করে আবার চেষ্টা করুন।"
-            : "Assistant is temporarily unavailable. Please try again.",
-        menuOptions: getMainMenuOptions(language),
+        content: ERROR_MESSAGES[activeLang] || ERROR_MESSAGES.hi,
+        menuOptions: getMainMenuOptions(activeLang),
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -289,7 +431,7 @@ export function MandimitraChatWidget() {
     stopSpeaking();
     setIsDictating(true);
 
-    dictationRef.current = startSpeechRecognition(language, {
+    dictationRef.current = startSpeechRecognition(chatLanguage, {
       onTranscript: (transcript, isFinal) => {
         setInput(transcript);
         if (isFinal) {
@@ -329,7 +471,7 @@ export function MandimitraChatWidget() {
       }, 1000);
 
       // Start recognition in background to transcribe the audio note content
-      startSpeechRecognition(language, {
+      startSpeechRecognition(chatLanguage, {
         onTranscript: (transcript) => {
           setInput(transcript);
         },
@@ -406,49 +548,13 @@ export function MandimitraChatWidget() {
     }
 
     setSpeakingMsgId(id);
-    speakText(text, language, () => {
+    speakText(text, chatLanguage, () => {
       setSpeakingMsgId(null);
     });
   };
 
   // Quick Action Chips Configuration
-  const quickActions = [
-    {
-      label: language === "hi" ? "📋 मुख्य मेनू" : language === "bn" ? "📋 প্রধান মেনু" : "📋 Main Menu",
-      prompt: language === "hi" ? "मेनू" : language === "bn" ? "মেনু" : "menu",
-      icon: "📋",
-    },
-    {
-      label: language === "hi" ? "📞 केंद्र संपर्क" : language === "bn" ? "📞 কেন্দ্রে যোগাযোগ" : "📞 Contact Centre",
-      prompt: language === "hi" ? "केंद्र संपर्क" : language === "bn" ? "কেন্দ্রে যোগাযোগ" : "contact centre",
-      icon: "📞",
-    },
-    {
-      label: t("assistant.chipToken") || "मेरा टोकन",
-      prompt: t("assistant.promptToken") || "मेरा वर्तमान टोकन और कतार की स्थिति क्या है?",
-      icon: "🎫",
-    },
-    {
-      label: t("assistant.chipInspection") || "तुलाई और वजन",
-      prompt: t("assistant.promptInspection") || "मेरी फसल की तुलाई और ग्रेडिंग की स्थिति क्या है?",
-      icon: "⚖️",
-    },
-    {
-      label: t("assistant.chipPayment") || "डीबीटी भुगतान",
-      prompt: t("assistant.promptPayment") || "मेरी फसल का कुल भुगतान कितना है और खाते में कब आएगा?",
-      icon: "💰",
-    },
-    {
-      label: language === "hi" ? "🕒 आने का समय" : language === "bn" ? "🕒 আসার সেরা সময়" : "🕒 Best Arrival Time",
-      prompt: language === "hi" ? "आने का सही समय" : language === "bn" ? "আসার সেরা সময়" : "best arrival time",
-      icon: "🕒",
-    },
-    {
-      label: language === "hi" ? "🚨 हेल्पलाइन" : language === "bn" ? "🚨 হেল্পলাইন" : "🚨 Helpline",
-      prompt: language === "hi" ? "किसान हेल्पलाइन" : language === "bn" ? "কৃষক হেল্পলাইন" : "helpline",
-      icon: "🚨",
-    },
-  ];
+  const quickActions = getLocalizedQuickActions(chatLanguage);
 
   // Do not show widget on the landing / first page
   if (pathname === "/") {
@@ -490,7 +596,7 @@ export function MandimitraChatWidget() {
       ====================================================== */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-end justify-end p-0 sm:p-4 bg-black/30 backdrop-blur-xs sm:bg-transparent sm:backdrop-blur-none print:hidden pointer-events-none">
-          <div className="pointer-events-auto flex flex-col w-full sm:w-[350px] h-[78vh] sm:h-[480px] max-h-[500px] bg-white rounded-t-2xl sm:rounded-2xl border border-gray-200 shadow-xl overflow-hidden animate-in slide-in-from-bottom-3 duration-200">
+          <div className="pointer-events-auto relative flex flex-col w-full sm:w-[350px] h-[78vh] sm:h-[480px] max-h-[500px] bg-white rounded-t-2xl sm:rounded-2xl border border-gray-200 shadow-xl overflow-hidden animate-in slide-in-from-bottom-3 duration-200">
             {/* HEADER */}
             <div className="flex items-center justify-between bg-[#2E7D32] px-3 py-2 text-white">
               <div className="flex items-center gap-2">
@@ -504,51 +610,41 @@ export function MandimitraChatWidget() {
                     </h3>
                   </div>
                   <p className="text-[9.5px] text-emerald-100 font-medium">
-                    {language === "hi" ? "खरीद सहायक" : language === "bn" ? "সংগ্রহ সহকারী" : "Procurement"}
+                    {chatLanguage === "pa"
+                      ? "ਖਰੀਦ ਸਹਾਇਕ"
+                      : chatLanguage === "mr"
+                      ? "खरेदी सहाय्यक"
+                      : chatLanguage === "gu"
+                      ? "ખરીદ સહાયક"
+                      : chatLanguage === "te"
+                      ? "సేకరణ సహాయకుడు"
+                      : chatLanguage === "ta"
+                      ? "கொள்முதல் உதவியாளர்"
+                      : chatLanguage === "bn"
+                      ? "সংগ্রহ সহকারী"
+                      : chatLanguage === "en"
+                      ? "Procurement AI"
+                      : "खरीद सहायक"}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
-                {/* IN-CHAT LANGUAGE SWITCHER */}
-                <div className="flex items-center bg-black/20 rounded-lg p-0.5 text-[10px] font-bold border border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => handleLanguageChange("hi")}
-                    className={`px-1.5 py-0.5 rounded transition ${
-                      language === "hi"
-                        ? "bg-white text-[#2E7D32] shadow-xs font-black"
-                        : "text-emerald-100 hover:text-white"
+                {/* IN-CHAT MULTILINGUAL LANGUAGE SELECTOR TRIGGER */}
+                <button
+                  type="button"
+                  onClick={() => setShowLanguageMenu((prev) => !prev)}
+                  className="flex items-center gap-1 bg-black/25 hover:bg-black/35 active:bg-black/45 text-white text-[10.5px] font-bold px-2 py-1 rounded-lg border border-white/15 transition shadow-2xs"
+                  title="भाषा चुनें / Select Language"
+                >
+                  <Globe className="h-3 w-3 text-emerald-200" />
+                  <span>{SUPPORTED_LANGUAGES.find((l) => l.code === chatLanguage)?.nativeName || "हिन्दी"}</span>
+                  <ChevronDown
+                    className={`h-2.5 w-2.5 text-emerald-100 transition-transform duration-150 ${
+                      showLanguageMenu ? "rotate-180" : ""
                     }`}
-                    title="हिन्दी (Hindi)"
-                  >
-                    हिन्दी
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleLanguageChange("bn")}
-                    className={`px-1.5 py-0.5 rounded transition ${
-                      language === "bn"
-                        ? "bg-white text-[#2E7D32] shadow-xs font-black"
-                        : "text-emerald-100 hover:text-white"
-                    }`}
-                    title="বাংলা (Bengali)"
-                  >
-                    বাংলা
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleLanguageChange("en")}
-                    className={`px-1.5 py-0.5 rounded transition ${
-                      language === "en"
-                        ? "bg-white text-[#2E7D32] shadow-xs font-black"
-                        : "text-emerald-100 hover:text-white"
-                    }`}
-                    title="English"
-                  >
-                    EN
-                  </button>
-                </div>
+                  />
+                </button>
 
                 {/* AUTO-SPEAK TOGGLE */}
                 <button
@@ -569,6 +665,7 @@ export function MandimitraChatWidget() {
                 <button
                   onClick={() => {
                     stopSpeaking();
+                    setShowLanguageMenu(false);
                     setIsOpen(false);
                   }}
                   className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition text-white"
@@ -579,6 +676,82 @@ export function MandimitraChatWidget() {
               </div>
             </div>
 
+            {/* MULTILINGUAL LANGUAGE SELECTOR MODAL OVERLAY */}
+            {showLanguageMenu && (
+              <div className="absolute inset-x-0 top-[45px] bottom-0 z-40 bg-white/95 backdrop-blur-sm p-3 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                  <div className="flex items-center gap-1.5">
+                    <Globe className="h-4 w-4 text-[#2E7D32]" />
+                    <h4 className="font-bold text-xs text-gray-900">
+                      अपनी भाषा चुनें / Choose Language
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowLanguageMenu(false)}
+                    className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-gray-500 mt-1.5 mb-2 font-medium">
+                  8 प्रमुख भारतीय भाषाओं में संपूर्ण आवाज एवं मेनू सहायता:
+                </p>
+
+                <div className="grid grid-cols-2 gap-1.5 overflow-y-auto flex-1 pr-0.5">
+                  {SUPPORTED_LANGUAGES.map((item) => {
+                    const isSelected = chatLanguage === item.code;
+                    return (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          handleLanguageChange(item.code);
+                          setShowLanguageMenu(false);
+                        }}
+                        className={`flex items-center justify-between p-2 rounded-xl border text-left transition shadow-2xs ${
+                          isSelected
+                            ? "border-[#2E7D32] bg-[#E8F5E9] text-[#2E7D32] ring-1 ring-[#2E7D32]"
+                            : "border-gray-200 bg-white hover:border-[#2E7D32]/50 hover:bg-gray-50 text-gray-800"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs">{item.flag}</span>
+                            <span className="font-bold text-xs leading-tight">
+                              {item.nativeName}
+                            </span>
+                          </div>
+                          <p className="text-[9.5px] text-gray-500 mt-0.5 font-medium">
+                            {item.englishName}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`text-[8.5px] font-extrabold px-1 py-0.5 rounded ${
+                              isSelected
+                                ? "bg-[#2E7D32] text-white"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {item.badge}
+                          </span>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-[#2E7D32]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-2 pt-2 border-t border-gray-100 text-center">
+                  <p className="text-[9.5px] text-gray-400">
+                    💡 आप जिस भाषा में बोलेंगे या लिखेंगे, सहायक स्वतः पहचान कर उत्तर देगा।
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* QUICK ACTIONS ROW */}
             <div className="border-b border-gray-100 bg-gray-50/80 px-2.5 py-1.5">
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
@@ -587,7 +760,20 @@ export function MandimitraChatWidget() {
                     key={idx}
                     type="button"
                     disabled={loading || isRecordingNote}
-                    onClick={() => handleSend(action.prompt)}
+                    onClick={() => {
+                      if (
+                        action.prompt === "language" ||
+                        action.prompt === "भाषा" ||
+                        action.prompt === "ਬੋਲੀ" ||
+                        action.prompt === "ભાષા" ||
+                        action.prompt === "భాష" ||
+                        action.prompt === "மொழி"
+                      ) {
+                        setShowLanguageMenu((prev) => !prev);
+                      } else {
+                        handleSend(action.prompt);
+                      }
+                    }}
                     className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-700 shadow-2xs hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition disabled:opacity-50"
                   >
                     <span>{action.icon}</span>
@@ -866,13 +1052,43 @@ export function MandimitraChatWidget() {
                   {/* MAIN MENU SHORTCUT BUTTON */}
                   <button
                     type="button"
-                    onClick={() => handleSend(language === "hi" ? "मेनू" : language === "bn" ? "মেনু" : "menu")}
+                    onClick={() => {
+                      const menuWord =
+                        chatLanguage === "pa"
+                          ? "ਮੈਨੂ"
+                          : chatLanguage === "gu"
+                          ? "મેનુ"
+                          : chatLanguage === "te"
+                          ? "మెనూ"
+                          : chatLanguage === "ta"
+                          ? "பட்டியல்"
+                          : chatLanguage === "bn"
+                          ? "মেনু"
+                          : chatLanguage === "en"
+                          ? "menu"
+                          : "मेनू";
+                      handleSend(menuWord);
+                    }}
                     disabled={loading || isRecordingNote}
                     className="flex h-8 px-2 shrink-0 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition disabled:opacity-50 text-[11px] font-bold"
-                    title={language === "hi" ? "मुख्य मेनू खोलें" : language === "bn" ? "প্রধান মেনু" : "Open Main Menu"}
+                    title={chatLanguage === "en" ? "Open Main Menu" : "मुख्य मेनू खोलें"}
                   >
                     <LayoutGrid className="h-3.5 w-3.5 text-[#2E7D32]" />
-                    <span className="hidden sm:inline">{language === "hi" ? "मेनू" : language === "bn" ? "মেনু" : "Menu"}</span>
+                    <span className="hidden sm:inline">
+                      {chatLanguage === "pa"
+                        ? "ਮੈਨੂ"
+                        : chatLanguage === "gu"
+                        ? "મેનુ"
+                        : chatLanguage === "te"
+                        ? "మెనూ"
+                        : chatLanguage === "ta"
+                        ? "பட்டியல்"
+                        : chatLanguage === "bn"
+                        ? "মেনু"
+                        : chatLanguage === "en"
+                        ? "Menu"
+                        : "मेनू"}
+                    </span>
                   </button>
 
                   {/* TEXT INPUT */}
@@ -882,8 +1098,36 @@ export function MandimitraChatWidget() {
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={
                       isDictating
-                        ? t("assistant.listening") || "सुन रहा हूँ... बोलिए"
-                        : t("assistant.typePlaceholder") || "प्रश्न बोलें या लिखें..."
+                        ? chatLanguage === "pa"
+                          ? "ਸੁਣ ਰਿਹਾ ਹਾਂ... ਬੋਲੋ ਜੀ"
+                          : chatLanguage === "gu"
+                          ? "સાંભળી રહ્યો છું... બોલો"
+                          : chatLanguage === "mr"
+                          ? "ऐकत आहे... बोला"
+                          : chatLanguage === "te"
+                          ? "వింటున్నాను... మాట్లాడండి"
+                          : chatLanguage === "ta"
+                          ? "கேட்கிறேன்... பேசுங்கள்"
+                          : chatLanguage === "bn"
+                          ? "শুনছি... বলুন"
+                          : chatLanguage === "en"
+                          ? "Listening... please speak"
+                          : "सुन रहा हूँ... बोलिए"
+                        : chatLanguage === "pa"
+                        ? "ਸਵਾਲ ਬੋਲੋ ਜਾਂ ਲਿਖੋ..."
+                        : chatLanguage === "gu"
+                        ? "પ્રશ્ન બોલો અથવા લખો..."
+                        : chatLanguage === "mr"
+                        ? "प्रश्न बोला किंवा टाईप करा..."
+                        : chatLanguage === "te"
+                        ? "ప్రశ్న మాట్లాడండి లేదా టైప్ చేయండి..."
+                        : chatLanguage === "ta"
+                        ? "கேள்வியை பேசுங்கள் அல்லது தட்டச்சு செய்க..."
+                        : chatLanguage === "bn"
+                        ? "প্রশ্ন বলুন বা লিখুন..."
+                        : chatLanguage === "en"
+                        ? "Ask or speak your question..."
+                        : "प्रश्न बोलें या लिखें..."
                     }
                     className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#2E7D32] focus:outline-none focus:ring-1 focus:ring-[#2E7D32]"
                   />

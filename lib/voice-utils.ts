@@ -10,8 +10,19 @@ export interface SpeechRecognitionHandlers {
   onEnd: () => void;
 }
 
+const INDIAN_LOCALE_MAP: Record<string, string> = {
+  hi: "hi-IN",
+  en: "en-IN",
+  bn: "bn-IN",
+  pa: "pa-IN",
+  mr: "mr-IN",
+  gu: "gu-IN",
+  te: "te-IN",
+  ta: "ta-IN",
+};
+
 export function startSpeechRecognition(
-  language: "hi" | "en" | "bn",
+  language: string,
   handlers: SpeechRecognitionHandlers
 ): { stop: () => void } | null {
   if (typeof window === "undefined") return null;
@@ -28,8 +39,7 @@ export function startSpeechRecognition(
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang =
-      language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN";
+    recognition.lang = INDIAN_LOCALE_MAP[language] || "hi-IN";
 
     recognition.onresult = (event: any) => {
       let interimTranscript = "";
@@ -173,7 +183,7 @@ export class VoiceNoteRecorder {
 
 export function speakText(
   text: string,
-  language: "hi" | "en" | "bn" = "hi",
+  language: string = "hi",
   onEnd?: () => void
 ): { stop: () => void } {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -193,8 +203,7 @@ export function speakText(
     if (!cleanText) return { stop: () => {} };
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang =
-      language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN";
+    utterance.lang = INDIAN_LOCALE_MAP[language] || "hi-IN";
     utterance.rate = 0.95; // Slightly slower for crisp clarity
     utterance.pitch = 1.0;
 
