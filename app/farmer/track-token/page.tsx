@@ -25,6 +25,7 @@ import {
   Users,
   Wheat,
   X,
+  XCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -33,6 +34,7 @@ import { formatINR, getCropMspData } from "@/lib/msp-rates";
 import { subscribeProcurementUpdates, ProcurementSyncMessage } from "@/lib/cross-tab-sync";
 import { matchesBookingIdentifier, normalizeTokenClean } from "@/lib/procurement-store";
 import { Booking, BookingStatus } from "@/lib/types";
+import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
 
 type DisplayStatus =
   | "WAITING"
@@ -69,6 +71,7 @@ function TrackTokenContent() {
   const [searchError, setSearchError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [quickTokens, setQuickTokens] = useState<Array<{ token: string; name: string; crop: string }>>([]);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   // ============================================================
   // LOAD QUICK SUGGESTIONS FOR EASY SWITCHING
@@ -358,7 +361,9 @@ function TrackTokenContent() {
   const statusDescription = () => {
     switch (currentStatus) {
       case "CANCELLED":
-        return "This procurement was officially cancelled by the Mandi procurement officer. The slot has ended.";
+        return booking?.cancelledBy?.toLowerCase().includes("farmer")
+          ? "You have cancelled this procurement appointment. Your slot has been released."
+          : "This procurement was officially cancelled by the Mandi procurement officer. The slot has ended.";
       case "CALLED":
         return "Your token has been called by the Procurement Officer. Please proceed to the Mandi Gate & Unload Bay immediately.";
       case "VERIFIED":
@@ -371,6 +376,13 @@ function TrackTokenContent() {
         return "Your token is active in the queue. Please arrive around your recommended time.";
     }
   };
+
+  const canFarmerCancel = Boolean(
+    booking &&
+    currentStatus !== "CANCELLED" &&
+    currentStatus !== "PROCESSING" &&
+    currentStatus !== "COMPLETED"
+  );
 
   const statusRank = (status: DisplayStatus) => {
     switch (status) {
@@ -628,7 +640,9 @@ function TrackTokenContent() {
                       )}
                     </div>
                     <h2 className="mt-1.5 text-xl sm:text-2xl font-black text-red-950">
-                      {t("tracker.cancelledBanner", { token: String(booking.token || booking.tokenNumber || "") })}
+                      {booking.cancelledBy?.toLowerCase().includes("farmer")
+                        ? t("tracker.selfCancelledBanner", { token: String(booking.token || booking.tokenNumber || "") })
+                        : t("tracker.cancelledBanner", { token: String(booking.token || booking.tokenNumber || "") })}
                     </h2>
 
                     {/* REASON BOX */}
@@ -637,7 +651,7 @@ function TrackTokenContent() {
                         {t("tracker.cancellationReasonLabel")}
                       </p>
                       <p className="mt-1 text-base font-extrabold text-gray-900">
-                        {booking.cancellationReason || "Procurement cancelled by official"}
+                        {booking.cancellationReason || (booking.cancelledBy?.toLowerCase().includes("farmer") ? "Cancelled by farmer" : "Procurement cancelled by official")}
                       </p>
                       {booking.cancelledBy && (
                         <p className="mt-1.5 text-xs text-gray-500">
@@ -647,7 +661,9 @@ function TrackTokenContent() {
                     </div>
 
                     <p className="mt-3 text-sm text-red-900 leading-relaxed">
-                      {t("tracker.farmerCancelledGuidance")}
+                      {booking.cancelledBy?.toLowerCase().includes("farmer")
+                        ? t("tracker.farmerSelfCancelledGuidance")
+                        : t("tracker.farmerCancelledGuidance")}
                     </p>
                   </div>
                 </div>
@@ -792,6 +808,19 @@ function TrackTokenContent() {
                   <p className="mt-1 max-w-xl text-sm leading-6 text-white/80">
                     {statusDescription()}
                   </p>
+
+                  {canFarmerCancel && (
+                    <div className="mt-4 print:hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsCancelModalOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-red-600/90 hover:bg-red-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        {t("tracker.cancelMySlotBtn")}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* QUEUE POSITION METRICS */}
@@ -1102,13 +1131,26 @@ function TrackTokenContent() {
               FOOTER ACTIONS & LAST UPDATED
           ==================================================== */}
           <div className="mt-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
-            <button
-              onClick={() => router.push("/farmer/dashboard")}
-              className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-[#2E7D32] hover:text-[#2E7D32]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => router.push("/farmer/dashboard")}
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-[#2E7D32] hover:text-[#2E7D32]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t("common.backToDashboard") || "Back to Dashboard"}
+              </button>
+
+              {canFarmerCancel && (
+                <button
+                  type="button"
+                  onClick={() => setIsCancelModalOpen(true)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3.5 text-sm font-bold text-red-700 shadow-sm transition hover:bg-red-100 hover:border-red-300"
+                >
+                  <XCircle className="h-4 w-4 text-red-600" />
+                  {t("tracker.cancelMySlotBtn")}
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
               <Clock3 className="h-4 w-4 text-[#2E7D32]" />
@@ -1124,6 +1166,17 @@ function TrackTokenContent() {
           </div>
         </div>
       </section>
+
+      {/* FARMER CANCELLATION MODAL */}
+      <FarmerCancellationModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        booking={booking}
+        onCancelled={(updated) => {
+          setBooking(updated);
+          setLastUpdated(new Date());
+        }}
+      />
     </main>
   );
 }

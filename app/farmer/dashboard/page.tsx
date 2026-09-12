@@ -23,6 +23,7 @@ import {
   Truck,
   Users,
   Wheat,
+  XCircle,
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
@@ -41,6 +42,7 @@ import {
   CropCategory,
   formatINR,
 } from "@/lib/msp-rates";
+import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
 
 type Booking = {
   bookingId?: string;
@@ -103,6 +105,8 @@ export default function FarmerDashboard() {
 
   const [booking, setBooking] =
     useState<Booking | null>(null);
+
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   const [mspCategory, setMspCategory] = useState<string>("All");
   const [mspSearch, setMspSearch] = useState<string>("");
@@ -405,6 +409,7 @@ export default function FarmerDashboard() {
   };
 
   const isCancelled = booking ? getDisplayStatus() === "CANCELLED" : false;
+  const canFarmerCancel = Boolean(booking && !isCancelled && getDisplayStatus() !== "PROCESSING" && getDisplayStatus() !== "COMPLETED");
 
   // ============================================================
   // AUTH CHECK SCREEN
@@ -662,16 +667,29 @@ export default function FarmerDashboard() {
                 </div>
               </div>
 
-              {/* TRACK TOKEN */}
+              {/* ACTION BUTTONS */}
 
-              <button
-                onClick={handleTrackToken}
-                className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-4 text-sm font-bold text-[#2E7D32] transition hover:bg-gray-50 sm:w-fit"
-              >
-                {t("dashboard.trackTokenBtn")}
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleTrackToken}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-4 text-sm font-bold text-[#2E7D32] transition hover:bg-gray-50 sm:w-fit shadow-xs"
+                >
+                  {t("dashboard.trackTokenBtn")}
 
-                <ArrowRight className="h-5 w-5" />
-              </button>
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+
+                {canFarmerCancel && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-4 text-sm font-bold text-white transition hover:bg-white/20 sm:w-fit"
+                  >
+                    <XCircle className="h-4 w-4 text-white/80" />
+                    {t("farmerCancel.cancelSlotBtn")}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ) : (
@@ -912,6 +930,16 @@ export default function FarmerDashboard() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {canFarmerCancel && (
+                      <button
+                        type="button"
+                        onClick={() => setIsCancelModalOpen(true)}
+                        className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100 hover:border-red-300"
+                      >
+                        <XCircle className="h-4 w-4 text-red-600" />
+                        {t("farmerCancel.cancelSlotBtn")}
+                      </button>
+                    )}
                     {isCancelled && (
                       <button
                         onClick={handleBookSlot}
@@ -1142,6 +1170,16 @@ export default function FarmerDashboard() {
           </div>
         )}
       </section>
+
+      <FarmerCancellationModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        booking={booking}
+        onCancelled={(updated) => {
+          setBooking(updated);
+          setIsCancelModalOpen(false);
+        }}
+      />
     </main>
   );
 }

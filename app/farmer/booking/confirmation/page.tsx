@@ -1,19 +1,23 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Clock3,
   MapPin,
+  RotateCcw,
   Ticket,
   Sprout,
   Wheat,
+  XCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
 
 type Booking = {
   bookingId?: string;
@@ -49,6 +53,10 @@ type Booking = {
 
   arrivalTime?: string;
 
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: string | null;
+
   createdAt?: string;
   updatedAt?: string;
 };
@@ -62,6 +70,9 @@ export default function BookingConfirmationPage() {
 
   const [loading, setLoading] =
     useState(true);
+
+  const [isCancelModalOpen, setIsCancelModalOpen] =
+    useState(false);
 
   // ============================================================
   // LOAD BOOKING
@@ -262,6 +273,19 @@ export default function BookingConfirmationPage() {
     booking.status ??
     "WAITING";
 
+  const isCancelled =
+    status === "CANCELLED" ||
+    booking.status === "CANCELLED" ||
+    booking.queueStatus === "CANCELLED" ||
+    booking.procurementStatus === "CANCELLED";
+
+  const canFarmerCancel = Boolean(
+    booking &&
+    !isCancelled &&
+    status !== "PROCESSING" &&
+    status !== "COMPLETED"
+  );
+
   // ============================================================
   // MAIN UI
   // ============================================================
@@ -314,36 +338,78 @@ export default function BookingConfirmationPage() {
         <div className="mx-auto max-w-4xl">
 
           {/* ====================================================
-              SUCCESS HEADER
+              HEADER (CONFIRMED VS CANCELLED)
           ==================================================== */}
 
-          <div className="text-center">
+          {isCancelled ? (
+            <div className="rounded-3xl border-2 border-red-500 bg-red-50 p-6 sm:p-8 text-center shadow-sm">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-9 w-9 text-red-600" />
+              </div>
 
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F5E9]">
+              <p className="mt-5 text-sm font-bold uppercase tracking-wider text-red-600">
+                {t("tracker.cancelledHeader")}
+              </p>
 
-              <CheckCircle2 className="h-9 w-9 text-[#2E7D32]" />
+              <h1 className="mt-1 text-2xl font-black text-red-950 sm:text-3xl">
+                {booking.cancelledBy?.toLowerCase().includes("farmer")
+                  ? t("tracker.selfCancelledBanner", { token })
+                  : t("tracker.cancelledBanner", { token })}
+              </h1>
 
+              <div className="mx-auto mt-4 max-w-md rounded-2xl border border-red-200 bg-white p-4 text-left shadow-xs">
+                <p className="text-xs font-bold uppercase tracking-wider text-red-600">
+                  {t("tracker.cancellationReasonLabel")}
+                </p>
+                <p className="mt-1 font-extrabold text-gray-900">
+                  {booking.cancellationReason || "Cancelled by farmer"}
+                </p>
+                {booking.cancelledAt && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {t("tracker.cancelledAtLabel")}: {new Date(booking.cancelledAt).toLocaleString("en-IN")}
+                  </p>
+                )}
+              </div>
+
+              <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-red-900">
+                {booking.cancelledBy?.toLowerCase().includes("farmer")
+                  ? t("tracker.farmerSelfCancelledGuidance")
+                  : t("tracker.farmerCancelledGuidance")}
+              </p>
+
+              <button
+                onClick={() => router.push("/farmer/book-slot")}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition"
+              >
+                <RotateCcw className="h-4 w-4" />
+                {t("tracker.bookNewSlot")}
+              </button>
             </div>
+          ) : (
+            <div className="text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F5E9]">
+                <CheckCircle2 className="h-9 w-9 text-[#2E7D32]" />
+              </div>
 
-            <p className="mt-5 text-sm font-semibold text-[#2E7D32]">
-              {t("confirmation.title")}
-            </p>
+              <p className="mt-5 text-sm font-semibold text-[#2E7D32]">
+                {t("confirmation.title")}
+              </p>
 
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              {t("confirmation.subtitle")}
-            </h1>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                {t("confirmation.subtitle")}
+              </h1>
 
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
-              {t("confirmation.arrivalInstruction")}
-            </p>
-
-          </div>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
+                {t("confirmation.arrivalInstruction")}
+              </p>
+            </div>
+          )}
 
           {/* ====================================================
               TOKEN CARD
           ==================================================== */}
 
-          <div className="mt-8 overflow-hidden rounded-3xl bg-[#2E7D32] text-white shadow-sm">
+          <div className={`mt-8 overflow-hidden rounded-3xl text-white shadow-sm ${isCancelled ? "bg-[#374151]" : "bg-[#2E7D32]"}`}>
 
             <div className="p-7 text-center sm:p-10">
 
@@ -359,11 +425,11 @@ export default function BookingConfirmationPage() {
                 {token}
               </p>
 
-              <div className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-white/90">
+              <div className={`mx-auto mt-5 flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${isCancelled ? "bg-red-500 text-white" : "bg-white/10 text-white/90"}`}>
 
                 <CheckCircle2 className="h-4 w-4" />
 
-                {status}
+                {isCancelled ? "CANCELLED" : status}
 
               </div>
 
@@ -660,9 +726,20 @@ export default function BookingConfirmationPage() {
 
               <ArrowLeft className="h-4 w-4" />
 
-              Back to Dashboard
+              {t("confirmation.backToDashboard") || "Back to Dashboard"}
 
             </button>
+
+            {canFarmerCancel && (
+              <button
+                type="button"
+                onClick={() => setIsCancelModalOpen(true)}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3.5 text-sm font-bold text-red-700 shadow-sm transition hover:bg-red-100 hover:border-red-300"
+              >
+                <XCircle className="h-4 w-4 text-red-600" />
+                {t("farmerCancel.cancelSlotBtn") || "Cancel Slot"}
+              </button>
+            )}
 
             <button
               onClick={() => {
@@ -688,6 +765,15 @@ export default function BookingConfirmationPage() {
 
       </section>
 
+      {/* FARMER CANCELLATION MODAL */}
+      <FarmerCancellationModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        booking={booking}
+        onCancelled={(updated) => {
+          setBooking(updated);
+        }}
+      />
     </main>
   );
 }
