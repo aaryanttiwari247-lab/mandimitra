@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌾 MandiMitra - Smart Crop Procurement & AI Assistant Platform
 
-## Getting Started
+An intelligent, multilingual crop procurement platform designed to streamline agricultural produce operations, multi-crop slot booking, quality grading, and farmer assistance across India.
 
-First, run the development server:
+## 🚀 Key Features
 
+- **🌾 Multi-Crop Booking & Shared Token Series**:
+  - Book slots for single or multiple crops (Wheat, Paddy, Mustard, Maize, etc.) under a single unified token (e.g., `#BHO-113`).
+  - Automatic collision-free token generation per procurement centre.
+- **🤖 MandiMitra AI Voice & Chat Assistant**:
+  - **Dual Engine**: Google Gemini 2.5 Flash API integration with automatic fallback to a deterministic smart rule engine (zero API key needed).
+  - **9 Grounded Tools**: Real-time token tracking, queue rank, centre wait times, MSP pricing, weighbridge data, DBT payment status, and dispute logging with zero hallucination.
+  - **Voice Messaging Suite**: Microphone recording (`MediaRecorder` API) with custom audio message bubble player, Speech-to-Text dictation, and auto-speak voice responses.
+  - **Multilingual Support**: Real-time UI and voice localization in Hindi (हिंदी), Bengali (বাংলা), and English.
+- **🏢 Official Procurement Portal**:
+  - Verification & QC grading, weighbridge gross/tare recording, multi-crop batch inspection, and DBT payment dispatch.
+  - Official cancellation with validated audit reasons (invalid info, quality mismatch, no-show) with instant live alerts to farmers.
+- **🧑‍🌾 Farmer Self-Service**:
+  - Live token tracker with visual step progression, queue countdown, estimated wait time, and farmer-side cancellation.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org) + React 19
+- **Styling**: Tailwind CSS 4 + Lucide Icons
+- **Database & ORM**: PostgreSQL + Prisma ORM
+- **AI & NLP**: Google Gemini 2.5 Flash REST API + Web Speech API (STT/TTS) + Web Audio MediaRecorder
+
+---
+
+## ⚙️ Getting Started
+
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+Configure your PostgreSQL `DATABASE_URL` and optionally provide `GEMINI_API_KEY`:
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/smart_procurement?schema=public"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Optional: Google Gemini API Key for AI Assistant (fallback engine works out-of-the-box)
+GEMINI_API_KEY="your_gemini_api_key_here"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Run Database Migrations
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-## Learn More
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📦 Production Build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm run start
+```
