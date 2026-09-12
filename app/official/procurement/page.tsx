@@ -613,7 +613,7 @@ function ProcurementContent() {
           </div>
 
           <p className="mt-4 text-sm font-medium text-gray-600">
-            Loading procurement details...
+            {t("official.loadingFarmerDetails")}
           </p>
 
         </div>
@@ -673,7 +673,7 @@ function ProcurementContent() {
             </div>
 
             <h1 className="mt-6 text-2xl font-bold text-gray-900">
-              Booking Not Found
+              {t("official.bookingNotFound")}
             </h1>
 
             <p className="mt-2 text-sm text-gray-600">
@@ -688,7 +688,7 @@ function ProcurementContent() {
               }
               className="mt-6 w-full rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white hover:bg-[#256428]"
             >
-              Return to Dashboard
+              {t("official.returnToDashboard")}
             </button>
 
           </div>
@@ -756,15 +756,15 @@ function ProcurementContent() {
           <div className="mb-7">
 
             <p className="text-sm font-medium text-[#2E7D32]">
-              Procurement Officer
+              {t("official.procurementOfficer")}
             </p>
 
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Procurement Processing
+              {t("official.procurementProcessing")}
             </h1>
 
             <p className="mt-2 text-gray-600">
-              Manage the procurement process for the farmer.
+              {t("official.procurementProcessingSubtitle")}
             </p>
 
           </div>
@@ -786,7 +786,7 @@ function ProcurementContent() {
 
                     <Ticket className="h-5 w-5" />
 
-                    PROCUREMENT TOKEN
+                    {t("official.smartTokenHeader")}
 
                   </div>
 
@@ -797,12 +797,12 @@ function ProcurementContent() {
                   <p className="mt-3 text-sm text-white/80">
 
                     {booking.farmerName ??
-                      "Farmer"}{" "}
+                      t("common.farmer")}{" "}
 
                     •{" "}
 
                     {booking.crop ??
-                      "Crop not specified"}
+                      ""}
 
                   </p>
 
@@ -812,7 +812,7 @@ function ProcurementContent() {
                 <div className="rounded-2xl bg-white/10 p-5">
 
                   <p className="text-xs text-white/70">
-                    Current Status
+                    {t("official.currentStatusLabel")}
                   </p>
 
                   <p className="mt-1 text-xl font-bold text-white">
@@ -835,7 +835,7 @@ function ProcurementContent() {
           <div className="mt-7">
 
             <h2 className="text-xl font-bold text-gray-900">
-              Farmer Details
+              {t("official.farmerInfoTitle")}
             </h2>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -844,10 +844,10 @@ function ProcurementContent() {
                 icon={
                   <User className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Farmer"
+                label={t("common.farmer")}
                 value={
                   booking.farmerName ??
-                  "Farmer"
+                  t("common.farmer")
                 }
               />
 
@@ -855,7 +855,7 @@ function ProcurementContent() {
                 icon={
                   <Ticket className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Farmer ID"
+                label={t("official.farmerId")}
                 value={
                   booking.farmerId ??
                   "Not available"
@@ -866,7 +866,7 @@ function ProcurementContent() {
                 icon={
                   <MapPin className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Centre"
+                label={t("official.procurementCentre")}
                 value={
                   booking.centre ??
                   "Not available"
@@ -885,7 +885,7 @@ function ProcurementContent() {
           <div className="mt-7">
 
             <h2 className="text-xl font-bold text-gray-900">
-              Procurement Details
+              {t("official.procurementDetailsTitle")}
             </h2>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -894,7 +894,7 @@ function ProcurementContent() {
                 icon={
                   <Wheat className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Crop"
+                label={t("official.crop")}
                 value={
                   booking.crop ??
                   "Not available"
@@ -905,12 +905,12 @@ function ProcurementContent() {
                 icon={
                   <Truck className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Quantity"
+                label={t("official.quantity")}
                 value={
                   booking.actualQuantity
-                    ? `${booking.actualQuantity} Quintals (Weighed)`
+                    ? `${booking.actualQuantity} ${t("common.quintals")}`
                     : booking.quantity
-                    ? `${booking.quantity} Quintals`
+                    ? `${booking.quantity} ${t("common.quintals")}`
                     : "Not available"
                 }
               />
@@ -919,11 +919,11 @@ function ProcurementContent() {
                 icon={
                   <Award className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Assigned Quality Grade"
+                label={t("official.assignedGrade")}
                 value={
                   booking.cropGrade
                     ? `${booking.cropGrade}`
-                    : (currentStatus === "VERIFIED" ? `${selectedGrade} (Pending Start)` : "Pending Grading")
+                    : (currentStatus === "VERIFIED" ? `${selectedGrade}` : t("official.pendingGrading"))
                 }
               />
 
@@ -931,11 +931,11 @@ function ProcurementContent() {
                 icon={
                   <IndianRupee className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="MSP Rate Applied"
+                label={t("official.mspRateApplied")}
                 value={
                   booking.mspRate
-                    ? `₹${booking.mspRate.toLocaleString("en-IN")} / quintal`
-                    : `₹${livePayoutCalc.ratePerQuintal.toLocaleString("en-IN")} / quintal`
+                    ? `₹${booking.mspRate.toLocaleString("en-IN")} / ${t("common.quintals")}`
+                    : `₹${livePayoutCalc.ratePerQuintal.toLocaleString("en-IN")} / ${t("common.quintals")}`
                 }
               />
 
@@ -943,7 +943,7 @@ function ProcurementContent() {
                 icon={
                   <Clock3 className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Time Slot"
+                label={t("official.timeSlot")}
                 value={
                   booking.fullTime ??
                   booking.time ??
@@ -1348,24 +1348,24 @@ function ProcurementContent() {
                         <p className="text-xs font-semibold text-gray-500">Certified Weight</p>
                         <p className="mt-1 text-xl font-bold text-gray-900">
                           {booking.actualQuantity || booking.quantity || 0}{" "}
-                          <span className="text-xs font-normal text-gray-500">Quintals</span>
+                          <span className="text-xs font-normal text-gray-500">{t("common.quintals")}</span>
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-xs font-semibold text-gray-500">Applied MSP Rate</p>
+                        <p className="text-xs font-semibold text-gray-500">{t("official.mspRateApplied")}</p>
                         <p className="mt-1 text-xl font-extrabold text-[#2E7D32]">
                           ₹{(booking.mspRate || livePayoutCalc.ratePerQuintal).toLocaleString("en-IN")}{" "}
-                          <span className="text-xs font-normal text-gray-500">/ quintal</span>
+                          <span className="text-xs font-normal text-gray-500">/ {t("common.quintals")}</span>
                         </p>
                       </div>
 
                       <div className="rounded-xl bg-[#E8F5E9] p-3.5 border border-[#CDE8D0]">
-                        <p className="text-xs font-bold text-[#2E7D32] uppercase tracking-wider">Total Farmer Payout</p>
+                        <p className="text-xs font-bold text-[#2E7D32] uppercase tracking-wider">{t("tracker.totalPayout")}</p>
                         <p className="mt-1 text-2xl font-black text-[#2E7D32]">
                           {formatINR(booking.totalPayout || livePayoutCalc.totalPayout)}
                         </p>
-                        <p className="mt-0.5 text-[11px] text-[#2E7D32]/80">Transferred via PFMS / DBT</p>
+                        <p className="mt-0.5 text-[11px] text-[#2E7D32]/80">{t("tracker.creditedAadhaar")}</p>
                       </div>
                     </div>
                   </div>
@@ -1391,7 +1391,7 @@ function ProcurementContent() {
 
             <ArrowLeft className="h-4 w-4" />
 
-            Back to Official Dashboard
+            {t("official.backToDashboard")}
 
           </button>
 

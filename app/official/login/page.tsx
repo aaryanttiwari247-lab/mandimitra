@@ -166,11 +166,11 @@ export default function OfficialLoginPage() {
             </div>
 
             <h1 className="mt-5 text-3xl font-bold tracking-tight text-gray-900">
-              Official Login
+              {t("official.loginTitle")}
             </h1>
 
             <p className="mt-2 text-sm leading-6 text-gray-600">
-              Sign in to manage your procurement centre and farmer queue.
+              {t("official.loginSubtitle")}
             </p>
 
           </div>
@@ -194,7 +194,7 @@ export default function OfficialLoginPage() {
                   htmlFor="officialId"
                   className="mb-2 block text-sm font-semibold text-gray-800"
                 >
-                  Official ID
+                  {t("official.officialId")}
                 </label>
 
                 <div className="relative">
@@ -208,7 +208,7 @@ export default function OfficialLoginPage() {
                     onChange={(e) =>
                       setOfficialId(e.target.value)
                     }
-                    placeholder="Enter your official ID"
+                    placeholder={t("official.enterOfficialId")}
                     autoComplete="username"
                     className="w-full rounded-xl border border-gray-300 bg-white py-3.5 pl-12 pr-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                   />
@@ -226,7 +226,7 @@ export default function OfficialLoginPage() {
                   htmlFor="password"
                   className="mb-2 block text-sm font-semibold text-gray-800"
                 >
-                  Password
+                  {t("official.password")}
                 </label>
 
                 <div className="relative">
@@ -244,7 +244,7 @@ export default function OfficialLoginPage() {
                     onChange={(e) =>
                       setPassword(e.target.value)
                     }
-                    placeholder="Enter your password"
+                    placeholder={t("official.enterPassword")}
                     autoComplete="current-password"
                     className="w-full rounded-xl border border-gray-300 bg-white py-3.5 pl-12 pr-12 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                   />
@@ -294,7 +294,7 @@ export default function OfficialLoginPage() {
                   />
 
                   <span className="text-sm text-gray-600">
-                    Remember me
+                    {t("official.rememberMe")}
                   </span>
 
                 </label>
@@ -309,7 +309,7 @@ export default function OfficialLoginPage() {
                   }
                   className="text-sm font-medium text-[#2E7D32] hover:underline"
                 >
-                  Forgot password?
+                  {t("official.forgotPassword")}
                 </button>
 
               </div>
@@ -341,8 +341,8 @@ export default function OfficialLoginPage() {
                 <ShieldCheck className="h-5 w-5" />
 
                 {isLoggingIn
-                  ? "Signing In..."
-                  : "Sign In"}
+                  ? t("official.signingIn")
+                  : t("official.signIn")}
 
               </button>
 
@@ -356,21 +356,21 @@ export default function OfficialLoginPage() {
             <div className="mt-6 rounded-xl border border-[#CDE8D0] bg-[#F1F8F2] p-4">
 
               <p className="text-xs font-bold uppercase tracking-wide text-[#2E7D32]">
-                Development Login
+                {t("official.devLoginTitle")}
               </p>
 
               <div className="mt-2 space-y-1 text-sm text-gray-700">
 
                 <p>
                   <span className="font-semibold">
-                    Official ID:
+                    {t("official.officialId")}:
                   </span>{" "}
                   OFF001
                 </p>
 
                 <p>
                   <span className="font-semibold">
-                    Password:
+                    {t("official.password")}:
                   </span>{" "}
                   admin123
                 </p>
@@ -378,9 +378,7 @@ export default function OfficialLoginPage() {
               </div>
 
               <p className="mt-2 text-xs leading-5 text-gray-500">
-                These credentials are for development only.
-                Real official authentication will be connected
-                to the backend later.
+                {t("official.devLoginNotice")}
               </p>
 
             </div>
@@ -396,9 +394,7 @@ export default function OfficialLoginPage() {
 
                 <p className="text-xs leading-5 text-gray-500">
 
-                  This portal is intended only for authorized
-                  procurement centre officials. Do not share
-                  your login credentials with anyone.
+                  {t("official.securityNotice")}
 
                 </p>
 
@@ -413,7 +409,7 @@ export default function OfficialLoginPage() {
 
           <p className="mt-6 text-center text-xs text-gray-500">
 
-            Smart Procurement • Official Access Portal
+            {t("official.officialFooter")}
 
           </p>
 

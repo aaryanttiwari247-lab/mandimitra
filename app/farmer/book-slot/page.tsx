@@ -507,7 +507,7 @@ export default function BookProcurementSlot() {
           </div>
 
           <p className="mt-4 text-sm font-medium text-gray-600">
-            Checking your account...
+            {t("common.loading")}
           </p>
         </div>
       </main>
@@ -529,7 +529,7 @@ export default function BookProcurementSlot() {
             className="flex items-center gap-2 text-sm font-medium text-gray-700 transition hover:text-[#2E7D32]"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t("common.back")}
           </button>
 
           <div className="flex items-center gap-3">
@@ -550,16 +550,15 @@ export default function BookProcurementSlot() {
 
           <div>
             <p className="text-sm font-medium text-[#2E7D32]">
-              Farmer Portal
+              {t("auth.farmerPortal")}
             </p>
 
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#111827]">
-              Book Procurement Slot
+              {t("booking.title")}
             </h1>
 
             <p className="mt-2 text-base text-gray-600">
-              Choose your crop, quantity, procurement centre and preferred
-              time slot.
+              {t("booking.subtitle")}
             </p>
           </div>
 
@@ -579,7 +578,7 @@ export default function BookProcurementSlot() {
                         {t("booking.aiRecommendation")}
                       </span>
                       <h3 className="text-lg font-bold text-gray-900">
-                        Recommended: {smartRec.bestCentre.name}
+                        {t("booking.recommendedTitle", { centre: smartRec.bestCentre.name })}
                       </h3>
                     </div>
                   </div>
@@ -593,23 +592,23 @@ export default function BookProcurementSlot() {
 
                 <div className="mt-4 grid gap-4 rounded-2xl border border-gray-200/80 bg-white/80 p-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Optimal Centre</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("booking.optimalCentre")}</p>
                     <p className="mt-1 font-bold text-gray-900">{smartRec.bestCentre.name}</p>
                     <p className="mt-0.5 text-xs text-gray-600">
-                      {smartRec.bestCentre.distanceKm} km away • {smartRec.bestCentre.baysAvailable} bays active
+                      {smartRec.bestCentre.distanceKm} {t("booking.kmAway")} • {smartRec.bestCentre.baysAvailable} {t("booking.baysActive")}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Suggested Timing Slot</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("booking.suggestedSlot")}</p>
                     <p className="mt-1 font-bold text-gray-900">{smartRec.recommendedSlot.timeWindow}</p>
                     <p className="mt-0.5 text-xs text-[#2E7D32] font-semibold">
-                      {smartRec.recommendedSlot.availableSeats} slots available
+                      {t("booking.slotsAvailable", { count: smartRec.recommendedSlot.availableSeats })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dynamic Estimated Wait</p>
-                    <p className="mt-1 text-xl font-bold text-[#2E7D32]">~{smartRec.bestCentre.estimatedWaitMinutes} mins</p>
-                    <p className="mt-0.5 text-xs text-gray-500">Live queue: {smartRec.bestCentre.activeQueueCount} farmers</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("booking.estimatedWaitTime")}</p>
+                    <p className="mt-1 text-xl font-bold text-[#2E7D32]">~{smartRec.bestCentre.estimatedWaitMinutes} {t("common.minutes")}</p>
+                    <p className="mt-0.5 text-xs text-gray-500">{t("booking.liveQueueCount", { count: smartRec.bestCentre.activeQueueCount })}</p>
                   </div>
                 </div>
 
@@ -636,7 +635,7 @@ export default function BookProcurementSlot() {
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
               <h2 className="text-xl font-bold text-[#111827]">
-                1. Procurement Details
+                {t("booking.step1Title")}
               </h2>
 
               {/* CROP */}
@@ -644,10 +643,10 @@ export default function BookProcurementSlot() {
               <div className="mt-7">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-gray-800">
-                    Crop (MSP Supported)
+                    {t("booking.cropLabel")}
                   </label>
                   <span className="text-xs font-bold text-[#2E7D32]">
-                    Base MSP: ₹{selectedCropMsp.standardMsp.toLocaleString("en-IN")} / quintal
+                    {t("booking.baseMspLabel", { msp: selectedCropMsp.standardMsp.toLocaleString("en-IN") })}
                   </span>
                 </div>
 
@@ -671,7 +670,7 @@ export default function BookProcurementSlot() {
                 <div className="mt-3 rounded-2xl border border-[#CDE8D0] bg-[#F1F8F2] p-3.5 text-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-bold text-[#2E7D32]">
-                      Quality Grade Rates (₹/quintal):
+                      {t("booking.qualityGradeRates")}
                     </span>
                     <span className="text-gray-700">
                       Grade A: <strong>₹{selectedCropMsp.grades["Grade A"].price.toLocaleString("en-IN")}</strong> • Grade D: <strong>₹{selectedCropMsp.grades["Grade D"].price.toLocaleString("en-IN")}</strong>
@@ -679,7 +678,7 @@ export default function BookProcurementSlot() {
                   </div>
                   {Number(quantity) > 0 && (
                     <div className="mt-2 pt-2 border-t border-[#CDE8D0] flex items-center justify-between text-gray-700">
-                      <span>Estimated Payout ({quantity} qtl @ Base MSP):</span>
+                      <span>{t("booking.estimatedPayout", { quantity })}</span>
                       <strong className="text-sm font-black text-[#2E7D32]">
                         {formatINR(Number(quantity) * selectedCropMsp.standardMsp)}
                       </strong>
@@ -692,7 +691,7 @@ export default function BookProcurementSlot() {
 
               <div className="mt-6">
                 <label className="text-sm font-semibold text-gray-800">
-                  Expected Quantity
+                  {t("booking.quantityLabel")}
                 </label>
 
                 <div className="mt-2 flex overflow-hidden rounded-xl border border-gray-300 focus-within:border-[#2E7D32] focus-within:ring-2 focus-within:ring-[#2E7D32]/10">
@@ -701,12 +700,12 @@ export default function BookProcurementSlot() {
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
-                    placeholder="Enter quantity"
+                    placeholder={t("booking.quantityPlaceholder")}
                     className="w-full bg-transparent px-4 py-3.5 text-base font-medium text-black placeholder:text-gray-500 outline-none"
                   />
 
                   <div className="flex items-center border-l border-gray-200 bg-gray-50 px-4 text-sm font-medium text-gray-700">
-                    Quintals
+                    {t("common.quintals")}
                   </div>
                 </div>
               </div>
@@ -715,7 +714,7 @@ export default function BookProcurementSlot() {
 
               <div className="mt-6">
                 <label className="text-sm font-semibold text-gray-800">
-                  Procurement Date
+                  {t("booking.procurementDate")}
                 </label>
 
                 <div className="relative mt-2">
@@ -738,21 +737,21 @@ export default function BookProcurementSlot() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="text-xl font-bold text-[#111827]">
-                    2. Location & Procurement Centre
+                    {t("booking.step2Title")}
                   </h2>
                   <p className="mt-1 text-sm text-gray-500">
-                    Select your location to view allotted procurement centres.
+                    {t("booking.step2Subtitle")}
                   </p>
                 </div>
                 <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
-                  {LOCATIONS_DATA.length} Locations Available
+                  {t("booking.locationsAvailable", { count: LOCATIONS_DATA.length })}
                 </span>
               </div>
 
               {/* LOCATION SELECTOR */}
               <div className="mt-5">
                 <label className="text-sm font-semibold text-gray-800">
-                  Select Location / District
+                  {t("booking.selectLocation")}
                 </label>
                 <div className="relative mt-2">
                   <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#2E7D32]" />
@@ -763,7 +762,7 @@ export default function BookProcurementSlot() {
                   >
                     {LOCATIONS_DATA.map((loc) => (
                       <option key={loc.id} value={loc.name}>
-                        {loc.name} ({loc.state}) — {loc.centresCount} Centres Allotted
+                        {loc.name} ({loc.state}) — {t("booking.centresAllotted", { count: loc.centresCount })}
                       </option>
                     ))}
                   </select>
@@ -774,10 +773,10 @@ export default function BookProcurementSlot() {
               <div className="mt-6">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Allotted Centres for {selectedLocation} ({availableCentres.length})
+                    {t("booking.allottedCentresFor", { location: selectedLocation, count: availableCentres.length })}
                   </label>
                   <span className="text-xs text-gray-500">
-                    Showing local mandi terminals
+                    {t("booking.showingTerminals")}
                   </span>
                 </div>
 
@@ -811,7 +810,7 @@ export default function BookProcurementSlot() {
 
                               {centre.recommended && (
                                 <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-bold text-[#2E7D32]">
-                                  Recommended
+                                  {t("booking.recommendedBadge")}
                                 </span>
                               )}
                             </div>
@@ -822,11 +821,11 @@ export default function BookProcurementSlot() {
 
                             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
                               <span className="rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700">
-                                Bays: <strong className="text-gray-900">{centre.bays}</strong>
+                                {t("booking.bays")}: <strong className="text-gray-900">{centre.bays}</strong>
                               </span>
 
                               <span className="rounded-md bg-emerald-50 px-2 py-1 font-medium text-emerald-800">
-                                Est. Wait: <strong className="text-emerald-900">~{centre.baseWaitMinutes} min</strong>
+                                {t("booking.estWait")}: <strong className="text-emerald-900">~{centre.baseWaitMinutes} {t("common.minutes")}</strong>
                               </span>
 
                               {centre.contactNumber && (
@@ -853,11 +852,11 @@ export default function BookProcurementSlot() {
 
               <div>
                 <h2 className="text-xl font-bold">
-                  3. Select Time Slot
+                  {t("booking.step3Title")}
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  Available slots for your selected centre.
+                  {t("booking.step3Subtitle")}
                 </p>
               </div>
             </div>
@@ -902,8 +901,8 @@ export default function BookProcurementSlot() {
                       }`}
                     >
                       {full
-                        ? "FULL"
-                        : `${slot.available} slots available`}
+                        ? t("booking.noSlots")
+                        : t("booking.slotsAvailable", { count: slot.available })}
                     </p>
                   </button>
                 );
@@ -915,12 +914,11 @@ export default function BookProcurementSlot() {
 
           <div className="mt-6 rounded-2xl border border-[#FDE7C2] bg-[#FFF9EF] p-5">
             <p className="font-semibold text-[#92400E]">
-              Smart Recommendation
+              {t("booking.aiRecommendation")}
             </p>
 
             <p className="mt-1 text-sm leading-6 text-[#A16207]">
-              {selectedCentreData?.name} currently has the lowest estimated
-              waiting time. We recommend the 10:30 AM – 11:00 AM slot.
+              {t("booking.recDescription", { centre: selectedCentreData?.name || "" })}
             </p>
           </div>
 
@@ -932,8 +930,8 @@ export default function BookProcurementSlot() {
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2E7D32] px-5 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading
-              ? "Generating Smart Token..."
-              : "Confirm Procurement Slot"}
+              ? t("booking.bookingInProgress")
+              : t("booking.confirmBooking")}
 
             {!loading && (
               <ArrowRight className="h-5 w-5" />

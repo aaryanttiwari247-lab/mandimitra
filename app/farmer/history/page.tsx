@@ -500,15 +500,15 @@ export default function FarmerHistoryPage() {
         <div>
 
           <p className="text-sm font-medium text-[#2E7D32]">
-            Farmer Portal
+            {t("auth.farmerPortal")}
           </p>
 
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Booking History
+            {t("history.title")}
           </h1>
 
           <p className="mt-2 text-base text-gray-600">
-            View your previous and current procurement bookings.
+            {t("history.subtitle")}
           </p>
 
         </div>
@@ -529,12 +529,11 @@ export default function FarmerHistoryPage() {
             </div>
 
             <h2 className="mt-5 text-xl font-bold text-gray-900">
-              No bookings yet
+              {t("history.noBookings")}
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-600">
-              You have not made any procurement bookings yet.
-              Book a procurement slot to receive your smart token.
+              {t("history.noBookingsDesc")}
             </p>
 
             <button
@@ -546,7 +545,7 @@ export default function FarmerHistoryPage() {
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#256428]"
             >
 
-              Book Procurement Slot
+              {t("booking.title")}
 
               <ArrowRight className="h-4 w-4" />
 
@@ -595,7 +594,7 @@ export default function FarmerHistoryPage() {
                         <div>
 
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            Smart Token
+                            {t("confirmation.tokenLabel")}
                           </p>
 
                           <div className="mt-1 flex items-center gap-3">
@@ -657,7 +656,7 @@ export default function FarmerHistoryPage() {
 
                           <MapPin className="h-4 w-4 text-[#2E7D32]" />
 
-                          Procurement Centre
+                          {t("tracker.centreDetails")}
 
                         </div>
 
@@ -677,7 +676,7 @@ export default function FarmerHistoryPage() {
 
                           <Wheat className="h-4 w-4 text-[#2E7D32]" />
 
-                          Crop
+                          {t("booking.cropLabel")}
 
                         </div>
 
@@ -697,7 +696,7 @@ export default function FarmerHistoryPage() {
 
                           <Truck className="h-4 w-4 text-[#2E7D32]" />
 
-                          Quantity
+                          {t("booking.quantityLabel")}
 
                         </div>
 
@@ -706,7 +705,7 @@ export default function FarmerHistoryPage() {
                           {booking.quantity ??
                             0}{" "}
 
-                          Quintals
+                          {t("common.quintals")}
 
                         </p>
 
@@ -721,7 +720,7 @@ export default function FarmerHistoryPage() {
 
                           <Clock3 className="h-4 w-4 text-[#2E7D32]" />
 
-                          Time Slot
+                          {t("booking.suggestedSlot")}
 
                         </div>
 
@@ -753,7 +752,7 @@ export default function FarmerHistoryPage() {
                             <div>
 
                               <span className="text-gray-500">
-                                Recommended arrival:
+                                {t("tracker.scheduledWindow")}:
                               </span>{" "}
 
                               <span className="font-semibold text-gray-900">
@@ -769,7 +768,7 @@ export default function FarmerHistoryPage() {
                             <div>
 
                               <span className="text-gray-500">
-                                Queue position:
+                                {t("tracker.queuePosition")}:
                               </span>{" "}
 
                               <span className="font-semibold text-gray-900">
@@ -785,11 +784,11 @@ export default function FarmerHistoryPage() {
                             <div>
 
                               <span className="text-gray-500">
-                                Estimated wait:
+                                {t("tracker.estimatedWait")}:
                               </span>{" "}
 
                               <span className="font-semibold text-gray-900">
-                                ~{booking.waitTime} min
+                                ~{booking.waitTime} {t("common.minutes")}
                               </span>
 
                             </div>
@@ -810,7 +809,7 @@ export default function FarmerHistoryPage() {
                           className="flex items-center justify-center gap-2 rounded-xl border border-[#2E7D32] bg-white px-5 py-3 text-sm font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9]"
                         >
 
-                          Track Token
+                          {t("history.trackToken")}
 
                           <ArrowRight className="h-4 w-4" />
 

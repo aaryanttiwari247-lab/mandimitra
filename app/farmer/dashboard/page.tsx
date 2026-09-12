@@ -486,11 +486,11 @@ export default function FarmerDashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-[#2E7D32]">
-                Farmer Dashboard
+                {t("dashboard.portalTitle")}
               </p>
 
               <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                {t("dashboard.welcomeBack")}, {farmer?.name || "Farmer"}
+                {t("dashboard.welcomeBack")}, {farmer?.name || t("common.farmer")}
               </h1>
 
               <p className="mt-2 text-gray-600">
@@ -542,10 +542,7 @@ export default function FarmerDashboard() {
                   </div>
 
                   <p className="mt-3 max-w-xl text-sm leading-6 text-white/85">
-                    Your procurement token is active.
-                    Track your position in the queue
-                    and arrive at the centre around
-                    your recommended time.
+                    {t("dashboard.tokenActiveDesc")}
                   </p>
                 </div>
 
@@ -559,7 +556,7 @@ export default function FarmerDashboard() {
 
                     <div>
                       <p className="text-xs text-white/70">
-                        Farmers Ahead
+                        {t("dashboard.farmersAhead")}
                       </p>
 
                       <p className="mt-1 text-2xl font-bold text-white">
@@ -575,8 +572,8 @@ export default function FarmerDashboard() {
                   <div className="mt-4 flex items-center gap-2 text-sm text-white/80">
                     <Clock3 className="h-4 w-4" />
 
-                    Estimated wait: ~
-                    {booking.waitTime || 0} min
+                    {t("dashboard.estimatedWait")}: ~
+                    {booking.waitTime || 0} {t("common.minutes")}
                   </div>
                 </div>
               </div>
@@ -599,7 +596,7 @@ export default function FarmerDashboard() {
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-gray-500">
                   <Ticket className="h-5 w-5 text-[#2E7D32]" />
-                  NO ACTIVE PROCUREMENT TOKEN
+                  {t("dashboard.noActiveToken")}
                 </div>
 
                 <h2 className="mt-2 text-2xl font-bold text-gray-900">
@@ -629,7 +626,7 @@ export default function FarmerDashboard() {
         <div className="mt-8">
           <div className="mb-4">
             <h2 className="text-xl font-bold text-gray-900">
-              Quick Actions
+              {t("dashboard.quickActions")}
             </h2>
 
             <p className="mt-1 text-sm text-gray-600">
@@ -649,16 +646,15 @@ export default function FarmerDashboard() {
               </div>
 
               <h3 className="mt-4 font-bold text-gray-900">
-                Book Procurement Slot
+                {t("dashboard.bookSlotActionTitle")}
               </h3>
 
               <p className="mt-1 text-sm leading-5 text-gray-600">
-                Choose a centre, date and preferred
-                procurement time.
+                {t("dashboard.bookSlotActionDesc")}
               </p>
 
               <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#2E7D32]">
-                Book Now
+                {t("dashboard.bookNow")}
 
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
               </div>
@@ -675,16 +671,15 @@ export default function FarmerDashboard() {
               </div>
 
               <h3 className="mt-4 font-bold text-gray-900">
-                Track My Token
+                {t("dashboard.trackActionTitle")}
               </h3>
 
               <p className="mt-1 text-sm leading-5 text-gray-600">
-                See your live queue position and
-                estimated waiting time.
+                {t("dashboard.trackActionDesc")}
               </p>
 
               <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#2E7D32]">
-                Track Now
+                {t("dashboard.trackNow")}
 
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
               </div>
@@ -698,11 +693,11 @@ export default function FarmerDashboard() {
 
         <div className="mt-8">
           <h2 className="text-xl font-bold text-gray-900">
-            Current Booking
+            {t("dashboard.currentBooking")}
           </h2>
 
           <p className="mt-1 text-sm text-gray-600">
-            Details of your upcoming procurement appointment.
+            {t("dashboard.currentBookingDesc")}
           </p>
 
           {booking ? (
@@ -714,7 +709,7 @@ export default function FarmerDashboard() {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <MapPin className="h-4 w-4 text-[#2E7D32]" />
 
-                    Procurement Centre
+                    {t("tracker.centreDetails")}
                   </div>
 
                   <p className="mt-2 font-bold text-gray-900">
@@ -729,7 +724,7 @@ export default function FarmerDashboard() {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <CalendarDays className="h-4 w-4 text-[#2E7D32]" />
 
-                    Date
+                    {t("common.date")}
                   </div>
 
                   <p className="mt-2 font-bold text-gray-900">
@@ -743,7 +738,7 @@ export default function FarmerDashboard() {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Wheat className="h-4 w-4 text-[#2E7D32]" />
 
-                    Crop
+                    {t("booking.cropLabel")}
                   </div>
 
                   <p className="mt-2 font-bold text-gray-900">
@@ -758,11 +753,11 @@ export default function FarmerDashboard() {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Truck className="h-4 w-4 text-[#2E7D32]" />
 
-                    Quantity
+                    {t("booking.quantityLabel")}
                   </div>
 
                   <p className="mt-2 font-bold text-gray-900">
-                    {booking.actualQuantity ?? booking.quantity ?? 0} Quintals
+                    {booking.actualQuantity ?? booking.quantity ?? 0} {t("common.quintals")}
                     {booking.actualQuantity ? " (Weighed)" : ""}
                   </p>
                 </div>
@@ -840,7 +835,7 @@ export default function FarmerDashboard() {
                     onClick={handleTrackToken}
                     className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256428]"
                   >
-                    View Live Queue
+                    {t("dashboard.trackTokenBtn")}
 
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -852,19 +847,18 @@ export default function FarmerDashboard() {
               <CalendarDays className="mx-auto h-10 w-10 text-gray-400" />
 
               <h3 className="mt-3 font-bold text-gray-900">
-                No current booking
+                {t("dashboard.noActiveToken")}
               </h3>
 
               <p className="mt-1 text-sm text-gray-500">
-                Book a procurement slot to see your
-                appointment details here.
+                {t("dashboard.noTokenDesc")}
               </p>
 
               <button
                 onClick={handleBookSlot}
                 className="mt-5 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-semibold text-white hover:bg-[#256428]"
               >
-                Book Procurement Slot
+                {t("dashboard.bookSlotBtn")}
               </button>
             </div>
           )}

@@ -216,13 +216,11 @@ export default function BookingConfirmationPage() {
             </div>
 
             <h1 className="mt-5 text-2xl font-bold text-gray-900">
-              No Booking Found
+              {t("confirmation.noBookingFound")}
             </h1>
 
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              We could not find an active procurement
-              booking. Please book a procurement slot
-              first.
+              {t("confirmation.noBookingDesc")}
             </p>
 
             <button
@@ -233,7 +231,7 @@ export default function BookingConfirmationPage() {
               }
               className="mt-6 rounded-xl bg-[#2E7D32] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#256428]"
             >
-              Book Procurement Slot
+              {t("confirmation.bookSlotBtn")}
             </button>
 
           </div>
@@ -328,17 +326,15 @@ export default function BookingConfirmationPage() {
             </div>
 
             <p className="mt-5 text-sm font-semibold text-[#2E7D32]">
-              Booking Confirmed
+              {t("confirmation.title")}
             </p>
 
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Your Procurement Slot is Booked
+              {t("confirmation.subtitle")}
             </h1>
 
             <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
-              Keep your Smart Token safe. You can use
-              it to track your position at the
-              procurement centre.
+              {t("confirmation.arrivalInstruction")}
             </p>
 
           </div>
@@ -355,7 +351,7 @@ export default function BookingConfirmationPage() {
 
                 <Ticket className="h-5 w-5" />
 
-                SMART TOKEN
+                {t("confirmation.tokenLabel")}
 
               </div>
 
@@ -376,7 +372,7 @@ export default function BookingConfirmationPage() {
             <div className="border-t border-white/10 bg-black/5 px-6 py-4 text-center">
 
               <p className="text-sm text-white/80">
-                Please arrive at the centre around
+                {t("confirmation.arrivalNotice")}
               </p>
 
               <p className="mt-1 text-lg font-bold">
@@ -411,11 +407,11 @@ export default function BookingConfirmationPage() {
                 <div>
 
                   <h2 className="text-xl font-bold text-gray-900">
-                    Procurement Details
+                    {t("confirmation.centreDetails")}
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    Your submitted crop information
+                    {t("confirmation.cropInfoDesc")}
                   </p>
 
                 </div>
@@ -427,7 +423,7 @@ export default function BookingConfirmationPage() {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-4">
 
                   <span className="text-sm text-gray-500">
-                    Crop
+                    {t("booking.cropLabel")}
                   </span>
 
                   <span className="font-semibold text-gray-900">
@@ -440,13 +436,13 @@ export default function BookingConfirmationPage() {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-4">
 
                   <span className="text-sm text-gray-500">
-                    Quantity
+                    {t("booking.quantityLabel")}
                   </span>
 
                   <span className="font-semibold text-gray-900">
                     {booking.quantity ??
                       0}{" "}
-                    Quintals
+                    {t("common.quintals")}
                   </span>
 
                 </div>
@@ -499,7 +495,7 @@ export default function BookingConfirmationPage() {
                 <div>
 
                   <h2 className="text-xl font-bold text-gray-900">
-                    Procurement Centre
+                    {t("tracker.centreDetails")}
                   </h2>
 
                   <p className="text-sm text-gray-500">
@@ -566,7 +562,7 @@ export default function BookingConfirmationPage() {
               <div>
 
                 <p className="text-sm font-semibold text-gray-500">
-                  QUEUE POSITION
+                  {t("tracker.queuePosition")}
                 </p>
 
                 <p className="mt-1 text-3xl font-bold text-[#2E7D32]">
@@ -576,9 +572,9 @@ export default function BookingConfirmationPage() {
                 </p>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  Estimated wait:{" "}
+                  {t("tracker.estimatedWait")}:{" "}
                   {booking.waitTime
-                    ? `${booking.waitTime} minutes`
+                    ? `${booking.waitTime} ${t("common.minutes")}`
                     : "—"}
                 </p>
 
@@ -593,7 +589,7 @@ export default function BookingConfirmationPage() {
                 className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256428]"
               >
 
-                Track My Token
+                {t("confirmation.trackTokenBtn")}
 
                 <ArrowRight className="h-4 w-4" />
 

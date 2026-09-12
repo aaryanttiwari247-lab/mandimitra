@@ -181,7 +181,7 @@ export default function FarmerRegister() {
             className="flex items-center gap-2 text-sm font-medium text-gray-600 transition hover:text-[#2E7D32]"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Login
+            {t("register.backToLogin")}
           </Link>
 
 <LanguageSelector />
@@ -196,7 +196,7 @@ export default function FarmerRegister() {
             </div>
 
             <h1 className="mt-5 text-3xl font-bold text-[#1F2933]">
-              Farmer Registration
+              {t("register.title")}
             </h1>
 
             <p className="mt-2 text-gray-600">
@@ -223,7 +223,7 @@ export default function FarmerRegister() {
                     setName(e.target.value);
                     setMessage("");
                   }}
-                  placeholder="e.g. Ramesh Kumar Patel"
+                  placeholder={t("register.fullNamePlaceholder")}
                   className="w-full rounded-xl border border-gray-300 bg-white py-3.5 pl-11 pr-4 text-sm font-medium text-black placeholder:text-gray-400 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                 />
               </div>

@@ -479,7 +479,7 @@ function VerifyContent() {
           </div>
 
           <p className="mt-4 text-sm font-medium text-gray-600">
-            Loading farmer details...
+            {t("official.loadingFarmerDetails")}
           </p>
 
         </div>
@@ -534,7 +534,7 @@ function VerifyContent() {
             </div>
 
             <h1 className="mt-6 text-2xl font-bold text-gray-900">
-              Booking Not Found
+              {t("official.bookingNotFound")}
             </h1>
 
             <p className="mt-2 text-sm leading-6 text-gray-600">
@@ -549,7 +549,7 @@ function VerifyContent() {
               }
               className="mt-6 w-full rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428]"
             >
-              Return to Dashboard
+              {t("official.returnToDashboard")}
             </button>
 
           </div>
@@ -616,15 +616,15 @@ function VerifyContent() {
           <div className="mb-7">
 
             <p className="text-sm font-medium text-[#2E7D32]">
-              Procurement Officer
+              {t("official.procurementOfficer")}
             </p>
 
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Farmer Verification
+              {t("official.verificationTitle")}
             </h1>
 
             <p className="mt-2 text-gray-600">
-              Verify the farmer and booking details before procurement begins.
+              {t("official.verificationSubtitle")}
             </p>
 
           </div>
@@ -645,7 +645,7 @@ function VerifyContent() {
 
                     <Ticket className="h-5 w-5" />
 
-                    SMART PROCUREMENT TOKEN
+                    {t("official.smartTokenHeader")}
 
                   </div>
 
@@ -654,7 +654,7 @@ function VerifyContent() {
                   </div>
 
                   <p className="mt-3 text-sm text-white/80">
-                    Verification required before procurement
+                    {t("official.verificationRequired")}
                   </p>
 
                 </div>
@@ -662,7 +662,7 @@ function VerifyContent() {
                 <div className="rounded-2xl bg-white/10 px-6 py-5">
 
                   <p className="text-xs text-white/70">
-                    Current Status
+                    {t("official.currentStatusLabel")}
                   </p>
 
                   <p className="mt-1 text-xl font-bold text-white">
@@ -684,7 +684,7 @@ function VerifyContent() {
           <div className="mt-7">
 
             <h2 className="text-xl font-bold text-gray-900">
-              Farmer Information
+              {t("official.farmerInfoTitle")}
             </h2>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -693,7 +693,7 @@ function VerifyContent() {
                 icon={
                   <User className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Farmer Name"
+                label={t("official.farmerName")}
                 value={
                   booking.farmerName ??
                   "Not available"
@@ -704,7 +704,7 @@ function VerifyContent() {
                 icon={
                   <Ticket className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Farmer ID"
+                label={t("official.farmerId")}
                 value={
                   booking.farmerId ??
                   "Not available"
@@ -715,7 +715,7 @@ function VerifyContent() {
                 icon={
                   <User className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Mobile Number"
+                label={t("official.mobileNumber")}
                 value={
                   booking.farmerMobile ??
                   "Not available"
@@ -726,7 +726,7 @@ function VerifyContent() {
                 icon={
                   <MapPin className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Procurement Centre"
+                label={t("official.procurementCentre")}
                 value={
                   booking.centre ??
                   "Not available"
@@ -737,7 +737,7 @@ function VerifyContent() {
                 icon={
                   <CalendarDays className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Booking Date"
+                label={t("official.bookingDate")}
                 value={formatDate(
                   booking.date
                 )}
@@ -747,7 +747,7 @@ function VerifyContent() {
                 icon={
                   <Clock3 className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Time Slot"
+                label={t("official.timeSlot")}
                 value={
                   booking.fullTime ??
                   booking.time ??
@@ -766,7 +766,7 @@ function VerifyContent() {
           <div className="mt-7">
 
             <h2 className="text-xl font-bold text-gray-900">
-              Procurement Details
+              {t("official.procurementDetailsTitle")}
             </h2>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -775,7 +775,7 @@ function VerifyContent() {
                 icon={
                   <Wheat className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Crop"
+                label={t("official.crop")}
                 value={
                   booking.crop ??
                   "Not available"
@@ -786,10 +786,10 @@ function VerifyContent() {
                 icon={
                   <Truck className="h-5 w-5 text-[#2E7D32]" />
                 }
-                label="Quantity"
+                label={t("official.quantity")}
                 value={
                   booking.quantity
-                    ? `${booking.quantity} Quintals`
+                    ? `${booking.quantity} ${t("common.quintals")}`
                     : "Not available"
                 }
               />
@@ -805,29 +805,29 @@ function VerifyContent() {
           <div className="mt-7 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
 
             <h2 className="text-xl font-bold text-gray-900">
-              Verification Checklist
+              {t("official.checklistTitle")}
             </h2>
 
             <p className="mt-1 text-sm text-gray-600">
-              Confirm that the booking information matches the farmer&apos;s details.
+              {t("official.checklistSubtitle")}
             </p>
 
             <div className="mt-6 space-y-3">
 
               <CheckItem
-                text="Farmer identity matches the booking"
+                text={t("official.checkIdentity")}
               />
 
               <CheckItem
-                text="Farmer ID is valid"
+                text={t("official.checkValidId")}
               />
 
               <CheckItem
-                text="Crop and quantity match the booking"
+                text={t("official.checkProduce")}
               />
 
               <CheckItem
-                text="Procurement centre and time slot are correct"
+                text={t("official.checkCentre")}
               />
 
             </div>
@@ -854,12 +854,11 @@ function VerifyContent() {
                   <div>
 
                     <h2 className="text-lg font-bold text-gray-900">
-                      Ready for Verification
+                      {t("official.readyForVerification")}
                     </h2>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600">
-                      Review the farmer and procurement details above.
-                      Once everything is correct, verify the farmer to allow procurement to begin.
+                      {t("official.readyForVerificationDesc")}
                     </p>
 
                   </div>
@@ -875,8 +874,8 @@ function VerifyContent() {
                   <CheckCircle2 className="h-5 w-5" />
 
                   {verifying
-                    ? "Verifying Farmer..."
-                    : "Verify Farmer"}
+                    ? t("official.verifyingFarmer")
+                    : t("official.verifyFarmerBtn")}
 
                 </button>
 
@@ -903,16 +902,11 @@ function VerifyContent() {
                   <div>
 
                     <h2 className="text-lg font-bold text-gray-900">
-                      Farmer Already Verified
+                      {t("official.farmerVerified")}
                     </h2>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600">
-                      Token{" "}
-                      <strong>
-                        {booking.token}
-                      </strong>{" "}
-                      has already been verified.
-                      You can proceed to procurement.
+                      {t("official.farmerVerifiedDesc")}
                     </p>
 
                   </div>
@@ -930,7 +924,7 @@ function VerifyContent() {
                   className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428]"
                 >
 
-                  Continue to Procurement
+                  {t("official.proceedToProcurement")}
 
                   <ArrowLeft className="h-5 w-5 rotate-180" />
 
@@ -954,11 +948,11 @@ function VerifyContent() {
                   <div>
 
                     <h2 className="text-lg font-bold text-gray-900">
-                      Verification Completed
+                      {t("official.farmerVerified")}
                     </h2>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600">
-                      This booking has already moved beyond the verification stage.
+                      {t("official.farmerVerifiedDesc")}
                     </p>
 
                   </div>
@@ -976,7 +970,7 @@ function VerifyContent() {
                   className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428]"
                 >
 
-                  Open Procurement
+                  {t("official.proceedToProcurement")}
 
                   <ArrowLeft className="h-5 w-5 rotate-180" />
 
@@ -1002,7 +996,7 @@ function VerifyContent() {
 
             <ArrowLeft className="h-4 w-4" />
 
-            Back to Official Dashboard
+            {t("official.backToDashboard")}
 
           </button>
 

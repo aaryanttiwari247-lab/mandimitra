@@ -819,16 +819,15 @@ export default function OfficialDashboardPage() {
         <div className="mb-7">
 
           <p className="text-sm font-semibold text-[#2E7D32]">
-            Official Portal
+            {t("official.portalTitle")}
           </p>
 
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Procurement Dashboard
+            {t("official.procurementDashboard")}
           </h1>
 
           <p className="mt-2 text-gray-600">
-            Monitor farmers, verify tokens and manage
-            procurement at your centre.
+            {t("official.dashboardSubtitle")}
           </p>
 
         </div>
@@ -845,16 +844,15 @@ export default function OfficialDashboardPage() {
 
               <div className="flex items-center gap-2 text-sm font-bold">
                 <span className="h-2.5 w-2.5 rounded-full bg-white" />
-                CENTRE STATUS
+                {t("official.centreStatus")}
               </div>
 
               <h2 className="mt-5 text-3xl font-bold sm:text-4xl">
-                Procurement is Active
+                {t("official.procurementActive")}
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
-                Farmers with active tokens are currently
-                being processed at this procurement centre.
+                {t("official.procurementActiveDesc")}
               </p>
 
             </div>
@@ -862,7 +860,7 @@ export default function OfficialDashboardPage() {
             <div className="min-w-[185px] rounded-2xl bg-white/10 p-5">
 
               <p className="text-sm text-white/70">
-                Current Token
+                {t("official.currentToken")}
               </p>
 
               <p className="mt-1 text-4xl font-bold text-white">
@@ -872,7 +870,7 @@ export default function OfficialDashboardPage() {
               <p className="mt-2 text-sm font-medium text-white/80">
                 {currentFarmer
                   ? getStatus(currentFarmer)
-                  : "NO ACTIVE TOKEN"}
+                  : t("official.noActiveToken")}
               </p>
 
             </div>
@@ -891,7 +889,7 @@ export default function OfficialDashboardPage() {
             icon={
               <Users className="h-6 w-6 text-[#2E7D32]" />
             }
-            label="Farmers Waiting"
+            label={t("official.farmersWaiting")}
             value={farmersWaiting}
             tag="LIVE"
           />
@@ -900,7 +898,7 @@ export default function OfficialDashboardPage() {
             icon={
               <PackageCheck className="h-6 w-6 text-[#2E7D32]" />
             }
-            label="Processed Today"
+            label={t("official.processedToday")}
             value={processedToday}
             tag="TODAY"
           />
@@ -909,7 +907,7 @@ export default function OfficialDashboardPage() {
             icon={
               <CheckCircle2 className="h-6 w-6 text-[#2E7D32]" />
             }
-            label="Completed"
+            label={t("official.completed")}
             value={completedToday}
             tag="TODAY"
           />
@@ -918,8 +916,8 @@ export default function OfficialDashboardPage() {
             icon={
               <Clock3 className="h-6 w-6 text-[#2E7D32]" />
             }
-            label="Average Wait"
-            value={`${averageWait} min`}
+            label={t("official.averageWait")}
+            value={`${averageWait} ${t("common.minutes")}`}
             tag="ESTIMATE"
           />
 
@@ -935,10 +933,10 @@ export default function OfficialDashboardPage() {
               <div>
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Warehouse className="h-5 w-5 text-[#2E7D32]" />
-                  Allotted Procurement Centres & Yard Queue
+                  {t("official.allottedCentresTitle")}
                 </h3>
                 <p className="mt-1 text-sm text-gray-600">
-                  Select location or centre to monitor farmers divided by their allotted procurement yard.
+                  {t("official.allottedCentresSubtitle")}
                 </p>
               </div>
 

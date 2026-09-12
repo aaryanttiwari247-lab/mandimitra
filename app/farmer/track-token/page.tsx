@@ -421,7 +421,7 @@ function TrackTokenContent() {
               className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32]"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+              {t("common.backToDashboard")}
             </button>
             <div className="flex items-center gap-3">
               <LanguageSelector />
@@ -532,7 +532,7 @@ function TrackTokenContent() {
             className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32]"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t("common.backToDashboard")}
           </button>
           <div className="flex items-center gap-3">
             <LanguageSelector />
@@ -565,13 +565,13 @@ function TrackTokenContent() {
                   type="submit"
                   className="rounded-xl bg-[#2E7D32] px-4 py-2 text-xs sm:text-sm font-bold text-white transition hover:bg-[#256428]"
                 >
-                  Switch
+                  {t("tracker.switchBtn")}
                 </button>
               </form>
 
               {/* QUICK TOKEN PILLS */}
               <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-                <span className="text-gray-400 font-medium shrink-0">Quick Switch:</span>
+                <span className="text-gray-400 font-medium shrink-0">{t("tracker.quickSwitch")}:</span>
                 {quickTokens.map((item) => {
                   const isActive =
                     matchesBookingIdentifier(booking, item.token) ||
@@ -609,14 +609,14 @@ function TrackTokenContent() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-md bg-orange-600 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
-                      Action Required
+                      {t("tracker.actionRequired")}
                     </span>
                     <span className="text-xs font-bold text-orange-800">
                       Called at {booking.calledAt ? new Date(booking.calledAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }) : "Just now"}
                     </span>
                   </div>
                   <h2 className="mt-1 text-xl sm:text-2xl font-black text-orange-950">
-                    🔔 Token #{booking.token} Called — Proceed to Mandi Gate!
+                    {t("tracker.tokenCalledBanner", { token: String(booking.token || booking.tokenNumber || "") })}
                   </h2>
                   <p className="mt-1 text-sm text-orange-900">
                     The Procurement Officer is ready at <strong>{booking.centre}</strong>. Please drive your loaded vehicle to the inspection bay and present your token card.
@@ -636,14 +636,14 @@ function TrackTokenContent() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
-                      Clearance Granted
+                      {t("tracker.clearanceGranted")}
                     </span>
                     <span className="text-xs font-bold text-blue-800">
                       {booking.verifiedBy || "Procurement Officer Verified"}
                     </span>
                   </div>
                   <h2 className="mt-1 text-xl sm:text-2xl font-black text-blue-950">
-                    ✅ Documents & Produce Registration Verified
+                    {t("tracker.documentsVerifiedBanner")}
                   </h2>
                   <p className="mt-1 text-sm text-blue-900">
                     Your Aadhaar, land records, and produce declaration have been verified. Weighbridge and quality assessment are being prepared.
@@ -663,10 +663,10 @@ function TrackTokenContent() {
                   </div>
                   <div>
                     <span className="rounded-md bg-[#2E7D32] px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
-                      Procurement Finalized
+                      {t("tracker.procurementFinalized")}
                     </span>
                     <h2 className="mt-1 text-xl sm:text-2xl font-black text-gray-900">
-                      🎉 Procurement Complete & DBT Disbursal Authorized!
+                      {t("tracker.procurementCompleteBanner")}
                     </h2>
                     <p className="mt-1 text-sm text-gray-700">
                       Total payment of <strong className="text-[#2E7D32] font-black">{formatINR(booking.totalPayout || 0)}</strong> has been approved for Direct Bank Transfer.
@@ -678,7 +678,7 @@ function TrackTokenContent() {
                   className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-bold text-white hover:bg-[#256428] shadow-sm shrink-0"
                 >
                   <Printer className="h-4 w-4" />
-                  Print J-Form Receipt
+                  {t("tracker.printReceipt")}
                 </button>
               </div>
             </div>
@@ -693,7 +693,7 @@ function TrackTokenContent() {
                 <div>
                   <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
                     <Ticket className="h-5 w-5" />
-                    SMART PROCUREMENT TOKEN
+                    {t("tracker.smartTokenTitle")}
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -731,14 +731,14 @@ function TrackTokenContent() {
                 <div className="rounded-2xl bg-white/10 p-5 lg:min-w-[290px]">
                   <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <p className="text-xs text-white/70">Queue Position</p>
+                      <p className="text-xs text-white/70">{t("tracker.queuePosition")}</p>
                       <p className="mt-1 text-3xl font-black text-white">
                         {currentStatus === "WAITING" ? `#${queuePosition}` : "Serving"}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-white/70">Farmers Ahead</p>
+                      <p className="text-xs text-white/70">{t("tracker.farmersAhead")}</p>
                       <p className="mt-1 text-3xl font-black text-white">
                         {currentStatus === "WAITING" ? farmersAhead : 0}
                       </p>
@@ -748,7 +748,7 @@ function TrackTokenContent() {
                   <div className="mt-4 flex items-center gap-2 text-sm text-white/80">
                     <Clock3 className="h-4 w-4" />
                     {currentStatus === "WAITING"
-                      ? `Estimated wait: ~${estimatedWait} min`
+                      ? `${t("tracker.estimatedWait")}: ~${estimatedWait} ${t("common.minutes")}`
                       : currentStatus === "COMPLETED"
                       ? "Completed successfully"
                       : "Counter active"}
@@ -761,7 +761,7 @@ function TrackTokenContent() {
                 <div className="flex items-center gap-3 text-white">
                   <Clock3 className="h-5 w-5 shrink-0" />
                   <div>
-                    <p className="text-xs text-white/70">Scheduled Window / Arrival</p>
+                    <p className="text-xs text-white/70">{t("tracker.scheduledWindow")}</p>
                     <p className="mt-0.5 font-bold">
                       {booking.arrivalTime ?? booking.time ?? "Slot time"} ({booking.fullTime || booking.time})
                     </p>
@@ -789,17 +789,17 @@ function TrackTokenContent() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-wider text-[#2E7D32]">
-                        Weighbridge & Quality Grade Certification
+                        {t("tracker.weighbridgeCert")}
                       </span>
                       <span className="rounded-md bg-[#2E7D32] px-2 py-0.5 text-xs font-black text-white">
                         {booking.cropGrade || "Grade A"}
                       </span>
                     </div>
                     <p className="mt-1 text-lg font-black text-gray-900">
-                      {booking.crop} • {booking.actualQuantity || booking.quantity || 0} Quintals @ ₹{(booking.mspRate || cropMspInfo.standardMsp).toLocaleString("en-IN")}/quintal
+                      {booking.crop} • {booking.actualQuantity || booking.quantity || 0} {t("common.quintals")} @ ₹{(booking.mspRate || cropMspInfo.standardMsp).toLocaleString("en-IN")}/quintal
                     </p>
                     <p className="text-xs text-gray-600">
-                      Payment Status:{" "}
+                      {t("tracker.paymentStatus")}:{" "}
                       <strong className="text-[#2E7D32] uppercase">
                         {currentStatus === "COMPLETED" ? "APPROVED FOR DIRECT BANK TRANSFER (DBT)" : "CALCULATED & PENDING COMPLETION"}
                       </strong>
@@ -809,12 +809,12 @@ function TrackTokenContent() {
 
                 <div className="text-left sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-[#CDE8D0]">
                   <p className="text-xs font-bold uppercase tracking-wider text-[#2E7D32]">
-                    Total Farmer Payout
+                    {t("tracker.totalPayout")}
                   </p>
                   <p className="mt-0.5 text-3xl font-black text-[#2E7D32]">
                     {formatINR(booking.totalPayout || (booking.mspRate || cropMspInfo.standardMsp) * (booking.actualQuantity || booking.quantity || 0))}
                   </p>
-                  <p className="text-[11px] text-gray-500">Credited to Aadhaar-linked Bank A/C</p>
+                  <p className="text-[11px] text-gray-500">{t("tracker.creditedAadhaar")}</p>
                 </div>
               </div>
             </div>
@@ -829,10 +829,10 @@ function TrackTokenContent() {
                 <div>
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#2E7D32]">
                     <ShieldCheck className="h-4 w-4" />
-                    Government of India • Ministry of Agriculture
+                    {t("tracker.govHeader")}
                   </div>
                   <h3 className="mt-1 text-2xl font-black text-gray-900">
-                    Official Mandi Procurement Receipt (J-Form)
+                    {t("tracker.receiptTitle")}
                   </h3>
                   <p className="text-xs text-gray-500">
                     Receipt Ref: MandiMitra-REC-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
@@ -843,7 +843,7 @@ function TrackTokenContent() {
                   className="flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 print:hidden"
                 >
                   <Printer className="h-4 w-4 text-[#2E7D32]" />
-                  Print Receipt
+                  {t("tracker.printReceipt")}
                 </button>
               </div>
 
