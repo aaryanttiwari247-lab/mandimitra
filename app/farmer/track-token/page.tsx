@@ -62,7 +62,7 @@ function TrackTokenContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tokenParam = searchParams.get("token");
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -344,11 +344,64 @@ function TrackTokenContent() {
     return getCropMspData(booking?.crop);
   }, [booking?.crop]);
 
+  const localizeCrop = (cropName?: string) => {
+    if (!cropName) return "";
+    const key = `crops.${cropName}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+    return cropName;
+  };
+
+  const localizeStatus = (status: DisplayStatus) => {
+    switch (status) {
+      case "WAITING":
+        return t("tracker.statusWaiting");
+      case "CALLED":
+        return t("tracker.statusCalled");
+      case "VERIFIED":
+        return t("tracker.statusVerified");
+      case "PROCESSING":
+        return t("tracker.statusProcessing");
+      case "COMPLETED":
+        return t("tracker.statusCompleted");
+      case "CANCELLED":
+        return t("tracker.statusCancelled");
+      default:
+        return status;
+    }
+  };
+
+  const localizeCentre = (centreName?: string) => {
+    if (!centreName) return "";
+    if (language === "hi") {
+      return centreName
+        .replace(/Procurement Centre/gi, "खरीद केंद्र")
+        .replace(/Mandi/gi, "मंडी")
+        .replace(/Lakshmipur/gi, "लक्ष्मीपुर")
+        .replace(/Bhopal/gi, "भोपाल")
+        .replace(/Sehore/gi, "सीहोर")
+        .replace(/Indore/gi, "इंदौर")
+        .replace(/Kota/gi, "कोटा");
+    }
+    if (language === "bn") {
+      return centreName
+        .replace(/Procurement Centre/gi, "সংগ্রহ কেন্দ্র")
+        .replace(/Mandi/gi, "মান্ডি")
+        .replace(/Lakshmipur/gi, "লক্ষ্মীপুর")
+        .replace(/Bhopal/gi, "ভোপাল")
+        .replace(/Sehore/gi, "সিহোর")
+        .replace(/Indore/gi, "ইন্দোর")
+        .replace(/Kota/gi, "কোটা");
+    }
+    return centreName;
+  };
+
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "Not available";
+    if (!dateString) return t("common.notAvailable");
     try {
       const date = new Date(`${dateString}T00:00:00`);
-      return date.toLocaleDateString("en-IN", {
+      const locale = language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN";
+      return date.toLocaleDateString(locale, {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -362,18 +415,18 @@ function TrackTokenContent() {
     switch (currentStatus) {
       case "CANCELLED":
         return booking?.cancelledBy?.toLowerCase().includes("farmer")
-          ? "You have cancelled this procurement appointment. Your slot has been released."
-          : "This procurement was officially cancelled by the Mandi procurement officer. The slot has ended.";
+          ? t("tracker.statusDescSelfCancelled")
+          : t("tracker.statusDescOfficialCancelled");
       case "CALLED":
-        return "Your token has been called by the Procurement Officer. Please proceed to the Mandi Gate & Unload Bay immediately.";
+        return t("tracker.statusDescCalled");
       case "VERIFIED":
-        return "Farmer identity and crop registration have been officially verified. Proceed to quality assessment and weighbridge.";
+        return t("tracker.statusDescVerified");
       case "PROCESSING":
-        return "Produce is being inspected, quality graded, and weighed on the weighbridge. Live payout is calculated.";
+        return t("tracker.statusDescProcessing");
       case "COMPLETED":
-        return "Procurement successfully completed. Direct Bank Transfer (DBT) has been authorized to your Aadhaar-linked bank account.";
+        return t("tracker.statusDescCompleted");
       default:
-        return "Your token is active in the queue. Please arrive around your recommended time.";
+        return t("tracker.statusDescWaiting");
     }
   };
 
@@ -468,11 +521,11 @@ function TrackTokenContent() {
               </div>
 
               <h1 className="mt-6 text-2xl font-bold text-gray-900">
-                Track Procurement Token
+                {t("tracker.title")}
               </h1>
 
               <p className="mt-2 text-sm leading-6 text-gray-600">
-                Enter your Smart Token number (e.g. <strong>A101</strong>, <strong>A102</strong>) or registered Mobile Number to track live queue status and official procurement progress.
+                {t("tracker.subtitle")}
               </p>
 
               {/* SEARCH INPUT */}
@@ -493,7 +546,7 @@ function TrackTokenContent() {
                     disabled={searching || !searchInput.trim()}
                     className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#256428] disabled:opacity-50"
                   >
-                    Track Now
+                    {t("booking.trackNow") || "Track Now"}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -503,7 +556,7 @@ function TrackTokenContent() {
               {quickTokens.length > 0 && (
                 <div className="mt-6 border-t border-gray-100 pt-5 text-left">
                   <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                    Quick Track Active Tokens:
+                    {t("tracker.quickSwitch")}:
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {quickTokens.map((item) => (
@@ -523,13 +576,13 @@ function TrackTokenContent() {
 
               <div className="mt-8 border-t border-gray-100 pt-6">
                 <p className="text-xs text-gray-500">
-                  Don&apos;t have a token yet?
+                  {t("booking.suggestedSlot")}
                 </p>
                 <button
                   onClick={() => router.push("/farmer/book-slot")}
                   className="mt-2 inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:border-[#2E7D32] hover:text-[#2E7D32]"
                 >
-                  Book Procurement Slot
+                  {t("tracker.bookNewSlot")}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -578,7 +631,7 @@ function TrackTokenContent() {
                     type="text"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder={`Currently tracking #${booking.token || booking.tokenNumber}. Search another...`}
+                    placeholder={t("tracker.searchPlaceholder", { token: String(booking.token || booking.tokenNumber || "") })}
                     className="w-full rounded-xl border border-gray-300 pl-10 pr-4 py-2 text-xs sm:text-sm font-semibold text-gray-900 focus:border-[#2E7D32] focus:outline-none focus:ring-1 focus:ring-[#2E7D32]"
                   />
                 </div>
@@ -797,19 +850,19 @@ function TrackTokenContent() {
                           : "bg-white/20 text-white"
                       }`}
                     >
-                      {currentStatus}
+                      {localizeStatus(currentStatus)}
                     </span>
                   </div>
 
                   <p className="mt-2 text-base font-bold text-white/90">
-                    {booking.farmerName} • {booking.farmerMobile}
+                    {booking.farmerName ? booking.farmerName.replace(/\bFarmer\b/gi, t("common.farmer")) : t("common.farmer")} • {booking.farmerMobile}
                   </p>
 
                   {booking.crops && booking.crops.length > 1 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {booking.crops.map((c, idx) => (
                         <span key={idx} className="rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
-                          🌾 {c.crop}: {c.actualQuantity ?? c.quantity} qtl {c.cropGrade ? `(${c.cropGrade})` : ""}
+                          🌾 {localizeCrop(c.crop)}: {c.actualQuantity ?? c.quantity} {t("common.quintals")} {c.cropGrade ? `(${c.cropGrade})` : ""}
                         </span>
                       ))}
                     </div>
@@ -840,10 +893,10 @@ function TrackTokenContent() {
                       <p className="text-xs text-white/70">{t("tracker.queuePosition")}</p>
                       <p className="mt-1 text-3xl font-black text-white">
                         {currentStatus === "CANCELLED"
-                          ? "Ended"
+                          ? t("tracker.ended")
                           : currentStatus === "WAITING"
                           ? `#${queuePosition}`
-                          : "Serving"}
+                          : t("tracker.serving")}
                       </p>
                     </div>
 
@@ -858,12 +911,12 @@ function TrackTokenContent() {
                   <div className="mt-4 flex items-center gap-2 text-sm text-white/80">
                     <Clock3 className="h-4 w-4" />
                     {currentStatus === "CANCELLED"
-                      ? "Procurement Cancelled"
+                      ? t("tracker.procurementCancelled")
                       : currentStatus === "WAITING"
                       ? `${t("tracker.estimatedWait")}: ~${estimatedWait} ${t("common.minutes")}`
                       : currentStatus === "COMPLETED"
-                      ? "Completed successfully"
-                      : "Counter active"}
+                      ? t("tracker.completedSuccessfully")
+                      : t("tracker.counterActive")}
                   </div>
                 </div>
               </div>
@@ -882,7 +935,7 @@ function TrackTokenContent() {
 
                 <div className="flex items-center gap-2 text-xs text-white/80">
                   <MapPin className="h-4 w-4" />
-                  <span>{booking.centre}</span>
+                  <span>{localizeCentre(booking.centre)}</span>
                 </div>
               </div>
             </div>
@@ -908,12 +961,12 @@ function TrackTokenContent() {
                       </span>
                     </div>
                     <p className="mt-1 text-lg font-black text-gray-900">
-                      {booking.crop} • {booking.actualQuantity || booking.quantity || 0} {t("common.quintals")} @ ₹{(booking.mspRate || cropMspInfo.standardMsp).toLocaleString("en-IN")}/quintal
+                      {localizeCrop(booking.crop)} • {booking.actualQuantity || booking.quantity || 0} {t("common.quintals")} @ ₹{(booking.mspRate || cropMspInfo.standardMsp).toLocaleString("en-IN")}/{t("common.quintals")}
                     </p>
                     <p className="text-xs text-gray-600">
                       {t("tracker.paymentStatus")}:{" "}
                       <strong className="text-[#2E7D32] uppercase">
-                        {currentStatus === "COMPLETED" ? "APPROVED FOR DIRECT BANK TRANSFER (DBT)" : "CALCULATED & PENDING COMPLETION"}
+                        {currentStatus === "COMPLETED" ? t("tracker.disbursedViaDbt") : `${t("tracker.statusProcessing")} & ${t("tracker.pendingGrading")}`}
                       </strong>
                     </p>
                   </div>
@@ -934,7 +987,7 @@ function TrackTokenContent() {
               {booking.crops && booking.crops.length > 1 && (
                 <div className="mt-5 border-t border-[#CDE8D0] pt-4">
                   <p className="text-xs font-bold uppercase tracking-wider text-[#2E7D32] mb-3">
-                    Itemized Multi-Crop Weighment & Payout:
+                    {t("tracker.multiCropWeighmentTitle")}:
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {booking.crops.map((c, idx) => {
@@ -944,13 +997,13 @@ function TrackTokenContent() {
                       return (
                         <div key={idx} className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-xs">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-gray-900">{c.crop}</span>
+                            <span className="font-bold text-gray-900">{localizeCrop(c.crop)}</span>
                             <span className="rounded bg-[#E8F5E9] px-2 py-0.5 text-[11px] font-extrabold text-[#2E7D32]">
-                              {c.cropGrade || "Graded"}
+                              {c.cropGrade || t("tracker.pendingGrading")}
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-gray-600">
-                            Weighed: <strong>{cQty} qtl</strong> @ ₹{cRate.toLocaleString("en-IN")}/q
+                            {t("tracker.weighedSuffix")}: <strong>{cQty} {t("common.quintals")}</strong> @ ₹{cRate.toLocaleString("en-IN")}/q
                           </p>
                           <p className="mt-2 text-sm font-black text-[#2E7D32]">
                             {formatINR(cPayout)}
@@ -993,37 +1046,39 @@ function TrackTokenContent() {
 
               <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">Farmer Name</p>
-                  <p className="mt-1 font-extrabold text-gray-900">{booking.farmerName}</p>
-                  <p className="text-xs text-gray-500">Mobile: {booking.farmerMobile}</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.farmerNameLabel")}</p>
+                  <p className="mt-1 font-extrabold text-gray-900">
+                    {booking.farmerName ? booking.farmerName.replace(/\bFarmer\b/gi, t("common.farmer")) : t("common.farmer")}
+                  </p>
+                  <p className="text-xs text-gray-500">{t("auth.mobileNumber")}: {booking.farmerMobile}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">Procurement Centre</p>
-                  <p className="mt-1 font-extrabold text-gray-900">{booking.centre}</p>
-                  <p className="text-xs text-gray-500">Date: {formatDate(booking.date)}</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.centreLabel")}</p>
+                  <p className="mt-1 font-extrabold text-gray-900">{localizeCentre(booking.centre)}</p>
+                  <p className="text-xs text-gray-500">{t("common.date")}: {formatDate(booking.date)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">Crop & Grade</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.cropAndGradeLabel")}</p>
                   {booking.crops && booking.crops.length > 1 ? (
                     <div className="mt-1 space-y-1">
                       {booking.crops.map((c, i) => (
                         <p key={i} className="text-xs font-bold text-gray-900">
-                          {c.crop} ({c.cropGrade || booking.cropGrade || "Grade A"}): {c.actualQuantity ?? c.quantity} Qtl
+                          {localizeCrop(c.crop)} ({c.cropGrade || booking.cropGrade || "Grade A"}): {c.actualQuantity ?? c.quantity} {t("common.quintals")}
                         </p>
                       ))}
-                      <p className="text-xs text-gray-500 font-semibold">Total: {booking.actualQuantity || booking.quantity} Qtl</p>
+                      <p className="text-xs text-gray-500 font-semibold">Total: {booking.actualQuantity || booking.quantity} {t("common.quintals")}</p>
                     </div>
                   ) : (
                     <>
-                      <p className="mt-1 font-extrabold text-gray-900">{booking.crop} ({booking.cropGrade || "Grade A"})</p>
-                      <p className="text-xs text-gray-500">Weighed: {booking.actualQuantity || booking.quantity} Quintals</p>
+                      <p className="mt-1 font-extrabold text-gray-900">{localizeCrop(booking.crop)} ({booking.cropGrade || "Grade A"})</p>
+                      <p className="text-xs text-gray-500">{t("tracker.weighedSuffix")}: {booking.actualQuantity || booking.quantity} {t("common.quintals")}</p>
                     </>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">Total DBT Payout</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.totalDbtPayout")}</p>
                   <p className="mt-1 text-lg font-black text-[#2E7D32]">{formatINR(booking.totalPayout || 0)}</p>
-                  <p className="text-xs font-semibold text-emerald-700">Status: Disbursed via DBT</p>
+                  <p className="text-xs font-semibold text-emerald-700">{t("tracker.disbursedViaDbt")}</p>
                 </div>
               </div>
             </div>
@@ -1034,67 +1089,81 @@ function TrackTokenContent() {
           ==================================================== */}
           <div className="mt-7 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-xl font-bold text-gray-900">
-              Procurement Journey Progress
+              {t("tracker.journeyProgressTitle")}
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Real-time progression through the procurement pipeline at the mandi terminal.
+              {t("tracker.journeyProgressSubtitle")}
             </p>
 
             <div className="mt-8">
               <StatusTimelineItem
-                title="1. Slot Booked & Waiting in Queue"
-                description="Token is active in the queue. Arrive near your recommended time."
+                title={t("tracker.step1Title")}
+                description={t("tracker.step1Desc")}
                 active={isCurrentStep("WAITING")}
                 completed={isStepComplete("WAITING")}
                 last={false}
+                currentStageLabel={t("tracker.currentStage")}
               />
 
               <StatusTimelineItem
-                title="2. Token Called & Gate Entry Permitted"
+                title={t("tracker.step2Title")}
                 description={
                   booking.calledAt
-                    ? `Token called at ${new Date(booking.calledAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}. Vehicle admitted to Mandi terminal.`
-                    : "Official calls your token to enter the unload bay."
+                    ? t("tracker.step2DescCalled", {
+                        time: new Date(booking.calledAt).toLocaleTimeString(
+                          language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN",
+                          { hour: "numeric", minute: "2-digit" }
+                        ),
+                      })
+                    : t("tracker.step2DescDefault")
                 }
                 active={isCurrentStep("CALLED")}
                 completed={isStepComplete("CALLED")}
                 last={false}
+                currentStageLabel={t("tracker.currentStage")}
               />
 
               <StatusTimelineItem
-                title="3. Documents & Produce Verified"
+                title={t("tracker.step3Title")}
                 description={
                   booking.verifiedBy
-                    ? `Verified by ${booking.verifiedBy}. Identity and land records approved.`
-                    : "Officer verifies farmer registration, Aadhaar, and physical arrival."
+                    ? t("tracker.step3DescVerified", { officer: booking.verifiedBy })
+                    : t("tracker.step3DescDefault")
                 }
                 active={isCurrentStep("VERIFIED")}
                 completed={isStepComplete("VERIFIED")}
                 last={false}
+                currentStageLabel={t("tracker.currentStage")}
               />
 
               <StatusTimelineItem
-                title="4. Quality Grading & Weighbridge Weighment (Processing)"
+                title={t("tracker.step4Title")}
                 description={
                   booking.cropGrade
-                    ? `Graded as ${booking.cropGrade} (${booking.actualQuantity || booking.quantity} quintals @ ₹${booking.mspRate || cropMspInfo.standardMsp}/q). Payout calculated.`
-                    : "Crop quality graded, weighbridge weight recorded, and MSP rate calculated."
+                    ? t("tracker.step4DescGraded", {
+                        grade: booking.cropGrade,
+                        qty: String(booking.actualQuantity || booking.quantity || 0),
+                        rate: String(booking.mspRate || cropMspInfo.standardMsp),
+                      })
+                    : t("tracker.step4DescDefault")
                 }
                 active={isCurrentStep("PROCESSING")}
                 completed={isStepComplete("PROCESSING")}
                 last={false}
+                currentStageLabel={t("tracker.currentStage")}
               />
 
               <StatusTimelineItem
-                title="5. Procurement Completed & DBT Disbursed"
+                title={t("tracker.step5Title")}
                 description={
                   currentStatus === "COMPLETED"
-                    ? "Procurement finalized. J-Form issued and payment authorized for direct credit."
-                    : "Final settlement slip issued and bank disbursal initiated."
+                    ? t("tracker.step5DescCompleted")
+                    : t("tracker.step5DescDefault")
                 }
                 active={isCurrentStep("COMPLETED")}
                 completed={isStepComplete("COMPLETED")}
                 last={true}
+                currentStageLabel={t("tracker.currentStage")}
               />
 
               {currentStatus === "CANCELLED" && (
@@ -1103,12 +1172,12 @@ function TrackTokenContent() {
                     <AlertTriangle className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-red-950">Procurement Terminated & Cancelled</h4>
+                    <h4 className="font-bold text-red-950">{t("tracker.procurementCancelled")}</h4>
                     <p className="mt-0.5 text-xs text-red-800">
-                      Reason: <strong>{booking.cancellationReason || "Cancelled by official"}</strong>
+                      {t("tracker.cancellationReasonLabel")}: <strong>{booking.cancellationReason || t("tracker.statusCancelled")}</strong>
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
-                      This token has ended. A new slot must be booked to sell produce.
+                      {t("tracker.farmerCancelledGuidance")}
                     </p>
                   </div>
                 </div>
@@ -1121,62 +1190,62 @@ function TrackTokenContent() {
           ==================================================== */}
           <div className="mt-7">
             <h2 className="text-xl font-bold text-gray-900">
-              Booking Details
+              {t("tracker.bookingDetailsTitle")}
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Details associated with procurement token #{booking.token}.
+              {t("tracker.bookingDetailsSubtitle", { token: String(booking.token || booking.tokenNumber || "") })}
             </p>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <DetailCard
                 icon={<MapPin className="h-5 w-5 text-[#2E7D32]" />}
-                label="Procurement Centre"
-                value={booking.centre ?? "Not available"}
+                label={t("tracker.centreLabel")}
+                value={localizeCentre(booking.centre) || t("common.notAvailable")}
               />
 
               <DetailCard
                 icon={<CalendarDays className="h-5 w-5 text-[#2E7D32]" />}
-                label="Procurement Date"
+                label={t("tracker.dateLabel")}
                 value={formatDate(booking.date)}
               />
 
               <DetailCard
                 icon={<Wheat className="h-5 w-5 text-[#2E7D32]" />}
-                label="Crop"
-                value={booking.crop ?? "Not available"}
+                label={t("tracker.cropLabel")}
+                value={localizeCrop(booking.crop) || t("common.notAvailable")}
               />
 
               <DetailCard
                 icon={<Truck className="h-5 w-5 text-[#2E7D32]" />}
-                label="Quantity"
+                label={t("tracker.quantityLabel")}
                 value={
                   booking.actualQuantity !== undefined
-                    ? `${booking.actualQuantity} Quintals (Weighed)`
+                    ? `${booking.actualQuantity} ${t("common.quintals")} (${t("tracker.weighedSuffix")})`
                     : booking.quantity !== undefined
-                    ? `${booking.quantity} Quintals`
-                    : "Not available"
+                    ? `${booking.quantity} ${t("common.quintals")}`
+                    : t("common.notAvailable")
                 }
               />
 
               <DetailCard
                 icon={<Award className="h-5 w-5 text-[#2E7D32]" />}
-                label="Quality Grade"
+                label={t("tracker.gradeLabel")}
                 value={
                   booking.cropGrade
                     ? `${booking.cropGrade}`
                     : currentStatus === "VERIFIED"
-                    ? "Pending Grading at Counter"
-                    : "Pending Official Grading"
+                    ? t("tracker.pendingGradingCounter")
+                    : t("tracker.pendingGrading")
                 }
               />
 
               <DetailCard
                 icon={<IndianRupee className="h-5 w-5 text-[#2E7D32]" />}
-                label="Applied MSP Rate"
+                label={t("tracker.mspRateLabel")}
                 value={
                   booking.mspRate
-                    ? `₹${booking.mspRate.toLocaleString("en-IN")} / quintal`
-                    : `₹${cropMspInfo.standardMsp.toLocaleString("en-IN")} / quintal (Base)`
+                    ? `₹${booking.mspRate.toLocaleString("en-IN")} / ${t("common.quintals")}`
+                    : `₹${cropMspInfo.standardMsp.toLocaleString("en-IN")} / ${t("common.quintals")} (${t("tracker.baseMsp")})`
                 }
               />
             </div>
@@ -1263,12 +1332,14 @@ function StatusTimelineItem({
   active,
   completed,
   last,
+  currentStageLabel,
 }: {
   title: string;
   description: string;
   active: boolean;
   completed: boolean;
   last: boolean;
+  currentStageLabel?: string;
 }) {
   return (
     <div className="flex gap-4">
@@ -1314,7 +1385,7 @@ function StatusTimelineItem({
 
           {active && (
             <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-black text-[#2E7D32]">
-              Current Stage
+              {currentStageLabel || "Current Stage"}
             </span>
           )}
         </div>
