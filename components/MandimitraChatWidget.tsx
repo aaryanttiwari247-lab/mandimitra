@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/language-context";
 import { getFarmerSession, FarmerUser } from "@/lib/farmer-auth";
 import {
@@ -46,6 +47,7 @@ export function openVoiceAssistant() {
 }
 
 export function MandimitraChatWidget() {
+  const pathname = usePathname();
   const { t, language } = useLanguage();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -399,6 +401,11 @@ export function MandimitraChatWidget() {
     },
   ];
 
+  // Do not show widget on the landing / first page
+  if (pathname === "/") {
+    return null;
+  }
+
   return (
     <>
       {/* ======================================================
@@ -410,21 +417,21 @@ export function MandimitraChatWidget() {
             loadFarmerContext();
             setIsOpen(true);
           }}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full bg-[#2E7D32] px-5 py-3.5 text-white shadow-2xl transition hover:bg-[#256428] hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-[#2E7D32]/30 print:hidden"
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-[#2E7D32] px-3.5 py-2 text-white shadow-xl transition hover:bg-[#256428] hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30 print:hidden text-xs sm:text-sm font-bold"
           title={t("assistant.floatingBtn") || "MandiMitra AI • Voice Help"}
         >
-          <span className="relative flex h-3.5 w-3.5">
+          <span className="relative flex h-2.5 w-2.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75"></span>
-            <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-emerald-400"></span>
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
           </span>
 
-          <div className="flex items-center gap-2 font-bold text-sm sm:text-base">
-            <Sprout className="h-5 w-5" />
+          <div className="flex items-center gap-1.5 font-bold">
+            <Sprout className="h-4 w-4" />
             <span>{t("assistant.floatingBtnShort") || "आवाज सहायता"}</span>
           </div>
 
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-            <Mic className="h-4 w-4" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
+            <Mic className="h-3.5 w-3.5" />
           </div>
         </button>
       )}
@@ -433,27 +440,27 @@ export function MandimitraChatWidget() {
           EXPANDABLE CHAT & VOICE DRAWER
       ====================================================== */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-end justify-end p-0 sm:p-6 bg-black/40 backdrop-blur-xs sm:bg-transparent sm:backdrop-blur-none print:hidden pointer-events-none">
-          <div className="pointer-events-auto flex flex-col w-full sm:w-[430px] h-[92vh] sm:h-[650px] max-h-[720px] bg-white rounded-t-3xl sm:rounded-3xl border border-gray-200 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-end justify-end p-0 sm:p-4 bg-black/30 backdrop-blur-xs sm:bg-transparent sm:backdrop-blur-none print:hidden pointer-events-none">
+          <div className="pointer-events-auto flex flex-col w-full sm:w-[350px] h-[78vh] sm:h-[480px] max-h-[500px] bg-white rounded-t-2xl sm:rounded-2xl border border-gray-200 shadow-xl overflow-hidden animate-in slide-in-from-bottom-3 duration-200">
             {/* HEADER */}
-            <div className="flex items-center justify-between bg-[#2E7D32] px-5 py-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 text-white shadow-xs">
-                  <Sprout className="h-6 w-6" />
+            <div className="flex items-center justify-between bg-[#2E7D32] px-3.5 py-2.5 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 text-white shadow-xs">
+                  <Sprout className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-extrabold text-base leading-tight">
-                      {t("assistant.title") || "MandiMitra AI Assistant"}
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-bold text-xs sm:text-sm leading-tight">
+                      {t("assistant.title") || "MandiMitra AI"}
                     </h3>
                   </div>
-                  <p className="text-[11px] text-emerald-100 font-medium">
-                    {t("assistant.subtitle") || "Personal procurement & voice companion"}
+                  <p className="text-[10px] text-emerald-100 font-medium">
+                    {t("assistant.subtitle") || "Procurement assistant"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {/* AUTO-SPEAK TOGGLE */}
                 <button
                   type="button"
@@ -461,12 +468,12 @@ export function MandimitraChatWidget() {
                     if (autoSpeak) stopSpeaking();
                     setAutoSpeak(!autoSpeak);
                   }}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                  className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
                     autoSpeak ? "bg-white/25 text-white" : "bg-white/10 text-white/50"
                   }`}
                   title={autoSpeak ? "Auto-Speak ON" : "Auto-Speak OFF"}
                 >
-                  {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  {autoSpeak ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
                 </button>
 
                 {/* CLOSE BUTTON */}
@@ -475,24 +482,24 @@ export function MandimitraChatWidget() {
                     stopSpeaking();
                     setIsOpen(false);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition text-white"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition text-white"
                   title={t("assistant.close") || "Close"}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
 
             {/* QUICK ACTIONS ROW */}
-            <div className="border-b border-gray-100 bg-gray-50/80 px-3 py-2.5">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <div className="border-b border-gray-100 bg-gray-50/80 px-2.5 py-1.5">
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                 {quickActions.map((action, idx) => (
                   <button
                     key={idx}
                     type="button"
                     disabled={loading || isRecordingNote}
                     onClick={() => handleSend(action.prompt)}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-2xs hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition disabled:opacity-50"
+                    className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-700 shadow-2xs hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition disabled:opacity-50"
                   >
                     <span>{action.icon}</span>
                     <span>{action.label}</span>
@@ -502,7 +509,7 @@ export function MandimitraChatWidget() {
             </div>
 
             {/* MESSAGES LIST */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F9FBF8]">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#F9FBF8]">
               {messages.map((m) => {
                 const isUser = m.role === "user";
                 const isSpeakingThis = speakingMsgId === m.id;
@@ -513,7 +520,7 @@ export function MandimitraChatWidget() {
                     className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`relative max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-2xs ${
+                      className={`relative max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed shadow-2xs ${
                         isUser
                           ? "bg-[#2E7D32] text-white rounded-br-xs"
                           : "bg-white text-gray-900 border border-gray-200/80 rounded-bl-xs"
@@ -521,31 +528,31 @@ export function MandimitraChatWidget() {
                     >
                       {/* AUDIO NOTE BUBBLE (IF USER SENT A VOICE MESSAGE) */}
                       {m.audioUrl && (
-                        <div className="mb-2 flex items-center gap-3 rounded-xl bg-black/15 p-2.5">
+                        <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-black/15 p-2">
                           <button
                             type="button"
                             onClick={() => playAudioNote(m.id, m.audioUrl!)}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#2E7D32] shadow-xs"
+                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#2E7D32] shadow-xs"
                           >
                             {playingAudioId === m.id ? (
-                              <Pause className="h-4 w-4" />
+                              <Pause className="h-3 w-3" />
                             ) : (
-                              <Play className="h-4 w-4 ml-0.5" />
+                              <Play className="h-3 w-3 ml-0.5" />
                             )}
                           </button>
                           <div className="flex-1">
-                            <div className="flex items-center justify-between text-xs font-bold text-white/90">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-white/90">
                               <span>{t("assistant.voiceNoteFromYou") || "आवाज संदेश"}</span>
                               <span>0:0{m.audioDuration || 3}</span>
                             </div>
-                            <div className="mt-1 flex items-center gap-0.5">
+                            <div className="mt-0.5 flex items-center gap-0.5">
                               {[35, 60, 40, 80, 50, 90, 30, 70, 45, 65, 85, 40].map((h, i) => (
                                 <span
                                   key={i}
-                                  className={`w-1 rounded-full bg-white/70 transition-all ${
+                                  className={`w-0.5 rounded-full bg-white/70 transition-all ${
                                     playingAudioId === m.id ? "animate-pulse" : ""
                                   }`}
-                                  style={{ height: `${h * 0.2}px` }}
+                                  style={{ height: `${h * 0.14}px` }}
                                 />
                               ))}
                             </div>
@@ -558,23 +565,23 @@ export function MandimitraChatWidget() {
 
                       {/* FOOTER OF BUBBLE (TTS SPEAKER & TIMESTAMP) */}
                       <div
-                        className={`mt-1.5 flex items-center justify-between text-[10px] ${
+                        className={`mt-1 flex items-center justify-between text-[9px] ${
                           isUser ? "text-emerald-100" : "text-gray-400"
                         }`}
                       >
                         <span>{m.timestamp}</span>
 
                         {!isUser && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             {m.demoMode && (
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                              <span className="text-[8px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-1 py-0.2 rounded">
                                 Verified Data
                               </span>
                             )}
                             <button
                               type="button"
                               onClick={() => toggleSpeakMessage(m.id, m.content)}
-                              className={`flex items-center gap-1 rounded px-1.5 py-0.5 font-bold transition ${
+                              className={`flex items-center gap-0.5 rounded px-1 py-0.5 font-bold transition ${
                                 isSpeakingThis
                                   ? "bg-[#2E7D32] text-white"
                                   : "hover:bg-gray-100 text-gray-500 hover:text-gray-800"
@@ -585,7 +592,7 @@ export function MandimitraChatWidget() {
                                   : t("assistant.listenTooltip") || "उत्तर सुनें"
                               }
                             >
-                              <Volume2 className="h-3 w-3" />
+                              <Volume2 className="h-2.5 w-2.5" />
                               <span>{isSpeakingThis ? "बोल रहा है..." : "सुनें"}</span>
                             </button>
                           </div>
@@ -598,11 +605,11 @@ export function MandimitraChatWidget() {
 
               {/* LOADING INDICATOR */}
               {loading && (
-                <div className="flex items-start gap-2">
-                  <div className="flex items-center gap-2 rounded-2xl rounded-bl-xs border border-gray-200 bg-white px-4 py-3 text-xs text-gray-500 shadow-2xs">
-                    <span className="relative flex h-2 w-2">
+                <div className="flex items-start gap-1.5">
+                  <div className="flex items-center gap-1.5 rounded-xl rounded-bl-xs border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] text-gray-500 shadow-2xs">
+                    <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2E7D32] opacity-75"></span>
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#2E7D32]"></span>
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#2E7D32]"></span>
                     </span>
                     <span>MandiMitra जाँच कर रहा है...</span>
                   </div>
@@ -616,38 +623,38 @@ export function MandimitraChatWidget() {
                 RECORDING AUDIO VOICE NOTE OVERLAY
             ================================================== */}
             {isRecordingNote ? (
-              <div className="border-t border-red-200 bg-red-50/90 p-3.5 animate-in fade-in duration-150">
+              <div className="border-t border-red-200 bg-red-50/90 p-2.5 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="relative flex h-4 w-4">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex h-4 w-4 rounded-full bg-red-600"></span>
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600"></span>
                     </span>
                     <div>
-                      <p className="text-xs font-extrabold text-red-900">
-                        {t("assistant.recordingVoiceNote") || "आवाज संदेश रिकॉर्ड हो रहा है..."}
+                      <p className="text-[11px] font-extrabold text-red-900">
+                        {t("assistant.recordingVoiceNote") || "रिकॉर्ड हो रहा है..."}
                       </p>
-                      <p className="text-[11px] font-bold text-red-700">
+                      <p className="text-[10px] font-bold text-red-700">
                         00:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={cancelVoiceNote}
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-red-300 bg-white text-red-700 hover:bg-red-100 transition shadow-xs"
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-red-300 bg-white text-red-700 hover:bg-red-100 transition shadow-xs"
                       title={t("assistant.cancelRecording") || "रद्द करें"}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={stopAndSendVoiceNote}
-                      className="flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 transition shadow-sm"
+                      className="flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-red-700 transition shadow-xs"
                     >
-                      <Check className="h-4 w-4" />
+                      <Check className="h-3 w-3" />
                       <span>{t("assistant.sendVoiceNote") || "भेजें"}</span>
                     </button>
                   </div>
@@ -657,23 +664,23 @@ export function MandimitraChatWidget() {
               /* ==================================================
                   STANDARD INPUT & MIC BAR
               ================================================== */
-              <div className="border-t border-gray-200 bg-white p-3">
+              <div className="border-t border-gray-200 bg-white p-2">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleSend();
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1.5"
                 >
                   {/* HOLD / TAP TO RECORD AUDIO VOICE NOTE */}
                   <button
                     type="button"
                     onClick={startRecordingVoiceNote}
                     disabled={loading || isDictating}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-gray-50 text-gray-700 hover:border-red-500 hover:bg-red-50 hover:text-red-600 transition disabled:opacity-50"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:border-red-500 hover:bg-red-50 hover:text-red-600 transition disabled:opacity-50"
                     title="Record voice audio note"
                   >
-                    <Radio className="h-4 w-4" />
+                    <Radio className="h-3.5 w-3.5" />
                   </button>
 
                   {/* SPEECH-TO-TEXT DICTATION BUTTON */}
@@ -681,14 +688,14 @@ export function MandimitraChatWidget() {
                     type="button"
                     onClick={toggleDictation}
                     disabled={loading}
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
                       isDictating
                         ? "bg-red-600 text-white animate-pulse"
                         : "border border-gray-300 bg-gray-50 text-gray-700 hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32]"
                     }`}
                     title={isDictating ? "Stop Dictation" : "Dictate (Speech to Text)"}
                   >
-                    <Mic className="h-4 w-4" />
+                    <Mic className="h-3.5 w-3.5" />
                   </button>
 
                   {/* TEXT INPUT */}
@@ -699,24 +706,24 @@ export function MandimitraChatWidget() {
                     placeholder={
                       isDictating
                         ? t("assistant.listening") || "सुन रहा हूँ... बोलिए"
-                        : t("assistant.typePlaceholder") || "अपना प्रश्न बोलें या लिखें..."
+                        : t("assistant.typePlaceholder") || "प्रश्न बोलें या लिखें..."
                     }
-                    className="flex-1 rounded-xl border border-gray-300 px-3.5 py-2.5 text-xs sm:text-sm text-gray-900 focus:border-[#2E7D32] focus:outline-none focus:ring-1 focus:ring-[#2E7D32]"
+                    className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs text-gray-900 focus:border-[#2E7D32] focus:outline-none focus:ring-1 focus:ring-[#2E7D32]"
                   />
 
                   {/* SEND BUTTON */}
                   <button
                     type="submit"
                     disabled={loading || !input.trim()}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2E7D32] text-white transition hover:bg-[#256428] disabled:opacity-40"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2E7D32] text-white transition hover:bg-[#256428] disabled:opacity-40"
                     title="Send"
                   >
-                    <Send className="h-4 w-4" />
+                    <Send className="h-3.5 w-3.5" />
                   </button>
                 </form>
 
                 {/* DISCLAIMER / FOOTER */}
-                <p className="mt-2 text-center text-[10px] text-gray-400">
+                <p className="mt-1 text-center text-[9px] text-gray-400">
                   {t("assistant.disclaimer") || "🔒 Verified against official government procurement records."}
                 </p>
               </div>
