@@ -3,6 +3,7 @@ import {
   AI_TOOL_DECLARATIONS,
   executeTool,
   smartRuleEngine,
+  getMainMenuOptions,
   FarmerChatContext,
 } from "@/lib/ai-assistant-tools";
 
@@ -45,9 +46,10 @@ export async function POST(req: NextRequest) {
     if (apiKey) {
       const candidateModels = Array.from(
         new Set([
-          process.env.GEMINI_MODEL || "gemini-2.5-flash",
+          process.env.GEMINI_MODEL || "gemini-3.6-flash",
+          "gemini-3.6-flash",
+          "gemini-2.5-flash",
           "gemini-2.0-flash",
-          "gemini-1.5-flash",
         ])
       );
 
@@ -128,12 +130,14 @@ export async function POST(req: NextRequest) {
               if (followupRes.ok) {
                 const followupData = await followupRes.json();
                 const finalText =
+                  followupData.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text ||
                   followupData.candidates?.[0]?.content?.parts?.[0]?.text ||
                   "Record checked successfully.";
                 return NextResponse.json({
                   text: finalText,
                   demoMode: false,
                   model: modelName,
+                  menuOptions: getMainMenuOptions(language),
                   toolCalls: functionCalls.map((fc: any) => fc.functionCall.name),
                 });
               }
@@ -142,7 +146,12 @@ export async function POST(req: NextRequest) {
             // Direct text without tool call
             const textPart = candidate?.parts?.find((p: any) => p.text)?.text;
             if (textPart) {
-              return NextResponse.json({ text: textPart, demoMode: false, model: modelName });
+              return NextResponse.json({
+                text: textPart,
+                demoMode: false,
+                model: modelName,
+                menuOptions: getMainMenuOptions(language),
+              });
             }
           } else {
             console.warn(`Gemini model ${modelName} returned status ${response.status}. Trying next...`);
