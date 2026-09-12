@@ -29,6 +29,8 @@ import {
   ProcurementCentre,
 } from "@/lib/locations-centres";
 import { broadcastProcurementUpdate, subscribeProcurementUpdates } from "@/lib/cross-tab-sync";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useLanguage } from "@/context/language-context";
 
 type Booking = {
   bookingId?: string;
@@ -133,6 +135,7 @@ function StatusBadge({ status }: { status: Status }) {
 
 export default function OfficialDashboardPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [queue, setQueue] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -771,18 +774,20 @@ export default function OfficialDashboardPage() {
           >
             <Sprout className="h-6 w-6" />
 
-            Smart Procurement
+            {t("common.appName")}
           </button>
 
           <div className="flex items-center gap-4">
 
+            <LanguageSelector />
+
             <div className="hidden text-right sm:block">
               <p className="text-xs text-gray-500">
-                Logged in as
+                {t("official.loggedInAs")}
               </p>
 
               <p className="text-sm font-bold text-gray-900">
-                Procurement Officer
+                {t("official.procurementOfficer")}
               </p>
             </div>
 
@@ -792,7 +797,7 @@ export default function OfficialDashboardPage() {
               }
               className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-red-200 hover:text-red-600"
             >
-              Logout
+              {t("common.logout")}
             </button>
 
           </div>

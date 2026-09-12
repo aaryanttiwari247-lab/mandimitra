@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useLanguage } from "@/context/language-context";
 
 type Booking = {
   bookingId?: string;
@@ -53,6 +55,7 @@ type Booking = {
 
 export default function BookingConfirmationPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [booking, setBooking] =
     useState<Booking | null>(null);
@@ -184,15 +187,16 @@ export default function BookingConfirmationPage() {
             >
               <ArrowLeft className="h-4 w-4" />
 
-              Back
+              {t("common.back")}
             </button>
 
-            <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
 
-              <Sprout className="h-5 w-5" />
-
-              Smart Procurement
-
+              <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
+                <Sprout className="h-5 w-5" />
+                {t("common.appName")}
+              </div>
             </div>
 
           </div>
@@ -286,16 +290,17 @@ export default function BookingConfirmationPage() {
 
             <ArrowLeft className="h-4 w-4" />
 
-            Dashboard
+            {t("confirmation.backToDashboard")}
 
           </button>
 
-          <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
+          <div className="flex items-center gap-3">
+            <LanguageSelector />
 
-            <Sprout className="h-5 w-5" />
-
-            Smart Procurement
-
+            <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
+              <Sprout className="h-5 w-5" />
+              {t("common.appName")}
+            </div>
           </div>
 
         </div>

@@ -16,6 +16,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { broadcastProcurementUpdate } from "@/lib/cross-tab-sync";
 import { matchesBookingIdentifier } from "@/lib/procurement-store";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useLanguage } from "@/context/language-context";
 
 type Booking = {
   bookingId?: string;
@@ -58,6 +60,7 @@ type Booking = {
 function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   const tokenFromUrl = searchParams.get("token");
 
@@ -506,13 +509,16 @@ function VerifyContent() {
             >
               <ArrowLeft className="h-4 w-4" />
 
-              Back to Dashboard
+              {t("official.backToDashboard")}
             </button>
 
-            <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-              <Sprout className="h-5 w-5" />
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
 
-              Smart Procurement
+              <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
+                <Sprout className="h-5 w-5" />
+                {t("common.appName")}
+              </div>
             </div>
 
           </div>
@@ -579,13 +585,16 @@ function VerifyContent() {
           >
             <ArrowLeft className="h-4 w-4" />
 
-            Back to Dashboard
+            {t("official.backToDashboard")}
           </button>
 
-          <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-            <Sprout className="h-5 w-5" />
+          <div className="flex items-center gap-3">
+            <LanguageSelector />
 
-            Smart Procurement
+            <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
+              <Sprout className="h-5 w-5" />
+              {t("common.appName")}
+            </div>
           </div>
 
         </div>

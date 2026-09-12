@@ -11,11 +11,14 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useLanguage } from "@/context/language-context";
 
 import { loginOfficial } from "@/lib/official-auth";
 
 export default function OfficialLoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [officialId, setOfficialId] = useState("");
   const [password, setPassword] = useState("");
@@ -110,11 +113,11 @@ export default function OfficialLoginPage() {
             <div>
 
               <p className="text-lg font-bold text-[#2E7D32]">
-                Smart Procurement
+                {t("common.appName")}
               </p>
 
               <p className="text-xs text-gray-500">
-                Official Portal
+                {t("official.portalTitle")}
               </p>
 
             </div>
@@ -122,13 +125,19 @@ export default function OfficialLoginPage() {
           </div>
 
 
-          {/* SECURITY LABEL */}
+          {/* RIGHT CONTROLS */}
 
-          <div className="hidden items-center gap-2 text-sm text-gray-500 sm:flex">
+          <div className="flex items-center gap-4">
 
-            <ShieldCheck className="h-4 w-4 text-[#2E7D32]" />
+            <LanguageSelector />
 
-            Secure Official Access
+            <div className="hidden items-center gap-2 text-sm text-gray-500 sm:flex">
+
+              <ShieldCheck className="h-4 w-4 text-[#2E7D32]" />
+
+              {t("official.secureAccess")}
+
+            </div>
 
           </div>
 

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useLanguage } from "@/context/language-context";
 
 import {
   getFarmerSession,
@@ -62,6 +64,7 @@ type Booking = {
 
 export default function FarmerHistoryPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [history, setHistory] = useState<Booking[]>([]);
@@ -446,7 +449,7 @@ export default function FarmerHistoryPage() {
           >
             <ArrowLeft className="h-4 w-4" />
 
-            Back to Dashboard
+            {t("history.backToDashboard")}
           </button>
 
 
@@ -463,19 +466,23 @@ export default function FarmerHistoryPage() {
 
             <Sprout className="h-5 w-5" />
 
-            Smart Procurement
+            {t("common.appName")}
 
           </button>
 
 
-          {/* LOGOUT */}
+          {/* RIGHT CONTROLS */}
 
-          <button
-            onClick={handleLogout}
-            className="hidden text-sm font-medium text-gray-600 transition hover:text-red-600 sm:block"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <LanguageSelector />
+
+            <button
+              onClick={handleLogout}
+              className="hidden text-sm font-medium text-gray-600 transition hover:text-red-600 sm:block"
+            >
+              {t("common.logout")}
+            </button>
+          </div>
 
         </div>
 

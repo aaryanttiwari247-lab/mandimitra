@@ -21,21 +21,37 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("en");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY) as Language;
-      if (saved && (saved === "en" || saved === "hi" || saved === "bn")) {
-        const timer = setTimeout(() => {
-          setLanguageState(saved);
-        }, 0);
-        return () => clearTimeout(timer);
-      }
+    if (typeof window === "undefined") return;
+
+    // 1. Initial hydration from localStorage
+    const saved = localStorage.getItem(STORAGE_KEY) as Language;
+    if (saved && (saved === "en" || saved === "hi" || saved === "bn")) {
+      setLanguageState(saved);
+      document.documentElement.lang = saved;
     }
+
+    // 2. Cross-tab synchronization
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        const newLang = e.newValue as Language;
+        if (newLang === "en" || newLang === "hi" || newLang === "bn") {
+          setLanguageState(newLang);
+          document.documentElement.lang = newLang;
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, lang);
+      document.documentElement.lang = lang;
+      // Dispatch custom event for same-tab instant triggers if needed
+      window.dispatchEvent(new CustomEvent("mandimitra_language_changed", { detail: lang }));
     }
   };
 
