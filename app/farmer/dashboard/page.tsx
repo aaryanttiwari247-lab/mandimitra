@@ -15,6 +15,7 @@ import {
   IndianRupee,
   Info,
   MapPin,
+  Mic,
   RotateCcw,
   Search,
   Sprout,
@@ -43,6 +44,7 @@ import {
   formatINR,
 } from "@/lib/msp-rates";
 import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
+import { openVoiceAssistant } from "@/components/MandimitraChatWidget";
 
 type Booking = {
   bookingId?: string;
@@ -476,7 +478,17 @@ export default function FarmerDashboard() {
 
           {/* RIGHT SIDE */}
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => openVoiceAssistant()}
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs sm:text-sm font-bold text-[#2E7D32] hover:bg-emerald-100 hover:border-emerald-300 transition shadow-2xs"
+              title={t("assistant.floatingBtn") || "आवाज सहायता"}
+            >
+              <Mic className="h-4 w-4 text-[#2E7D32]" />
+              <span className="hidden md:inline">{t("assistant.floatingBtnShort") || "आवाज सहायता"}</span>
+            </button>
+
             <LanguageSelector />
 
             <div className="hidden h-9 w-px bg-gray-200 sm:block" />
