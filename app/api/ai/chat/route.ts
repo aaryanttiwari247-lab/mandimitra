@@ -133,11 +133,20 @@ export async function POST(req: NextRequest) {
                   followupData.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text ||
                   followupData.candidates?.[0]?.content?.parts?.[0]?.text ||
                   "Record checked successfully.";
+
+                const isMenuQuery =
+                  lastUserMessage.toLowerCase().includes("menu") ||
+                  lastUserMessage.includes("मेनू") ||
+                  lastUserMessage.includes("ਮੈਨੂ") ||
+                  lastUserMessage.includes("મેનુ") ||
+                  lastUserMessage.includes("మెనూ") ||
+                  lastUserMessage.includes("பட்டியல்");
+
                 return NextResponse.json({
                   text: finalText,
                   demoMode: false,
                   model: modelName,
-                  menuOptions: getMainMenuOptions(language),
+                  menuOptions: isMenuQuery ? getMainMenuOptions(language) : undefined,
                   toolCalls: functionCalls.map((fc: any) => fc.functionCall.name),
                 });
               }
@@ -146,11 +155,19 @@ export async function POST(req: NextRequest) {
             // Direct text without tool call
             const textPart = candidate?.parts?.find((p: any) => p.text)?.text;
             if (textPart) {
+              const isMenuQuery =
+                lastUserMessage.toLowerCase().includes("menu") ||
+                lastUserMessage.includes("मेनू") ||
+                lastUserMessage.includes("ਮੈਨੂ") ||
+                lastUserMessage.includes("મેનુ") ||
+                lastUserMessage.includes("మెనూ") ||
+                lastUserMessage.includes("பட்டியல்");
+
               return NextResponse.json({
                 text: textPart,
                 demoMode: false,
                 model: modelName,
-                menuOptions: getMainMenuOptions(language),
+                menuOptions: isMenuQuery ? getMainMenuOptions(language) : undefined,
               });
             }
           } else {
