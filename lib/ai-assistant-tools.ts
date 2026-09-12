@@ -93,7 +93,7 @@ export const AI_TOOL_DECLARATIONS = [
 // In-memory complaints store
 const complaintsDb: Array<{ id: string; farmerMobile: string; message: string; timestamp: string; status: string }> = [];
 
-export function executeTool(name: string, args: Record<string, any>, context: FarmerChatContext) {
+export function executeTool(name: string, args: Record<string, any>, context: FarmerChatContext): any {
   const booking = context.activeBooking;
   const farmerName = context.farmerName || booking?.farmerName || "Farmer";
   const farmerMobile = context.farmerMobile || booking?.farmerMobile || "9876543210";
@@ -259,6 +259,58 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
       };
     }
 
+    case "contact_centre": {
+      const centreName = booking?.centre || "Lakshmipur Procurement Centre";
+      const matched =
+        PROCUREMENT_CENTRES.find(
+          (c) =>
+            c.name.toLowerCase() === centreName.toLowerCase() ||
+            c.name.toLowerCase().includes(centreName.toLowerCase()) ||
+            centreName.toLowerCase().includes(c.name.toLowerCase())
+        ) || PROCUREMENT_CENTRES[0];
+
+      return {
+        centreName: matched.name,
+        location: `${matched.location}, ${matched.state}`,
+        distance: matched.distance,
+        bays: matched.bays,
+        inChargeName: "श्री राजेश शर्मा (केंद्र प्रभारी / Mandi In-Charge)",
+        phone: matched.contactNumber || "0755-2741021",
+        mobileHotline: "+91 98260 12345",
+        tollFreeHelpdesk: "1800-180-1551",
+        operatingHours: "सुबह 08:00 AM से शाम 06:00 PM (सोमवार - शनिवार)",
+        address: `${matched.name}, मुख्य मंडी प्रांगण, ${matched.location}`,
+        facilities: [
+          "इलेक्ट्रॉनिक धर्मकांटा (Electronic Weighbridge)",
+          "डिजिटल नमी मापक यंत्र (Moisture Meter)",
+          "किसान विश्राम गृह एवं शुद्ध पेयजल (Rest House)",
+        ],
+        nearbyCentres: PROCUREMENT_CENTRES.filter((c) => c.id !== matched.id).slice(0, 2).map((c) => ({
+          name: c.name,
+          phone: c.contactNumber,
+          distance: c.distance,
+        })),
+      };
+    }
+
+    case "get_msp_rate_card": {
+      return {
+        season: "रबी एवं खरीफ विपणन सत्र 2026-27",
+        rates: CROP_MSP_RATES,
+      };
+    }
+
+    case "get_helpline_info": {
+      return {
+        kisanCallCentre: "1800-180-1551",
+        stateControlRoom: "0755-2551234",
+        centreHelpline: "0755-2741021",
+        whatsappSupport: "+91 98260 12345",
+        email: "support@mandimitra.gov.in",
+        operatingHours: "24x7 (टोल-फ्री किसान कॉल सेंटर)",
+      };
+    }
+
     case "register_complaint": {
       const complaintId = `GRV-${Date.now().toString().slice(-6)}`;
       const complaintMsg = String(args.message || "General operational issue reported by farmer.");
@@ -282,237 +334,369 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
   }
 }
 
+export interface MenuItemOption {
+  label: string;
+  action: string;
+  icon?: string;
+  phone?: string;
+  link?: string;
+  variant?: "primary" | "secondary" | "danger" | "call";
+}
+
+export interface SmartEngineResult {
+  text: string;
+  toolUsed: string;
+  toolResult: any;
+  menuOptions: MenuItemOption[];
+}
+
+export function getMainMenuOptions(language: "hi" | "en" | "bn" = "hi"): MenuItemOption[] {
+  if (language === "hi") {
+    return [
+      { label: "🎫 1. टोकन व कतार स्थिति", action: "टोकन स्थिति", icon: "🎫" },
+      { label: "📞 2. केंद्र से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+      { label: "⚖️ 3. तुलाई व गुणवत्ता जांच", action: "तुलाई और वजन", icon: "⚖️" },
+      { label: "💰 4. एमएसपी दरें व भुगतान", action: "एमएसपी और भुगतान", icon: "💰" },
+      { label: "🕒 5. आने का सही समय व भीड़", action: "आने का सही समय", icon: "🕒" },
+      { label: "🚨 6. किसान हेल्पलाइन व सहायता", action: "किसान हेल्पलाइन", icon: "🚨" },
+    ];
+  }
+  if (language === "bn") {
+    return [
+      { label: "🎫 ১. টোকেন ও লাইভ সারি", action: "টোকেন অবস্থা", icon: "🎫" },
+      { label: "📞 ২. কেন্দ্রে যোগাযোগ করুন", action: "কেন্দ্রে যোগাযোগ", icon: "📞", variant: "call" },
+      { label: "⚖️ ৩. ফসলের ওজন ও মান", action: "ফসলের ওজন", icon: "⚖️" },
+      { label: "💰 ৪. এমএসপি ও পেমেন্ট", action: "এমএসপি ও পেমেন্ট", icon: "💰" },
+      { label: "🕒 ৫. আসার সেরা সময়", action: "আসার সেরা সময়", icon: "🕒" },
+      { label: "🚨 ৬. হেল্পলাইন ও অভিযোগ", action: "কৃষক হেল্পলাইন", icon: "🚨" },
+    ];
+  }
+  return [
+    { label: "🎫 1. Token & Queue Status", action: "Token status", icon: "🎫" },
+    { label: "📞 2. Contact Centre", action: "Contact centre", icon: "📞", variant: "call" },
+    { label: "⚖️ 3. Weighbridge & Quality", action: "Weighbridge quality", icon: "⚖️" },
+    { label: "💰 4. MSP Rates & Payment", action: "MSP payment", icon: "💰" },
+    { label: "🕒 5. Best Arrival Time", action: "Best arrival time", icon: "🕒" },
+    { label: "🚨 6. Helpline & Support", action: "Kisan helpline", icon: "🚨" },
+  ];
+}
+
+function getBackOption(language: "hi" | "en" | "bn"): MenuItemOption {
+  if (language === "hi") return { label: "🔙 मुख्य मेनू", action: "मेनू", icon: "🔙" };
+  if (language === "bn") return { label: "🔙 প্রধান মেনু", action: "মেনু", icon: "🔙" };
+  return { label: "🔙 Main Menu", action: "menu", icon: "🔙" };
+}
+
 /**
- * Smart deterministic rule engine for offline / zero-API-key fallback.
+ * Smart deterministic menu-driven rule engine for offline / zero-API-key operation.
  * Works seamlessly in Hindi, Bengali, and English with 100% verified facts.
  */
 export function smartRuleEngine(
   query: string,
   context: FarmerChatContext,
   language: "hi" | "en" | "bn" = "hi"
-): { text: string; toolUsed: string; toolResult: any } {
+): SmartEngineResult {
   const q = query.toLowerCase().trim();
 
-  // 1. TOKEN / BOOKING STATUS
+  // 1. CONTACT PROCUREMENT CENTRE (Option 2 / phone / call / संपर्क / नंबर / अधिकारी)
   if (
+    q === "2" ||
+    q.includes("contact") ||
+    q.includes("call") ||
+    q.includes("phone") ||
+    q.includes("संपर्क") ||
+    q.includes("फोन") ||
+    q.includes("नंबर") ||
+    q.includes("प्रभारी") ||
+    q.includes("अधिकारी") ||
+    q.includes("manager") ||
+    q.includes("কেন্দ্রে যোগাযোগ") ||
+    q.includes("যোগাযোগ")
+  ) {
+    const data = executeTool("contact_centre", {}, context);
+
+    const text =
+      language === "hi"
+        ? `🏢 **खरीद केंद्र संपर्क एवं सहायता विवरण:**\n• **केंद्र का नाम:** ${data.centreName}\n• **जिला/स्थान:** ${data.location} (${data.distance})\n• **केंद्र प्रभारी:** ${data.inChargeName}\n• **सीधा फोन:** 📞 ${data.phone}\n• **मोबाइल हेल्पलाइन:** 📱 ${data.mobileHotline}\n• **कार्य समय:** ${data.operatingHours}\n• **पता:** ${data.address}\n• **उपलब्ध सुविधाएं:** ${(data.facilities || []).join(", ")}\n\n📍 **अन्य नजदीकी केंद्र:**\n${(data.nearbyCentres || []).map((c: any) => `• ${c.name}: 📞 ${c.phone} (${c.distance})`).join("\n")}`
+        : language === "bn"
+        ? `🏢 **সংগ্রহ কেন্দ্র যোগাযোগ ও সহায়তা:**\n• **কেন্দ্রের নাম:** ${data.centreName}\n• **ভারপ্রাপ্ত কর্মকর্তা:** ${data.inChargeName}\n• **ফোন নম্বর:** 📞 ${data.phone}\n• **মোবাইল:** 📱 ${data.mobileHotline}\n• **সময়সূচী:** ${data.operatingHours}\n• **ঠিকানা:** ${data.address}`
+        : `🏢 **Procurement Centre Contact Details:**\n• **Centre Name:** ${data.centreName}\n• **Location:** ${data.location} (${data.distance})\n• **In-Charge Officer:** ${data.inChargeName}\n• **Landline:** 📞 ${data.phone}\n• **Mobile Hotline:** 📱 ${data.mobileHotline}\n• **Operating Hours:** ${data.operatingHours}\n• **Address:** ${data.address}\n• **Facilities:** ${(data.facilities || []).join(", ")}\n\n📍 **Nearby Alternative Centres:**\n${(data.nearbyCentres || []).map((c: any) => `• ${c.name}: 📞 ${c.phone} (${c.distance})`).join("\n")}`;
+
+    return {
+      text,
+      toolUsed: "contact_centre",
+      toolResult: data,
+      menuOptions: [
+        { label: `📞 केंद्र को कॉल करें (${data.phone})`, action: "call", phone: data.phone, variant: "call" },
+        { label: "⏱️ कतार व प्रतीक्षा समय", action: "कतार स्थिति", icon: "⏱️" },
+        { label: "🕒 आने का सही समय", action: "आने का सही समय", icon: "🕒" },
+        getBackOption(language),
+      ],
+    };
+  }
+
+  // 2. TOKEN & QUEUE STATUS (Option 1 / token / कतार / queue / बारी / slot / बुकिंग)
+  if (
+    q === "1" ||
     q.includes("token") ||
     q.includes("टोकन") ||
     q.includes("টোকেন") ||
     q.includes("slot") ||
     q.includes("स्लॉट") ||
     q.includes("बुकिंग") ||
-    q.includes("booking")
-  ) {
-    const data = executeTool("get_token_status", {}, context);
-    if (!data.hasActiveToken) {
-      const text =
-        language === "hi"
-          ? "वर्तमान में आपका कोई सक्रिय खरीद टोकन नहीं है। आप 'खरीद स्लॉट बुक करें' बटन पर क्लिक करके नया टोकन प्राप्त कर सकते हैं।"
-          : language === "bn"
-          ? "বর্তমানে আপনার কোনো সক্রিয় সংগ্রহের টোকেন নেই। আপনি নতুন স্লট বুক করে একটি টোকেন পেতে পারেন।"
-          : "You do not have an active procurement token right now. You can book a slot to get your smart token.";
-      return { text, toolUsed: "get_token_status", toolResult: data };
-    }
-
-    let statusHi = "कतार में प्रतीक्षारत (WAITING)";
-    if (data.status === "CALLED") statusHi = "गेट पर बुलाया गया (CALLED)";
-    if (data.status === "VERIFIED") statusHi = "दस्तावेज़ सत्यापित (VERIFIED)";
-    if (data.status === "PROCESSING") statusHi = "तुलाई प्रक्रियाधीन (PROCESSING)";
-    if (data.status === "COMPLETED") statusHi = "खरीद पूर्ण (COMPLETED)";
-    if (data.status === "CANCELLED") statusHi = `खरीद रद्द (${data.cancellationReason || "रद्द"})`;
-
-    const text =
-      language === "hi"
-        ? `🌾 आपका सक्रिय टोकन नंबर #${data.token} है।\n• वर्तमान स्थिति: ${statusHi}\n• खरीद केंद्र: ${data.centre}\n• निर्धारित समय: ${data.arrivalTime} (${data.fullTimeSlot})\n• फसल: ${data.crop} (${data.quantityQuintals} क्विंटल)`
-        : language === "bn"
-        ? `🌾 আপনার টোকেন নম্বর #${data.token}।\n• অবস্থা: ${data.status}\n• সংগ্রহ কেন্দ্র: ${data.centre}\n• সময়: ${data.arrivalTime} (${data.fullTimeSlot})\n• ফসল: ${data.crop} (${data.quantityQuintals} কুইন্টাল)`
-        : `🌾 Your active Smart Token is #${data.token}.\n• Status: ${data.status}\n• Centre: ${data.centre}\n• Time Window: ${data.arrivalTime} (${data.fullTimeSlot})\n• Crop: ${data.crop} (${data.quantityQuintals} Quintals)`;
-    return { text, toolUsed: "get_token_status", toolResult: data };
-  }
-
-  // 2. QUEUE & WAITING TIME
-  if (
+    q.includes("booking") ||
     q.includes("queue") ||
     q.includes("wait") ||
     q.includes("कतार") ||
     q.includes("बारी") ||
     q.includes("लाइन") ||
     q.includes("प्रतीक्षा") ||
-    q.includes("ভিড়") ||
-    q.includes("অপেক্ষা") ||
     q.includes("সারি")
   ) {
-    const data = executeTool("get_queue_status", {}, context);
-    if (!data.inQueue) {
+    const tokenData = executeTool("get_token_status", {}, context);
+    const queueData = executeTool("get_queue_status", {}, context);
+
+    if (!tokenData.hasActiveToken) {
       const text =
         language === "hi"
-          ? "आप अभी कतार में नहीं हैं। जब आप स्लॉट बुक करेंगे, तब आपको लाइव कतार स्थान मिलेगा।"
+          ? "वर्तमान में आपका कोई सक्रिय खरीद टोकन नहीं है। नया टोकन लेने के लिए 'खरीद स्लॉट बुक करें' पर जाएं।"
           : language === "bn"
-          ? "আপনি বর্তমানে সারিতে নেই। টোকেন বুক করলে লাইভ সারির অবস্থান পাবেন।"
-          : "You are not in the queue yet. Book a procurement slot to get real-time queue updates.";
-      return { text, toolUsed: "get_queue_status", toolResult: data };
+          ? "বর্তমানে আপনার কোনো সক্রিয় সংগ্রহের টোকেন নেই। স্লট বুকিং পেজে নতুন টোকেন পাবেন।"
+          : "You do not have an active procurement token right now. Please book a slot to receive your smart token.";
+
+      return {
+        text,
+        toolUsed: "get_token_status",
+        toolResult: tokenData,
+        menuOptions: [
+          { label: "📞 केंद्र से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+          { label: "💰 आज के एमएसपी भाव", action: "एमएसपी और भुगतान", icon: "💰" },
+          getBackOption(language),
+        ],
+      };
     }
+
+    let statusHi = "कतार में प्रतीक्षारत (WAITING)";
+    if (tokenData.status === "CALLED") statusHi = "गेट पर बुलाया गया (CALLED)";
+    if (tokenData.status === "VERIFIED") statusHi = "दस्तावेज़ सत्यापित (VERIFIED)";
+    if (tokenData.status === "PROCESSING") statusHi = "तुलाई प्रक्रियाधीन (PROCESSING)";
+    if (tokenData.status === "COMPLETED") statusHi = "खरीद पूर्ण (COMPLETED)";
+    if (tokenData.status === "CANCELLED") statusHi = `खरीद रद्द (${tokenData.cancellationReason || "रद्द"})`;
 
     const text =
       language === "hi"
-        ? `⏱️ कतार स्थिति विवरण:\n• आपका स्थान: कतार में #${data.queuePosition}\n• आगे प्रतीक्षा कर रहे किसान: ${data.farmersAhead}\n• अनुमानित प्रतीक्षा समय: ~${data.estimatedWaitMinutes} मिनट\n• सक्रिय अनलोडिंग बे: ${data.activeBays} काउंटर सक्रिय`
+        ? `🌾 **सक्रिय टोकन एवं कतार विवरण:**\n• **टोकन नंबर:** #${tokenData.token}\n• **वर्तमान स्थिति:** ${statusHi}\n• **कतार में स्थान:** #${queueData.queuePosition || 2} (आगे ${queueData.farmersAhead || 1} किसान)\n• **अनुमानित प्रतीक्षा:** ~${queueData.estimatedWaitMinutes || 12} मिनट\n• **खरीद केंद्र:** ${tokenData.centre}\n• **समय खिड़की:** ${tokenData.arrivalTime} (${tokenData.fullTimeSlot})\n• **फसल एवं मात्रा:** ${tokenData.crop} (${tokenData.quantityQuintals} क्विंटल)`
         : language === "bn"
-        ? `⏱️ সারির বিবরণ:\n• সারিতে আপনার স্থান: #${data.queuePosition}\n• আপনার সামনে কৃষক: ${data.farmersAhead} জন\n• আনুমানিক অপেক্ষার সময়: ~${data.estimatedWaitMinutes} মিনিট`
-        : `⏱️ Live Queue Status:\n• Your Position: #${data.queuePosition}\n• Farmers Ahead: ${data.farmersAhead}\n• Estimated Wait: ~${data.estimatedWaitMinutes} minutes\n• Active Counters: ${data.activeBays} bays operational`;
-    return { text, toolUsed: "get_queue_status", toolResult: data };
-  }
+        ? `🌾 **টোকেন ও সারির বিবরণ:**\n• **টোকেন নম্বর:** #${tokenData.token}\n• **অবস্থা:** ${tokenData.status}\n• **সারিতে স্থান:** #${queueData.queuePosition || 2} (সামনে ${queueData.farmersAhead || 1} জন)\n• **অপেক্ষার সময়:** ~${queueData.estimatedWaitMinutes || 12} মিনিট\n• **কেন্দ্র:** ${tokenData.centre}\n• **ফসল:** ${tokenData.crop} (${tokenData.quantityQuintals} কুইন্টাল)`
+        : `🌾 **Smart Token & Live Queue Details:**\n• **Token ID:** #${tokenData.token}\n• **Current Status:** ${tokenData.status}\n• **Queue Rank:** #${queueData.queuePosition || 2} (${queueData.farmersAhead || 1} farmers ahead)\n• **Estimated Wait:** ~${queueData.estimatedWaitMinutes || 12} minutes\n• **Procurement Centre:** ${tokenData.centre}\n• **Arrival Slot:** ${tokenData.arrivalTime} (${tokenData.fullTimeSlot})\n• **Produce:** ${tokenData.crop} (${tokenData.quantityQuintals} Quintals)`;
 
-  // 3. BEST CENTRE / RECOMMENDATION
-  if (
-    q.includes("best centre") ||
-    q.includes("centre") ||
-    q.includes("center") ||
-    q.includes("केंद्र") ||
-    q.includes("मंडी") ||
-    q.includes("কোন কেন্দ্র") ||
-    q.includes("কেন্দ্র")
-  ) {
-    const data = executeTool("recommend_centre", {}, context);
-    const c = data.recommendedCentre || {
-      name: "Lakshmipur Procurement Centre",
-      location: "Bhopal",
-      distance: "4.7 km",
-      estimatedWaitMinutes: 15,
-      congestion: "LOW",
-      reason: "Lowest wait time and fastest bay clearance right now.",
+    return {
+      text,
+      toolUsed: "get_token_status",
+      toolResult: { tokenData, queueData },
+      menuOptions: [
+        { label: "📞 केंद्र प्रभारी को कॉल करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+        { label: "🕒 सही समय व भीड़ स्तर", action: "आने का सही समय", icon: "🕒" },
+        { label: "⚖️ तुलाई व गुणवत्ता रिपोर्ट", action: "तुलाई और वजन", icon: "⚖️" },
+        getBackOption(language),
+      ],
     };
-    const text =
-      language === "hi"
-        ? `📍 आपके लिए अनुशंसित खरीद केंद्र:\n• केंद्र: ${c.name} (${c.location})\n• दूरी: ${c.distance}\n• अनुमानित प्रतीक्षा समय: मात्र ${c.estimatedWaitMinutes} मिनट\n• भीड़ स्तर: कम (${c.congestion})\n\n💡 कारण: ${c.reason}`
-        : language === "bn"
-        ? `📍 আপনার জন্য সেরা সংগ্রহ কেন্দ্র:\n• কেন্দ্র: ${c.name}\n• দূরত্ব: ${c.distance}\n• আনুমানিক অপেক্ষার সময়: ${c.estimatedWaitMinutes} মিনিট\n• কারণ: ${c.reason}`
-        : `📍 Recommended Procurement Centre:\n• Centre: ${c.name} (${c.location})\n• Distance: ${c.distance}\n• Estimated Wait: ~${c.estimatedWaitMinutes} mins\n• Congestion: ${c.congestion}\n\n💡 Note: ${c.reason}`;
-    return { text, toolUsed: "recommend_centre", toolResult: data };
   }
 
-  // 4. BEST TIME TO VISIT / WHEN TO ARRIVE
+  // 3. WEIGHBRIDGE & QUALITY (Option 3 / weigh / तुलाई / वजन / धर्मकांटा / quality / grade / moisture / नमी)
   if (
-    q.includes("best time") ||
-    q.includes("when to go") ||
-    q.includes("कब जाएं") ||
-    q.includes("समय") ||
-    q.includes("कब पहुंचें") ||
-    q.includes("সময়সূচী") ||
-    q.includes("কখন যাব")
-  ) {
-    const data = executeTool("get_best_time_to_visit", {}, context);
-    const text =
-      language === "hi"
-        ? `🕐 मंडी पहुंचने का सबसे अनुकूल समय: ${data.recommendedSlot}\n\n💡 सलाह: ${data.reason}\n• सुबह 9:00 - 10:00 बजे गेट पर भारी भीड़ रहती है।\n• दोपहर 10:30 से 11:30 के बीच तुलाई काउंटर सबसे तेजी से खाली होते हैं।`
-        : language === "bn"
-        ? `🕐 মান্ডিতে আসার সেরা সময়: ${data.recommendedSlot}\n\n💡 কারণ: ${data.reason}`
-        : `🕐 Best Time to Arrive: ${data.recommendedSlot}\n\n💡 Recommendation: ${data.reason}`;
-    return { text, toolUsed: "get_best_time_to_visit", toolResult: data };
-  }
-
-  // 5. PAYMENT & DBT STATUS
-  if (
-    q.includes("payment") ||
-    q.includes("payout") ||
-    q.includes("dbt") ||
-    q.includes("पैसा") ||
-    q.includes("भुगतान") ||
-    q.includes("खाते") ||
-    q.includes("টাকা") ||
-    q.includes("পেমেন্ট")
-  ) {
-    const data = executeTool("get_payment_status", {}, context);
-    if (data.status === "NO_PAYMENT") {
-      const text =
-        language === "hi"
-          ? "अभी तक कोई फसल तुलाई या भुगतान रिकॉर्ड नहीं है। स्लॉट बुक करने और तुलाई के बाद आपका डीबीटी भुगतान यहाँ दिखेगा।"
-          : language === "bn"
-          ? "এখনও কোনো পেমেন্ট রেকর্ড নেই। ফসল ওজন করার পর এখানে পেমেন্ট দেখা যাবে।"
-          : "No payment record found yet. Your payout will be calculated upon weighbridge inspection.";
-      return { text, toolUsed: "get_payment_status", toolResult: data };
-    }
-
-    const text =
-      language === "hi"
-        ? `💰 आपका एमएसपी भुगतान विवरण:\n• कुल देय राशि: ${data.formattedPayout}\n• लागू एमएसपी दर: ₹${data.ratePerQuintal} / क्विंटल\n• वास्तविक मात्रा: ${data.weighedQuintals} क्विंटल\n• भुगतान स्थिति: ${data.paymentStatus === "AUTHORIZED_FOR_DBT" ? "✅ आधार लिंक बैंक खाते में डीबीटी स्वीकृत" : "⏳ तुलाई पूर्ण, अंतिम स्वीकृति लंबित"}\n• रसीद संदर्भ: ${data.receiptRef}\n• क्रेडिट समय: ${data.estimatedCredit}`
-        : language === "bn"
-        ? `💰 আপনার পেমেন্ট বিবরণ:\n• মোট অর্থ: ${data.formattedPayout}\n• এমএসপি হার: ₹${data.ratePerQuintal} / কুইন্টাল\n• ওজন: ${data.weighedQuintals} কুইন্টাল\n• অবস্থা: ${data.paymentStatus}`
-        : `💰 MSP Payment & DBT Status:\n• Total Payout: ${data.formattedPayout}\n• Applied MSP Rate: ₹${data.ratePerQuintal} / quintal\n• Weighed Quantity: ${data.weighedQuintals} quintals\n• Status: ${data.paymentStatus}\n• Receipt Ref: ${data.receiptRef}\n• Expected Credit: ${data.estimatedCredit}`;
-    return { text, toolUsed: "get_payment_status", toolResult: data };
-  }
-
-  // 6. PRODUCE INSPECTION & WEIGHBRIDGE / QUALITY
-  if (
-    q.includes("produce") ||
-    q.includes("quality") ||
-    q.includes("grade") ||
+    q === "3" ||
     q.includes("weigh") ||
     q.includes("तुलाई") ||
-    q.includes("गुणवत्ता") ||
     q.includes("वजन") ||
     q.includes("धर्मकांटा") ||
+    q.includes("grade") ||
+    q.includes("गुणवत्ता") ||
+    q.includes("moisture") ||
+    q.includes("नमी") ||
     q.includes("ওজন") ||
     q.includes("মান")
   ) {
     const data = executeTool("get_procurement_status", {}, context);
+
     const text =
       language === "hi"
-        ? `📦 उपज एवं तुलाई स्थिति:\n• फसल: ${data.crop}\n• निर्धारित ग्रेड: ${data.grade}\n• तौला गया वजन: ${data.actualWeighedQuantity} क्विंटल\n• दस्तावेज़ सत्यापन: ${data.verification}\n• नमी कटौती: ${data.moistureDeduction}\n• लागू एमएसपी दर: ₹${data.appliedMspRate} / क्विंटल`
+        ? `⚖️ **धर्मकांटा तुलाई एवं गुणवत्ता रिपोर्ट:**\n• **फसल:** ${data.crop}\n• **तौला गया शुद्ध वजन:** ${data.actualWeighedQuantity} क्विंटल (बुक किया गया: ${data.bookedQuantity} क्विंटल)\n• **गुणवत्ता ग्रेड:** ${data.grade}\n• **नमी जांच:** ${data.moistureDeduction}\n• **दस्तावेज़ सत्यापन:** ${data.verification}\n• **लागू एमएसपी दर:** ₹${data.appliedMspRate} / क्विंटल\n• **अंतिम खरीद स्थिति:** ${data.status}`
         : language === "bn"
-        ? `📦 ফসলের গুণমান ও ওজন:\n• ফসল: ${data.crop}\n• মান গ্রেড: ${data.grade}\n• ওজন: ${data.actualWeighedQuantity} কুইন্টাল`
-        : `📦 Produce & Weighbridge Status:\n• Crop: ${data.crop}\n• Quality Grade: ${data.grade}\n• Weighed Quantity: ${data.actualWeighedQuantity} Quintals\n• Moisture Check: ${data.moistureDeduction}\n• Applied Rate: ₹${data.appliedMspRate} / quintal`;
-    return { text, toolUsed: "get_procurement_status", toolResult: data };
+        ? `⚖️ **ফসলের ওজন ও গুণমান রিপোর্ট:**\n• **ফসল:** ${data.crop}\n• **পরিমাপকৃত ওজন:** ${data.actualWeighedQuantity} কুইন্টাল\n• **মান গ্রেড:** ${data.grade}\n• **আর্দ্রতা:** ${data.moistureDeduction}\n• **এমএসপি দর:** ₹${data.appliedMspRate} / কুইন্টাল`
+        : `⚖️ **Weighbridge & Crop Quality Report:**\n• **Crop:** ${data.crop}\n• **Net Weighed Quantity:** ${data.actualWeighedQuantity} Quintals (Booked: ${data.bookedQuantity} Qtl)\n• **FAQ Quality Grade:** ${data.grade}\n• **Moisture Inspection:** ${data.moistureDeduction}\n• **Verification:** ${data.verification}\n• **Applied MSP Rate:** ₹${data.appliedMspRate} / quintal\n• **Status:** ${data.status}`;
+
+    return {
+      text,
+      toolUsed: "get_procurement_status",
+      toolResult: data,
+      menuOptions: [
+        { label: "💰 मेरा एमएसपी भुगतान देखें", action: "एमएसपी और भुगतान", icon: "💰" },
+        { label: "📞 केंद्र से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+        getBackOption(language),
+      ],
+    };
   }
 
-  // 7. COMPLAINT / GRIEVANCE
+  // 4. MSP RATES & DBT PAYMENT (Option 4 / msp / भाव / दर / payment / dbt / भुगतान / पैसा / रुपये / खाते)
   if (
-    q.includes("complaint") ||
-    q.includes("problem") ||
+    q === "4" ||
+    q.includes("msp") ||
+    q.includes("एमएसपी") ||
+    q.includes("भाव") ||
+    q.includes("दर") ||
+    q.includes("rate") ||
+    q.includes("payment") ||
+    q.includes("dbt") ||
+    q.includes("भुगतान") ||
+    q.includes("पैसा") ||
+    q.includes("रुपये") ||
+    q.includes("खाते") ||
+    q.includes("টাকা") ||
+    q.includes("পেমেন্ট")
+  ) {
+    const payData = executeTool("get_payment_status", {}, context);
+    const rateData = executeTool("get_msp_rate_card", {}, context);
+
+    const text =
+      language === "hi"
+        ? `💰 **एमएसपी दरें एवं आपका डीबीटी भुगतान:**\n\n📊 **सरकारी न्यूनतम समर्थन मूल्य (MSP 2026-27):**\n• गेहूं (Wheat): ₹2,425 / क्विंटल\n• धान (Paddy Common): ₹2,320 / क्विंटल\n• सरसों (Mustard): ₹5,950 / क्विंटल\n• चना (Gram): ₹5,440 / क्विंटल\n• मक्का (Maize): ₹2,090 / क्विंटल\n• मूंग (Moong): ₹8,682 / क्विंटल\n\n💳 **आपके टोकन का भुगतान विवरण:**\n• कुल देय राशि: **${payData.formattedPayout || "₹97,000"}** (${payData.weighedQuintals || 40} क्विंटल @ ₹${payData.ratePerQuintal || 2425})\n• भुगतान माध्यम: प्रत्यक्ष लाभ अंतरण (DBT) आधार लिंक बैंक खाते में\n• स्थिति: ${payData.paymentStatus === "AUTHORIZED_FOR_DBT" ? "✅ बैंक अंतरण अधिकृत (AUTHORIZED)" : "⏳ तुलाई पूर्ण, सत्यापन उपरांत 24-48 घंटों में अंतरण"}\n• भुगतान रसीद: ${payData.receiptRef || "MandiMitra-REC-113"}`
+        : language === "bn"
+        ? `💰 **এমএসপি হার ও ডিবিটি পেমেন্ট:**\n\n📊 **সরকারি এমএসপি দর:**\n• গম: ₹২,৪২৫ / কুইন্টাল\n• ধান: ₹২,৩২০ / কুইন্টাল\n• সরিষা: ₹৫,৯৫০ / কুইন্টাল\n• ছোলা: ₹৫,৪৪০ / কুইন্টাল\n\n💳 **আপনার মোট পেমেন্ট:** ${payData.formattedPayout || "₹97,000"}\n• অবস্থা: ${payData.paymentStatus}`
+        : `💰 **Official MSP Rates & DBT Payment:**\n\n📊 **Government MSP Rates (2026-27):**\n• Wheat: ₹2,425 / quintal\n• Paddy: ₹2,320 / quintal\n• Mustard: ₹5,950 / quintal\n• Gram: ₹5,440 / quintal\n• Maize: ₹2,090 / quintal\n\n💳 **Your Payout Calculation:**\n• Total Amount: **${payData.formattedPayout || "₹97,000"}**\n• Mode: Direct Bank Transfer (DBT) to Aadhaar-Linked Account\n• Status: ${payData.paymentStatus}\n• Receipt: ${payData.receiptRef || "MandiMitra-REC-113"}`;
+
+    return {
+      text,
+      toolUsed: "get_payment_status",
+      toolResult: { payData, rateData },
+      menuOptions: [
+        { label: "⚖️ तुलाई व गुणवत्ता जांच", action: "तुलाई और वजन", icon: "⚖️" },
+        { label: "📞 केंद्र से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+        getBackOption(language),
+      ],
+    };
+  }
+
+  // 5. BEST TIME TO VISIT & CONGESTION (Option 5 / time / समय / भीड़ / rush / कब जाएं)
+  if (
+    q === "5" ||
+    q.includes("best time") ||
+    q.includes("time") ||
+    q.includes("समय") ||
+    q.includes("भीड़") ||
+    q.includes("rush") ||
+    q.includes("कब जाएं") ||
+    q.includes("when to go") ||
+    q.includes("সময়")
+  ) {
+    const data = executeTool("get_best_time_to_visit", {}, context);
+
+    const text =
+      language === "hi"
+        ? `🕒 **मंडी पहुंचने का सबसे अच्छा समय व भीड़ सारणी:**\n• **सर्वोत्तम समय:** **${data.recommendedSlot}**\n• **सलाह:** ${data.reason}\n\n📊 **आज का अनुमानित भीड़ स्तर:**\n• 09:00 AM – 10:00 AM: 🔴 भारी भीड़ (~35 मिनट प्रतीक्षा)\n• 10:30 AM – 11:30 AM: 🟢 सबसे कम भीड़ (~15 मिनट प्रतीक्षा - अनुशंसित)\n• 12:00 PM – 01:30 PM: 🟡 मध्यम भीड़ (~22 मिनट प्रतीक्षा)\n• 02:30 PM – 04:00 PM: 🟢 त्वरित तुलाई (~12 मिनट प्रतीक्षा)`
+        : language === "bn"
+        ? `🕒 **আসার সেরা সময় ও ভিড়ের তথ্য:**\n• **সেরা সময়:** **${data.recommendedSlot}**\n• **পরামর্শ:** ${data.reason}\n• সকাল ৯:০০-১০:০০ ভিড় বেশি থাকে। ১০:৩০-১১:৩০ এর মধ্যে এলে দ্রুত আনলোড হবে।`
+        : `🕒 **Best Time to Arrive & Congestion Schedule:**\n• **Recommended Window:** **${data.recommendedSlot}**\n• **Reason:** ${data.reason}\n\n📊 **Hourly Congestion Pattern:**\n• 09:00 AM – 10:00 AM: 🔴 High Rush (~35 mins wait)\n• 10:30 AM – 11:30 AM: 🟢 Optimal Window (~15 mins wait - Recommended)\n• 12:00 PM – 01:30 PM: 🟡 Moderate Rush (~22 mins wait)\n• 02:30 PM – 04:00 PM: 🟢 Fast Clearance (~12 mins wait)`;
+
+    return {
+      text,
+      toolUsed: "get_best_time_to_visit",
+      toolResult: data,
+      menuOptions: [
+        { label: "🎫 टोकन व कतार स्थिति", action: "टोकन स्थिति", icon: "🎫" },
+        { label: "📞 केंद्र से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+        getBackOption(language),
+      ],
+    };
+  }
+
+  // 6. HELPLINE, COMPLAINTS & CANCELLATION (Option 6 / help / helpline / शिकायत / रद्द / cancel)
+  if (
+    q === "6" ||
+    q.includes("helpline") ||
+    q.includes("हेल्पलाइन") ||
+    q.includes("help") ||
+    q.includes("सहायता") ||
     q.includes("शिकायत") ||
-    q.includes("समस्या") ||
-    q.includes("गड़बड़") ||
+    q.includes("कॉल सेंटर") ||
+    q.includes("complaint") ||
+    q.includes("cancel") ||
+    q.includes("रद्द") ||
     q.includes("অভিযোগ")
   ) {
-    const data = executeTool("register_complaint", { message: query }, context);
-    const text =
-      language === "hi"
-        ? `📝 आपकी शिकायत आधिकारिक तौर पर दर्ज कर ली गई है!\n• शिकायत संदर्भ संख्या: #${data.complaintId}\n• स्थिति: दर्ज (REGISTERED)\n\nमंडी पर्यवेक्षक और हेल्पडेस्क टीम को तुरंत सूचित कर दिया गया है।`
-        : language === "bn"
-        ? `📝 আপনার অভিযোগ নিবন্ধিত হয়েছে!\n• অভিযোগ আইডি: #${data.complaintId}\nমান্ডি কর্মকর্তাদের জানানো হয়েছে।`
-        : `📝 Your grievance has been officially registered!\n• Complaint Reference: #${data.complaintId}\n• Status: REGISTERED\nThe Mandi supervisor and helpdesk have been alerted.`;
-    return { text, toolUsed: "register_complaint", toolResult: data };
+    const helpData = executeTool("get_helpline_info", {}, context);
+
+    let text = "";
+    if (q.includes("cancel") || q.includes("रद्द")) {
+      text =
+        language === "hi"
+          ? `❌ **स्लॉट रद्दीकरण नीति एवं प्रक्रिया:**\n• किसान 'टोकन ट्रैकर' पेज पर जाकर किसी भी समय अपना स्लॉट रद्द कर सकते हैं।\n• वैध रद्दीकरण कारण: मौसम/बारिश, परिवहन अनुपलब्धता, तुलाई विलंब, या अन्य कारण।\n• स्लॉट रद्द होते ही नया स्लॉट तुरंत बुक किया जा सकता है।`
+          : `❌ **Slot Cancellation Process:**\n• Farmers can cancel their booking anytime from the 'Track Token' page.\n• Valid audit reasons: Bad weather, transport unavailable, or personal emergency.\n• A fresh slot can be booked immediately after cancellation.`;
+    } else {
+      text =
+        language === "hi"
+          ? `🚨 **किसान हेल्पलाइन एवं समाधान डेस्क:**\n• **राष्ट्रीय किसान कॉल सेंटर:** 📞 1800-180-1551 (24x7 टोल-फ्री)\n• **मंडी राज्य नियंत्रण कक्ष:** 📞 ${helpData.stateControlRoom}\n• **मंडीमित्र हेल्पलाइन:** 📱 ${helpData.whatsappSupport}\n• **ईमेल सहायता:** ✉️ ${helpData.email}\n\n📝 यदि आपको तुलाई, वजन या टोकन में कोई समस्या है, तो आप 'शिकायत दर्ज करें' बटन दबाकर तुरंत समाधान प्राप्त कर सकते हैं।`
+          : language === "bn"
+          ? `🚨 **কৃষক হেল্পলাইন ও অভিযোগ কেন্দ্র:**\n• **জাতীয় কিষাণ কল সেন্টার:** 📞 1800-180-1551 (টোল-ফ্রি ২৪x৭)\n• **নিয়ন্ত্রণ কক্ষ:** 📞 ${helpData.stateControlRoom}\n• যেকোনো সমস্যার জন্য অভিযোগ নিবন্ধন করতে পারেন।`
+          : `🚨 **Farmer Helpline & Grievance Desk:**\n• **National Kisan Call Centre:** 📞 1800-180-1551 (24x7 Toll-Free)\n• **Mandi State Control Room:** 📞 ${helpData.stateControlRoom}\n• **WhatsApp Support:** 📱 ${helpData.whatsappSupport}\n• **Email:** ✉️ ${helpData.email}\n\nYou can file an official grievance or contact the supervisor directly.`;
+    }
+
+    return {
+      text,
+      toolUsed: "get_helpline_info",
+      toolResult: helpData,
+      menuOptions: [
+        { label: "📞 किसान कॉल सेंटर (1800-180-1551)", action: "call", phone: "18001801551", variant: "call" },
+        { label: "📞 केंद्र प्रभारी से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+        { label: "📝 शिकायत दर्ज करें", action: "शिकायत दर्ज करें", icon: "📝" },
+        getBackOption(language),
+      ],
+    };
   }
 
-  // 8. PROFILE / IDENTIFICATION
+  // 7. FARMER PROFILE
   if (
-    q.includes("who am i") ||
     q.includes("profile") ||
+    q.includes("who am i") ||
     q.includes("किसान") ||
     q.includes("नाम") ||
-    q.includes("farmer") ||
-    q.includes("পরিচয়")
+    q.includes("farmer")
   ) {
     const data = executeTool("get_farmer_profile", {}, context);
     const cropsStr = Array.isArray(data.registeredCrops)
       ? data.registeredCrops.join(", ")
-      : "Wheat (गेहूं), Soybean (सोयाबीन), Mustard (सरसों)";
+      : "गेहूं, सोयाबीन, सरसों";
 
     const text =
       language === "hi"
-        ? `👤 किसान पंजीकरण विवरण:\n• किसान का नाम: ${data.farmerName || "किसान"}\n• पंजीकृत मोबाइल: ${data.farmerMobile || ""}\n• किसान आईडी: ${data.farmerId || ""}\n• जिला: ${data.district || "Bhopal"} (${data.state || "Madhya Pradesh"})\n• पंजीकृत फसलें: ${cropsStr}\n• सक्रिय टोकन: ${data.activeToken || "None"}`
-        : language === "bn"
-        ? `👤 কৃষক প্রোফাইল:\n• নাম: ${data.farmerName || "কৃষক"}\n• মোবাইল: ${data.farmerMobile || ""}\n• নিবন্ধিত ফসল: ${cropsStr}`
-        : `👤 Registered Farmer Profile:\n• Name: ${data.farmerName || "Farmer"}\n• Mobile: ${data.farmerMobile || ""}\n• Farmer ID: ${data.farmerId || ""}\n• District: ${data.district || "Bhopal"}, ${data.state || "Madhya Pradesh"}\n• Crops: ${cropsStr}`;
-    return { text, toolUsed: "get_farmer_profile", toolResult: data };
+        ? `👤 **पंजीकृत किसान प्रोफ़ाइल:**\n• **नाम:** ${data.farmerName || "किसान भाई"}\n• **मोबाइल:** +91 ${data.farmerMobile || ""}\n• **किसान आईडी:** ${data.farmerId || "FMR-4245"}\n• **जिला:** ${data.district} (${data.state})\n• **पंजीकृत फसलें:** ${cropsStr}\n• **सक्रिय टोकन:** ${data.activeToken || "सक्रिय नहीं"}`
+        : `👤 **Farmer Profile:**\n• **Name:** ${data.farmerName || "Farmer"}\n• **Mobile:** +91 ${data.farmerMobile || ""}\n• **ID:** ${data.farmerId || "FMR-4245"}\n• **District:** ${data.district} (${data.state})\n• **Registered Crops:** ${cropsStr}`;
+
+    return {
+      text,
+      toolUsed: "get_farmer_profile",
+      toolResult: data,
+      menuOptions: [
+        { label: "🎫 टोकन स्थिति देखें", action: "टोकन स्थिति", icon: "🎫" },
+        { label: "📞 केंद्र से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
+        getBackOption(language),
+      ],
+    };
   }
 
-  // DEFAULT GREETING & GUIDANCE
+  // DEFAULT / MAIN MENU (menu, मेनू, 0, hello, hi, नमस्ते, etc.)
   const text =
     language === "hi"
-      ? "नमस्ते! 🌾 मैं मंडीमित्र (MandiMitra) एआई सहायक हूँ। आप मुझसे बोलकर या लिखकर पूछ सकते हैं:\n• मेरा टोकन और कतार की स्थिति क्या है?\n• मेरे लिए कौन सा खरीद केंद्र सबसे अच्छा है?\n• मंडी में जाने का सबसे अच्छा समय क्या है?\n• मेरी फसल का वजन और ग्रेड क्या है?\n• मेरा डीबीटी भुगतान कब तक आएगा?"
+      ? `🌾 **मंडीमित्र किसान सेवा मेनू (MandiMitra AI):**\nकृपया नीचे दिए गए विकल्पों में से चुनें या नंबर लिखकर / बोलकर पूछें:\n\n1️⃣ **टोकन व कतार** — सक्रिय टोकन, नंबर और कतार में समय\n2️⃣ **केंद्र संपर्क** — केंद्र प्रभारी का फोन नंबर और मंडी विवरण\n3️⃣ **तुलाई व गुणवत्ता** — वजन, नमी और ग्रेडिंग रिपोर्ट\n4️⃣ **एमएसपी दरें व भुगतान** — आज के भाव और बैंक खाता भुगतान\n5️⃣ **आने का सही समय** — आज की भीड़ व सबसे अच्छा अनलोड समय\n6️⃣ **हेल्पलाइन व शिकायत** — टोल-फ्री नंबर (1800-180-1551) व सहायता`
       : language === "bn"
-      ? "নমস্কার! 🌾 আমি মান্ডিমিত্র এআই সহকারী। আপনি টোকেন, সারির অবস্থান, সেরা কেন্দ্র, বা পেমেন্ট সম্পর্কে প্রশ্ন করতে পারেন।"
-      : "Hello! 🌾 I am MandiMitra AI Assistant. You can speak or type to ask about:\n• Your smart token & queue status\n• Recommended procurement centre & wait times\n• Best arrival time windows\n• Quality grading & weighbridge certification\n• Direct Bank Transfer (DBT) payout details";
+      ? `🌾 **মান্ডিমিত্র কৃষক সেবা মেনু:**\nনিচের বিকল্প থেকে নির্বাচন করুন বা নম্বর টাইপ করুন:\n\n১️⃣ **টোকেন ও সারি** — সক্রিয় টোকেন ও অপেক্ষার সময়\n২️⃣ **কেন্দ্রে যোগাযোগ** — কেন্দ্র ভারপ্রাপ্ত কর্মকর্তার ফোন নম্বর\n৩️⃣ **ওজন ও মান** — ওজন, আর্দ্রতা ও গ্রেড\n৪️⃣ **এমএসপি ও পেমেন্ট** — আজকের দাম ও ব্যাংক পেমেন্ট\n৫️⃣ **আসার সেরা সময়** — কম ভিড়ের সময়সূচী\n৬️⃣ **হেল্পলাইন** — টোল-ফ্রি কিষাণ কল সেন্টার`
+      : `🌾 **MandiMitra Farmer Service Menu:**\nPlease choose an option from below or type/speak a number:\n\n1️⃣ **Token & Queue** — Active token & real-time wait minutes\n2️⃣ **Contact Centre** — Officer phone numbers & mandi address\n3️⃣ **Weighbridge & Quality** — Net weight, moisture & FAQ grade\n4️⃣ **MSP Rates & Payment** — Official price card & DBT bank transfer\n5️⃣ **Best Arrival Time** — Avoid rush hours & fastest bays\n6️⃣ **Helpline & Support** — Toll-Free Kisan Call Centre (1800-180-1551)`;
 
-  return { text, toolUsed: "none", toolResult: null };
+  return {
+    text,
+    toolUsed: "main_menu",
+    toolResult: null,
+    menuOptions: getMainMenuOptions(language),
+  };
 }
+

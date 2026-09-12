@@ -153,10 +153,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Deterministic Smart Rule Engine Fallback (Zero-key / Offline)
+    // 2. Deterministic Smart Rule Engine Fallback (Zero-key / Offline Menu-Driven)
     const fallback = smartRuleEngine(lastUserMessage, context, language);
     return NextResponse.json({
       text: fallback.text,
+      menuOptions: fallback.menuOptions || [],
       demoMode: true,
       toolUsed: fallback.toolUsed,
     });

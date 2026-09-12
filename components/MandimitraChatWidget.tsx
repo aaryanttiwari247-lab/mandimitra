@@ -28,7 +28,10 @@ import {
   Clock,
   ShieldCheck,
   ChevronDown,
+  LayoutGrid,
+  PhoneCall,
 } from "lucide-react";
+import { getMainMenuOptions, MenuItemOption } from "@/lib/ai-assistant-tools";
 
 interface ChatMessage {
   id: string;
@@ -37,6 +40,7 @@ interface ChatMessage {
   audioUrl?: string;
   audioDuration?: number;
   demoMode?: boolean;
+  menuOptions?: MenuItemOption[];
   timestamp: string;
 }
 
@@ -114,7 +118,11 @@ export function MandimitraChatWidget() {
   useEffect(() => {
     const greetingText =
       t("assistant.initialGreeting") ||
-      "नमस्ते किसान भाई! 🌾 मैं मंडीमित्र एआई सहायक हूँ। आप बोलकर या लिखकर अपना टोकन, कतार में बारी, तुलाई का वजन या डीबीटी भुगतान की स्थिति जान सकते हैं।";
+      (language === "hi"
+        ? "नमस्ते किसान भाई! 🌾 मैं मंडीमित्र एआई सहायक हूँ। नीचे दिए गए मेनू में से किसी विकल्प को चुनें या बोलकर/लिखकर पूछें:"
+        : language === "bn"
+        ? "নমস্কার কৃষক ভাই! 🌾 আমি মান্ডিমিত্র সহকারী। নিচের মেনু থেকে নির্বাচন করুন বা বলুন:"
+        : "Welcome farmer brother! 🌾 I am MandiMitra AI. Please select an option from the menu below or ask by typing/speaking:");
 
     setMessages((prev) => {
       if (prev.length === 0) {
@@ -123,6 +131,7 @@ export function MandimitraChatWidget() {
             id: "greeting-1",
             role: "assistant",
             content: greetingText,
+            menuOptions: getMainMenuOptions(language),
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ];
@@ -202,6 +211,7 @@ export function MandimitraChatWidget() {
         role: "assistant",
         content: data.text || "Records checked.",
         demoMode: Boolean(data.demoMode),
+        menuOptions: Array.isArray(data.menuOptions) && data.menuOptions.length > 0 ? data.menuOptions : undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 
@@ -224,6 +234,7 @@ export function MandimitraChatWidget() {
             : language === "bn"
             ? "সহকারী এই মুহূর্তে উত্তর দিতে পারছে না। অনুগ্রহ করে আবার চেষ্টা করুন।"
             : "Assistant is temporarily unavailable. Please try again.",
+        menuOptions: getMainMenuOptions(language),
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -370,34 +381,39 @@ export function MandimitraChatWidget() {
   // Quick Action Chips Configuration
   const quickActions = [
     {
+      label: language === "hi" ? "📋 मुख्य मेनू" : language === "bn" ? "📋 প্রধান মেনু" : "📋 Main Menu",
+      prompt: language === "hi" ? "मेनू" : language === "bn" ? "মেনু" : "menu",
+      icon: "📋",
+    },
+    {
+      label: language === "hi" ? "📞 केंद्र संपर्क" : language === "bn" ? "📞 কেন্দ্রে যোগাযোগ" : "📞 Contact Centre",
+      prompt: language === "hi" ? "केंद्र संपर्क" : language === "bn" ? "কেন্দ্রে যোগাযোগ" : "contact centre",
+      icon: "📞",
+    },
+    {
       label: t("assistant.chipToken") || "मेरा टोकन",
       prompt: t("assistant.promptToken") || "मेरा वर्तमान टोकन और कतार की स्थिति क्या है?",
-      icon: "🌾",
-    },
-    {
-      label: t("assistant.chipCentre") || "सर्वोत्तम केंद्र",
-      prompt: t("assistant.promptCentre") || "मेरे लिए कौन सा खरीद केंद्र सबसे अच्छा और पास है?",
-      icon: "📍",
-    },
-    {
-      label: t("assistant.chipQueue") || "कतार प्रतीक्षा",
-      prompt: t("assistant.promptQueue") || "कतार में मुझसे आगे कितने किसान हैं?",
-      icon: "⏱️",
-    },
-    {
-      label: t("assistant.chipTime") || "जाने का समय",
-      prompt: t("assistant.promptTime") || "आज मंडी में पहुंचने का सबसे अच्छा समय क्या है?",
-      icon: "🕐",
+      icon: "🎫",
     },
     {
       label: t("assistant.chipInspection") || "तुलाई और वजन",
       prompt: t("assistant.promptInspection") || "मेरी फसल की तुलाई और ग्रेडिंग की स्थिति क्या है?",
-      icon: "📦",
+      icon: "⚖️",
     },
     {
       label: t("assistant.chipPayment") || "डीबीटी भुगतान",
       prompt: t("assistant.promptPayment") || "मेरी फसल का कुल भुगतान कितना है और खाते में कब आएगा?",
       icon: "💰",
+    },
+    {
+      label: language === "hi" ? "🕒 आने का समय" : language === "bn" ? "🕒 আসার সেরা সময়" : "🕒 Best Arrival Time",
+      prompt: language === "hi" ? "आने का सही समय" : language === "bn" ? "আসার সেরা সময়" : "best arrival time",
+      icon: "🕒",
+    },
+    {
+      label: language === "hi" ? "🚨 हेल्पलाइन" : language === "bn" ? "🚨 হেল্পলাইন" : "🚨 Helpline",
+      prompt: language === "hi" ? "किसान हेल्पलाइन" : language === "bn" ? "কৃষক হেল্পলাইন" : "helpline",
+      icon: "🚨",
     },
   ];
 
@@ -563,6 +579,38 @@ export function MandimitraChatWidget() {
                       {/* TEXT CONTENT */}
                       <p className="whitespace-pre-line">{m.content}</p>
 
+                      {/* INTERACTIVE MENU OPTIONS PILLS */}
+                      {m.menuOptions && m.menuOptions.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1.5">
+                          {m.menuOptions.map((opt, oIdx) => {
+                            if (opt.phone) {
+                              return (
+                                <a
+                                  key={oIdx}
+                                  href={`tel:${opt.phone.replace(/[^0-9+]/g, "")}`}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10.5px] px-2.5 py-1.5 shadow-2xs transition active:scale-95 no-underline"
+                                >
+                                  <PhoneCall className="h-3 w-3" />
+                                  <span>{opt.label}</span>
+                                </a>
+                              );
+                            }
+                            return (
+                              <button
+                                key={oIdx}
+                                type="button"
+                                disabled={loading || isRecordingNote}
+                                onClick={() => handleSend(opt.action)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 font-semibold text-[10.5px] px-2 py-1 shadow-2xs transition active:scale-95 disabled:opacity-50 text-left"
+                              >
+                                {opt.icon && <span>{opt.icon}</span>}
+                                <span>{opt.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {/* FOOTER OF BUBBLE (TTS SPEAKER & TIMESTAMP) */}
                       <div
                         className={`mt-1 flex items-center justify-between text-[9px] ${
@@ -696,6 +744,18 @@ export function MandimitraChatWidget() {
                     title={isDictating ? "Stop Dictation" : "Dictate (Speech to Text)"}
                   >
                     <Mic className="h-3.5 w-3.5" />
+                  </button>
+
+                  {/* MAIN MENU SHORTCUT BUTTON */}
+                  <button
+                    type="button"
+                    onClick={() => handleSend(language === "hi" ? "मेनू" : language === "bn" ? "মেনু" : "menu")}
+                    disabled={loading || isRecordingNote}
+                    className="flex h-8 px-2 shrink-0 items-center justify-center gap-1 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition disabled:opacity-50 text-[11px] font-bold"
+                    title={language === "hi" ? "मुख्य मेनू खोलें" : language === "bn" ? "প্রধান মেনু" : "Open Main Menu"}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5 text-[#2E7D32]" />
+                    <span className="hidden sm:inline">{language === "hi" ? "मेनू" : language === "bn" ? "মেনু" : "Menu"}</span>
                   </button>
 
                   {/* TEXT INPUT */}
