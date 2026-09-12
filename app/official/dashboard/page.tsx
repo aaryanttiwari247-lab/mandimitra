@@ -1047,6 +1047,7 @@ export default function OfficialDashboardPage() {
                 { id: "VERIFIED", label: "Verified" },
                 { id: "PROCESSING", label: "Processing" },
                 { id: "COMPLETED", label: "Completed" },
+                { id: "CANCELLED", label: "Cancelled" },
               ].map((pill) => {
                 const count =
                   pill.id === "ALL"

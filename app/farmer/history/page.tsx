@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   CalendarDays,
@@ -55,6 +56,10 @@ type Booking = {
   processingStartedAt?: string | null;
   completedAt?: string | null;
   verifiedBy?: string | null;
+
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: string | null;
 
   arrivalTime?: string;
 
@@ -280,13 +285,18 @@ export default function FarmerHistoryPage() {
   const getStatus = (
     booking: Booking
   ) => {
-    const rawStatus =
+    const rawStatus = String(
       booking.procurementStatus ||
       booking.queueStatus ||
       booking.status ||
-      "WAITING";
+      "WAITING"
+    ).toUpperCase();
 
-    return rawStatus.toUpperCase();
+    if (rawStatus.includes("CANCEL")) {
+      return "CANCELLED";
+    }
+
+    return rawStatus;
   };
 
   // ============================================================
@@ -317,7 +327,7 @@ export default function FarmerHistoryPage() {
         return "bg-[#FFF8E1] text-[#A16207]";
 
       case "CANCELLED":
-        return "bg-red-50 text-red-700";
+        return "bg-red-100 text-red-800 border border-red-200";
 
       default:
         return "bg-gray-100 text-gray-700";
@@ -736,6 +746,32 @@ export default function FarmerHistoryPage() {
 
                     </div>
 
+
+                    {/* ========================================
+                        CANCELLATION NOTICE IF CANCELLED
+                        ======================================== */}
+
+                    {status === "CANCELLED" && (
+                      <div className="border-t border-red-200 bg-red-50/80 px-6 py-4 sm:px-7">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-red-700">
+                              {t("tracker.cancelledHeader")}
+                            </p>
+                            <p className="mt-0.5 text-sm font-bold text-red-950">
+                              {t("tracker.cancellationReasonLabel")}: {booking.cancellationReason || "Cancelled by procurement official"}
+                            </p>
+                            {booking.cancelledBy && (
+                              <p className="mt-0.5 text-xs text-gray-500">
+                                {t("tracker.cancelledByLabel")}: {booking.cancelledBy}
+                                {booking.cancelledAt ? ` • ${new Date(booking.cancelledAt).toLocaleString("en-IN")}` : ""}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* ========================================
                         EXTRA INFORMATION

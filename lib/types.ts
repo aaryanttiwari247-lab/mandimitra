@@ -80,6 +80,10 @@ export type Booking = {
   completedAt?: string | null;
   verifiedBy?: string | null;
 
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: string | null;
+
   arrivalTime?: string;
 
   createdAt: string;

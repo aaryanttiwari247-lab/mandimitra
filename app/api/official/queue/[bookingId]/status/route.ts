@@ -9,7 +9,18 @@ export async function PATCH(
   const { bookingId: rawId } = await params;
   const bookingId = decodeURIComponent(rawId || "").trim();
   const body = await req.json();
-  const { status, verifiedBy, officialId, cropGrade, mspRate, totalPayout, actualQuantity, paymentStatus } = body;
+  const {
+    status,
+    verifiedBy,
+    officialId,
+    cropGrade,
+    mspRate,
+    totalPayout,
+    actualQuantity,
+    paymentStatus,
+    cancellationReason,
+    cancelledBy,
+  } = body;
 
   const validStatuses: BookingStatus[] = ["WAITING", "CALLED", "VERIFIED", "PROCESSING", "COMPLETED", "CANCELLED"];
   if (!validStatuses.includes(status)) {
@@ -35,6 +46,11 @@ export async function PATCH(
   }
   if (status === "PROCESSING") updates.processingStartedAt = now;
   if (status === "COMPLETED") updates.completedAt = now;
+  if (status === "CANCELLED") {
+    updates.cancelledAt = now;
+    updates.cancellationReason = cancellationReason || "Cancelled by Procurement Officer";
+    updates.cancelledBy = cancelledBy || verifiedBy || officialId || "Procurement Officer";
+  }
 
   const updated = updateBookingInAllStores(bookingId, updates);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
@@ -18,6 +19,7 @@ import { broadcastProcurementUpdate } from "@/lib/cross-tab-sync";
 import { matchesBookingIdentifier } from "@/lib/procurement-store";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { CancellationModal } from "@/components/CancellationModal";
 
 type Booking = {
   bookingId?: string;
@@ -51,6 +53,10 @@ type Booking = {
   completedAt?: string | null;
   verifiedBy?: string | null;
 
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: string | null;
+
   arrivalTime?: string;
 
   createdAt?: string;
@@ -75,6 +81,9 @@ function VerifyContent() {
 
   const [error, setError] =
     useState("");
+
+  const [isCancelModalOpen, setIsCancelModalOpen] =
+    useState(false);
 
   // ============================================================
   // LOAD BOOKING
@@ -865,19 +874,27 @@ function VerifyContent() {
 
                 </div>
 
-                <button
-                  onClick={handleVerify}
-                  disabled={verifying}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                >
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleVerify}
+                    disabled={verifying}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  >
+                    <CheckCircle2 className="h-5 w-5" />
+                    {verifying
+                      ? t("official.verifyingFarmer")
+                      : t("official.verifyFarmerBtn")}
+                  </button>
 
-                  <CheckCircle2 className="h-5 w-5" />
-
-                  {verifying
-                    ? t("official.verifyingFarmer")
-                    : t("official.verifyFarmerBtn")}
-
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-4 text-sm font-bold text-rose-600 transition hover:bg-rose-50 hover:border-rose-300 sm:w-auto"
+                  >
+                    <AlertTriangle className="h-5 w-5 text-rose-600" />
+                    {t("official.cancelProcurement")}
+                  </button>
+                </div>
 
                 {error && (
                   <p className="mt-4 text-sm font-medium text-red-600">
@@ -913,22 +930,77 @@ function VerifyContent() {
 
                 </div>
 
-                <button
-                  onClick={() =>
-                    router.push(
-                      `/official/procurement?token=${encodeURIComponent(
-                        booking.token ?? ""
-                      )}`
-                    )
-                  }
-                  className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428]"
-                >
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/official/procurement?token=${encodeURIComponent(
+                          booking.token ?? ""
+                        )}`
+                      )
+                    }
+                    className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428]"
+                  >
+                    {t("official.proceedToProcurement")}
+                    <ArrowLeft className="h-5 w-5 rotate-180" />
+                  </button>
 
-                  {t("official.proceedToProcurement")}
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-4 text-sm font-bold text-rose-600 transition hover:bg-rose-50 hover:border-rose-300"
+                  >
+                    <AlertTriangle className="h-5 w-5 text-rose-600" />
+                    {t("official.cancelProcurement")}
+                  </button>
+                </div>
 
-                  <ArrowLeft className="h-5 w-5 rotate-180" />
+              </div>
+            )}
 
-                </button>
+            {currentStatus === "CANCELLED" && (
+              <div>
+
+                <div className="flex items-start gap-4">
+
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+
+                    <AlertTriangle className="h-6 w-6" />
+
+                  </div>
+
+                  <div className="flex-1">
+
+                    <h2 className="text-lg font-bold text-rose-900">
+                      {t("official.procurementCancelled")}
+                    </h2>
+
+                    <p className="mt-1 text-sm leading-6 text-rose-700">
+                      {t("official.cancelledNoticeDesc")}
+                    </p>
+
+                    {booking.cancellationReason && (
+                      <div className="mt-4 rounded-2xl border border-rose-200 bg-white p-4">
+                        <p className="text-xs font-bold uppercase tracking-wider text-rose-700">
+                          {t("official.cancellationReasonLabel")}
+                        </p>
+                        <p className="mt-1 font-semibold text-gray-900">
+                          {booking.cancellationReason}
+                        </p>
+                        {booking.cancelledBy && (
+                          <p className="mt-2 text-xs text-gray-500">
+                            {t("official.cancelledByLabel")}:{" "}
+                            <span className="font-medium text-gray-700">
+                              {booking.cancelledBy}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+
+                </div>
 
               </div>
             )}
@@ -1007,6 +1079,13 @@ function VerifyContent() {
         </div>
 
       </section>
+
+      <CancellationModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        booking={booking}
+        onCancelled={(updated) => setBooking(updated)}
+      />
 
     </main>
   );

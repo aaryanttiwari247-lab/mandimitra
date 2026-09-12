@@ -5,6 +5,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 
 
 import {
+  AlertTriangle,
   ArrowRight,
   Award,
   Bell,
@@ -14,6 +15,7 @@ import {
   IndianRupee,
   Info,
   MapPin,
+  RotateCcw,
   Search,
   Sprout,
   Ticket,
@@ -80,6 +82,10 @@ type Booking = {
   processingStartedAt?: string | null;
   completedAt?: string | null;
   verifiedBy?: string | null;
+
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: string | null;
 
   arrivalTime?: string;
 
@@ -372,14 +378,33 @@ export default function FarmerDashboard() {
       return "No Active Booking";
     }
 
-    const status =
+    const status = String(
       booking.queueStatus ||
       booking.status ||
       booking.procurementStatus ||
-      "WAITING";
+      "WAITING"
+    ).toUpperCase();
 
-    return status;
+    if (status.includes("CANCEL")) {
+      return "CANCELLED";
+    }
+    if (status.includes("COMPLETED")) {
+      return "COMPLETED";
+    }
+    if (status.includes("PROCESSING")) {
+      return "PROCESSING";
+    }
+    if (status.includes("VERIFIED")) {
+      return "VERIFIED";
+    }
+    if (status.includes("CALLED")) {
+      return "CALLED";
+    }
+
+    return "WAITING";
   };
+
+  const isCancelled = booking ? getDisplayStatus() === "CANCELLED" : false;
 
   // ============================================================
   // AUTH CHECK SCREEN
@@ -517,7 +542,66 @@ export default function FarmerDashboard() {
             ACTIVE TOKEN
         ==================================================== */}
 
-        {booking ? (
+        {isCancelled && booking ? (
+          <div className="overflow-hidden rounded-3xl border-2 border-red-300 bg-red-50 p-6 sm:p-8 shadow-sm">
+            <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-white shadow-xs">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
+                      {t("tracker.cancelledHeader")}
+                    </span>
+                    <span className="rounded-full bg-red-200 px-3 py-0.5 text-xs font-bold text-red-900">
+                      Token #{booking.token || booking.tokenNumber}
+                    </span>
+                  </div>
+
+                  <h2 className="mt-2 text-2xl font-black text-red-950">
+                    {t("tracker.cancelledBanner", { token: String(booking.token || booking.tokenNumber || "") })}
+                  </h2>
+
+                  <div className="mt-3.5 rounded-2xl border border-red-200 bg-white p-4 shadow-xs">
+                    <p className="text-xs font-bold uppercase tracking-wider text-red-600">
+                      {t("tracker.cancellationReasonLabel")}
+                    </p>
+                    <p className="mt-1 text-base font-extrabold text-gray-900">
+                      {booking.cancellationReason || "Procurement cancelled by official"}
+                    </p>
+                    {booking.cancelledBy && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t("tracker.cancelledByLabel")}: <strong className="text-gray-800">{booking.cancelledBy}</strong>
+                      </p>
+                    )}
+                  </div>
+
+                  <p className="mt-3 text-sm text-red-900 leading-relaxed">
+                    {t("tracker.farmerCancelledGuidance")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                <button
+                  onClick={handleBookSlot}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-[#256428] transition"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {t("tracker.bookNewSlot")}
+                </button>
+                <button
+                  onClick={handleTrackToken}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm font-bold text-gray-700 hover:border-[#2E7D32] hover:text-[#2E7D32] transition shadow-xs"
+                >
+                  {t("dashboard.trackNow")}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : booking ? (
           <div className="overflow-hidden rounded-3xl bg-[#2E7D32] shadow-sm">
             <div className="p-6 sm:p-8">
               <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
@@ -806,39 +890,45 @@ export default function FarmerDashboard() {
               <div className="mt-7 border-t border-gray-100 pt-6">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8F5E9]">
-                      <CheckCircle2 className="h-5 w-5 text-[#2E7D32]" />
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isCancelled ? "bg-red-100 text-red-600" : "bg-[#E8F5E9] text-[#2E7D32]"}`}>
+                      {isCancelled ? (
+                        <AlertTriangle className="h-5 w-5" />
+                      ) : (
+                        <CheckCircle2 className="h-5 w-5" />
+                      )}
                     </div>
 
                     <div>
                       <p className="font-bold text-gray-900">
-                        Booking{" "}
-                        {getDisplayStatus()
-                          .toLowerCase()
-                          .replace(
-                            /^./,
-                            (letter) =>
-                              letter.toUpperCase()
-                          )}
+                        {isCancelled ? "Procurement Cancelled" : `Booking ${getDisplayStatus().toLowerCase().replace(/^./, (letter) => letter.toUpperCase())}`}
                       </p>
 
                       <p className="text-sm text-gray-500">
-                        Token #
-                        {booking.token ||
-                          (booking.tokenNumber ? String(booking.tokenNumber) : "---")}{" "}
-                        is active.
+                        {isCancelled
+                          ? `Reason: ${booking.cancellationReason || "Cancelled by official"}`
+                          : `Token #${booking.token || (booking.tokenNumber ? String(booking.tokenNumber) : "---")} is active.`}
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleTrackToken}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#256428]"
-                  >
-                    {t("dashboard.trackTokenBtn")}
-
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {isCancelled && (
+                      <button
+                        onClick={handleBookSlot}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#256428]"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        {t("tracker.bookNewSlot")}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleTrackToken}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-[#2E7D32] hover:text-[#2E7D32]"
+                    >
+                      {t("dashboard.trackTokenBtn")}
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

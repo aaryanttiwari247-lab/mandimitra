@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   Award,
   CheckCircle2,
@@ -27,6 +28,7 @@ import { broadcastProcurementUpdate } from "@/lib/cross-tab-sync";
 import { matchesBookingIdentifier } from "@/lib/procurement-store";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { CancellationModal } from "@/components/CancellationModal";
 
 type Booking = {
   bookingId?: string;
@@ -64,6 +66,10 @@ type Booking = {
   completedAt?: string | null;
   verifiedBy?: string | null;
 
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: string | null;
+
   arrivalTime?: string;
 
   createdAt?: string;
@@ -74,7 +80,8 @@ type ProcurementStatus =
   | "WAITING"
   | "VERIFIED"
   | "PROCESSING"
-  | "COMPLETED";
+  | "COMPLETED"
+  | "CANCELLED";
 
 function ProcurementContent() {
   const router = useRouter();
@@ -90,6 +97,9 @@ function ProcurementContent() {
     useState(true);
 
   const [actionLoading, setActionLoading] =
+    useState(false);
+
+  const [isCancelModalOpen, setIsCancelModalOpen] =
     useState(false);
 
   const [error, setError] =
@@ -217,6 +227,10 @@ function ProcurementContent() {
         item.procurementStatus ??
         "WAITING"
     ).toUpperCase();
+
+    if (status.includes("CANCELLED") || status.includes("CANCEL")) {
+      return "CANCELLED";
+    }
 
     if (status.includes("COMPLETED")) {
       return "COMPLETED";
@@ -1067,6 +1081,16 @@ function ProcurementContent() {
                     <ShieldCheck className="h-4 w-4 text-[#2E7D32]" />
                     Open Full Document Verification (Aadhaar/Land)
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    disabled={actionLoading}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3.5 text-sm font-bold text-red-700 hover:bg-red-100 hover:border-red-300 disabled:opacity-60"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    {t("official.cancelProcurement")}
+                  </button>
                 </div>
               </div>
             )}
@@ -1205,16 +1229,28 @@ function ProcurementContent() {
                   </div>
                 </div>
 
-                <button
-                  onClick={handleStartProcurement}
-                  disabled={actionLoading || livePayoutCalc.totalPayout <= 0}
-                  className="mt-6 flex w-full sm:w-fit items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-7 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Clock3 className="h-5 w-5" />
-                  {actionLoading
-                    ? "Starting..."
-                    : `Confirm & Start Procurement (${selectedGrade} — ${formatINR(livePayoutCalc.totalPayout)})`}
-                </button>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleStartProcurement}
+                    disabled={actionLoading || livePayoutCalc.totalPayout <= 0}
+                    className="flex w-full sm:w-fit items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-7 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Clock3 className="h-5 w-5" />
+                    {actionLoading
+                      ? "Starting..."
+                      : `Confirm & Start Procurement (${selectedGrade} — ${formatINR(livePayoutCalc.totalPayout)})`}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    disabled={actionLoading}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 hover:bg-red-100 hover:border-red-300 disabled:opacity-60"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    {t("official.cancelProcurement")}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1269,18 +1305,30 @@ function ProcurementContent() {
                   </div>
                 </div>
 
-                <button
-                  onClick={
-                    handleCompleteProcurement
-                  }
-                  disabled={actionLoading}
-                  className="mt-6 flex w-full sm:w-fit items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-7 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                  {actionLoading
-                    ? "Completing..."
-                    : "Complete Procurement & Generate Settlement Slip"}
-                </button>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={
+                      handleCompleteProcurement
+                    }
+                    disabled={actionLoading}
+                    className="flex w-full sm:w-fit items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-7 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="h-5 w-5" />
+                    {actionLoading
+                      ? "Completing..."
+                      : "Complete Procurement & Generate Settlement Slip"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    disabled={actionLoading}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 hover:bg-red-100 hover:border-red-300 disabled:opacity-60"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    {t("official.cancelProcurement")}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1373,6 +1421,54 @@ function ProcurementContent() {
               </div>
             )}
 
+
+            {/* CANCELLED: PROCUREMENT REJECTED / ENDED */}
+
+            {currentStatus === "CANCELLED" && (
+              <div className="rounded-2xl border-2 border-red-300 bg-red-50/90 p-6 sm:p-8">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-white shadow-xs">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="inline-block rounded-full bg-red-200 px-3 py-1 text-xs font-bold text-red-800 uppercase tracking-wide">
+                      Procurement Cancelled & Slot Terminated
+                    </span>
+                    <h2 className="mt-2 text-2xl font-bold text-red-950">
+                      Procurement Cancelled by Official
+                    </h2>
+                    <p className="mt-1 text-sm text-red-800">
+                      This procurement slot has ended and no further weighbridge or payout processing will occur for this token.
+                    </p>
+
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2 rounded-xl bg-white p-5 border border-red-200 shadow-xs">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                          Official Cancellation Reason
+                        </p>
+                        <p className="mt-1 text-base font-bold text-red-700">
+                          {booking.cancellationReason || "Cancelled by official"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                          Cancelled By
+                        </p>
+                        <p className="mt-1 text-base font-semibold text-gray-900">
+                          {booking.cancelledBy || "Procurement Officer"}
+                        </p>
+                        {booking.cancelledAt && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {new Date(booking.cancelledAt).toLocaleString("en-IN")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
 
 
@@ -1403,6 +1499,16 @@ function ProcurementContent() {
         </div>
 
       </section>
+
+      <CancellationModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        booking={booking}
+        onCancelled={(updated) => {
+          setBooking(updated);
+          setIsCancelModalOpen(false);
+        }}
+      />
 
     </main>
   );

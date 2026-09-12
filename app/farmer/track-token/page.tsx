@@ -3,6 +3,7 @@
 import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Award,
@@ -38,7 +39,8 @@ type DisplayStatus =
   | "CALLED"
   | "VERIFIED"
   | "PROCESSING"
-  | "COMPLETED";
+  | "COMPLETED"
+  | "CANCELLED";
 
 const belongsToFarmer = (b: Booking | null, farmer: FarmerUser | null): boolean => {
   if (!b || !farmer) return false;
@@ -313,6 +315,9 @@ function TrackTokenContent() {
       .filter(Boolean)
       .map((value) => String(value).toUpperCase());
 
+    if (values.some((v) => v.includes("CANCELLED") || v.includes("CANCEL"))) {
+      return "CANCELLED";
+    }
     if (values.some((v) => v.includes("COMPLETED") || v.includes("COMPLETE"))) {
       return "COMPLETED";
     }
@@ -352,6 +357,8 @@ function TrackTokenContent() {
 
   const statusDescription = () => {
     switch (currentStatus) {
+      case "CANCELLED":
+        return "This procurement was officially cancelled by the Mandi procurement officer. The slot has ended.";
       case "CALLED":
         return "Your token has been called by the Procurement Officer. Please proceed to the Mandi Gate & Unload Bay immediately.";
       case "VERIFIED":
@@ -367,6 +374,8 @@ function TrackTokenContent() {
 
   const statusRank = (status: DisplayStatus) => {
     switch (status) {
+      case "CANCELLED":
+        return -1;
       case "WAITING":
         return 1;
       case "CALLED":
@@ -596,8 +605,64 @@ function TrackTokenContent() {
           </div>
 
           {/* ====================================================
-              URGENT NOTICE BANNERS (CALLED / VERIFIED / COMPLETED)
+              URGENT NOTICE BANNERS (CANCELLED / CALLED / VERIFIED / COMPLETED)
           ==================================================== */}
+
+          {/* 0. CANCELLED ALERT BANNER */}
+          {currentStatus === "CANCELLED" && (
+            <div className="mb-6 rounded-3xl border-2 border-red-500 bg-red-50 p-6 shadow-md print:border-black">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-white shadow-sm">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
+                        {t("tracker.cancelledHeader")}
+                      </span>
+                      {booking.cancelledAt && (
+                        <span className="text-xs font-bold text-red-800">
+                          {new Date(booking.cancelledAt).toLocaleString("en-IN")}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="mt-1.5 text-xl sm:text-2xl font-black text-red-950">
+                      {t("tracker.cancelledBanner", { token: String(booking.token || booking.tokenNumber || "") })}
+                    </h2>
+
+                    {/* REASON BOX */}
+                    <div className="mt-3.5 rounded-2xl border border-red-200 bg-white p-4 shadow-xs">
+                      <p className="text-xs font-bold uppercase tracking-wider text-red-600">
+                        {t("tracker.cancellationReasonLabel")}
+                      </p>
+                      <p className="mt-1 text-base font-extrabold text-gray-900">
+                        {booking.cancellationReason || "Procurement cancelled by official"}
+                      </p>
+                      {booking.cancelledBy && (
+                        <p className="mt-1.5 text-xs text-gray-500">
+                          {t("tracker.cancelledByLabel")}: <strong className="text-gray-800">{booking.cancelledBy}</strong>
+                        </p>
+                      )}
+                    </div>
+
+                    <p className="mt-3 text-sm text-red-900 leading-relaxed">
+                      {t("tracker.farmerCancelledGuidance")}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push("/farmer/book-slot")}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition shrink-0 print:hidden"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {t("tracker.bookNewSlot")}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 1. CALLED ALERT */}
           {currentStatus === "CALLED" && (
@@ -687,7 +752,7 @@ function TrackTokenContent() {
           {/* ====================================================
               LIVE TOKEN HERO CARD
           ==================================================== */}
-          <div className="overflow-hidden rounded-3xl bg-[#2E7D32] shadow-sm text-white">
+          <div className={`overflow-hidden rounded-3xl shadow-sm text-white ${currentStatus === "CANCELLED" ? "bg-[#374151]" : "bg-[#2E7D32]"}`}>
             <div className="p-6 sm:p-8">
               <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -703,7 +768,9 @@ function TrackTokenContent() {
 
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-                        currentStatus === "COMPLETED"
+                        currentStatus === "CANCELLED"
+                          ? "bg-red-200 text-red-950 font-black"
+                          : currentStatus === "COMPLETED"
                           ? "bg-emerald-300 text-emerald-950"
                           : currentStatus === "PROCESSING"
                           ? "bg-purple-200 text-purple-950"
@@ -733,21 +800,27 @@ function TrackTokenContent() {
                     <div>
                       <p className="text-xs text-white/70">{t("tracker.queuePosition")}</p>
                       <p className="mt-1 text-3xl font-black text-white">
-                        {currentStatus === "WAITING" ? `#${queuePosition}` : "Serving"}
+                        {currentStatus === "CANCELLED"
+                          ? "Ended"
+                          : currentStatus === "WAITING"
+                          ? `#${queuePosition}`
+                          : "Serving"}
                       </p>
                     </div>
 
                     <div>
                       <p className="text-xs text-white/70">{t("tracker.farmersAhead")}</p>
                       <p className="mt-1 text-3xl font-black text-white">
-                        {currentStatus === "WAITING" ? farmersAhead : 0}
+                        {currentStatus === "CANCELLED" ? 0 : currentStatus === "WAITING" ? farmersAhead : 0}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-4 flex items-center gap-2 text-sm text-white/80">
                     <Clock3 className="h-4 w-4" />
-                    {currentStatus === "WAITING"
+                    {currentStatus === "CANCELLED"
+                      ? "Procurement Cancelled"
+                      : currentStatus === "WAITING"
                       ? `${t("tracker.estimatedWait")}: ~${estimatedWait} ${t("common.minutes")}`
                       : currentStatus === "COMPLETED"
                       ? "Completed successfully"
@@ -939,6 +1012,23 @@ function TrackTokenContent() {
                 completed={isStepComplete("COMPLETED")}
                 last={true}
               />
+
+              {currentStatus === "CANCELLED" && (
+                <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-red-950">Procurement Terminated & Cancelled</h4>
+                    <p className="mt-0.5 text-xs text-red-800">
+                      Reason: <strong>{booking.cancellationReason || "Cancelled by official"}</strong>
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      This token has ended. A new slot must be booked to sell produce.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
