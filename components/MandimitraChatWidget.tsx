@@ -28,6 +28,8 @@ import {
   Clock,
   ShieldCheck,
   ChevronDown,
+  ChevronRight,
+  Globe,
   LayoutGrid,
   PhoneCall,
 } from "lucide-react";
@@ -52,13 +54,44 @@ export function openVoiceAssistant() {
 
 export function MandimitraChatWidget() {
   const pathname = usePathname();
-  const { t, language } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
 
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+
+  // Switch chat and application language with instant localized welcome message
+  const handleLanguageChange = (newLang: "hi" | "en" | "bn") => {
+    if (newLang === language) return;
+    setLanguage(newLang);
+    stopSpeaking();
+
+    const switchMsg =
+      newLang === "hi"
+        ? "नमस्ते किसान भाई! 🌾 भाषा बदलकर 'हिन्दी' कर दी गई है। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें:"
+        : newLang === "bn"
+        ? "নমস্কার কৃষক ভাই! 🌾 ভাষা পরিবর্তন করে 'বাংলা' করা হয়েছে। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন:"
+        : "Welcome farmer brother! 🌾 Language changed to 'English'. Please tap any service below to proceed:";
+
+    const newMsg: ChatMessage = {
+      id: `lang-switch-${Date.now()}`,
+      role: "assistant",
+      content: switchMsg,
+      menuOptions: getMainMenuOptions(newLang),
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setMessages((prev) => [...prev, newMsg]);
+
+    if (autoSpeak) {
+      setSpeakingMsgId(newMsg.id);
+      speakText(switchMsg, newLang, () => {
+        setSpeakingMsgId(null);
+      });
+    }
+  };
 
   // Dictation / Speech Recognition State
   const [isDictating, setIsDictating] = useState(false);
@@ -119,10 +152,10 @@ export function MandimitraChatWidget() {
     const greetingText =
       t("assistant.initialGreeting") ||
       (language === "hi"
-        ? "नमस्ते किसान भाई! 🌾 मैं मंडीमित्र एआई सहायक हूँ। नीचे दिए गए मेनू में से किसी विकल्प को चुनें या बोलकर/लिखकर पूछें:"
+        ? "नमस्ते किसान भाई! 🌾 मैं मंडीमित्र एआई सहायक हूँ। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलकर पूछें:"
         : language === "bn"
-        ? "নমস্কার কৃষক ভাই! 🌾 আমি মান্ডিমিত্র সহকারী। নিচের মেনু থেকে নির্বাচন করুন বা বলুন:"
-        : "Welcome farmer brother! 🌾 I am MandiMitra AI. Please select an option from the menu below or ask by typing/speaking:");
+        ? "নমস্কার কৃষক ভাই! 🌾 আমি মান্ডিমিত্র সহকারী। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:"
+        : "Welcome farmer brother! 🌾 I am MandiMitra AI. Please tap any service below to proceed or speak your query:");
 
     setMessages((prev) => {
       if (prev.length === 0) {
@@ -459,24 +492,64 @@ export function MandimitraChatWidget() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-end justify-end p-0 sm:p-4 bg-black/30 backdrop-blur-xs sm:bg-transparent sm:backdrop-blur-none print:hidden pointer-events-none">
           <div className="pointer-events-auto flex flex-col w-full sm:w-[350px] h-[78vh] sm:h-[480px] max-h-[500px] bg-white rounded-t-2xl sm:rounded-2xl border border-gray-200 shadow-xl overflow-hidden animate-in slide-in-from-bottom-3 duration-200">
             {/* HEADER */}
-            <div className="flex items-center justify-between bg-[#2E7D32] px-3.5 py-2.5 text-white">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 text-white shadow-xs">
-                  <Sprout className="h-4.5 w-4.5" />
+            <div className="flex items-center justify-between bg-[#2E7D32] px-3 py-2 text-white">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white shadow-xs">
+                  <Sprout className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <h3 className="font-bold text-xs sm:text-sm leading-tight">
                       {t("assistant.title") || "MandiMitra AI"}
                     </h3>
                   </div>
-                  <p className="text-[10px] text-emerald-100 font-medium">
-                    {t("assistant.subtitle") || "Procurement assistant"}
+                  <p className="text-[9.5px] text-emerald-100 font-medium">
+                    {language === "hi" ? "खरीद सहायक" : language === "bn" ? "সংগ্রহ সহকারী" : "Procurement"}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
+                {/* IN-CHAT LANGUAGE SWITCHER */}
+                <div className="flex items-center bg-black/20 rounded-lg p-0.5 text-[10px] font-bold border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageChange("hi")}
+                    className={`px-1.5 py-0.5 rounded transition ${
+                      language === "hi"
+                        ? "bg-white text-[#2E7D32] shadow-xs font-black"
+                        : "text-emerald-100 hover:text-white"
+                    }`}
+                    title="हिन्दी (Hindi)"
+                  >
+                    हिन्दी
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageChange("bn")}
+                    className={`px-1.5 py-0.5 rounded transition ${
+                      language === "bn"
+                        ? "bg-white text-[#2E7D32] shadow-xs font-black"
+                        : "text-emerald-100 hover:text-white"
+                    }`}
+                    title="বাংলা (Bengali)"
+                  >
+                    বাংলা
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageChange("en")}
+                    className={`px-1.5 py-0.5 rounded transition ${
+                      language === "en"
+                        ? "bg-white text-[#2E7D32] shadow-xs font-black"
+                        : "text-emerald-100 hover:text-white"
+                    }`}
+                    title="English"
+                  >
+                    EN
+                  </button>
+                </div>
+
                 {/* AUTO-SPEAK TOGGLE */}
                 <button
                   type="button"
@@ -484,12 +557,12 @@ export function MandimitraChatWidget() {
                     if (autoSpeak) stopSpeaking();
                     setAutoSpeak(!autoSpeak);
                   }}
-                  className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+                  className={`flex h-6.5 w-6.5 items-center justify-center rounded-full transition ${
                     autoSpeak ? "bg-white/25 text-white" : "bg-white/10 text-white/50"
                   }`}
                   title={autoSpeak ? "Auto-Speak ON" : "Auto-Speak OFF"}
                 >
-                  {autoSpeak ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                  {autoSpeak ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
                 </button>
 
                 {/* CLOSE BUTTON */}
@@ -498,7 +571,7 @@ export function MandimitraChatWidget() {
                     stopSpeaking();
                     setIsOpen(false);
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition text-white"
+                  className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition text-white"
                   title={t("assistant.close") || "Close"}
                 >
                   <X className="h-3.5 w-3.5" />
@@ -536,7 +609,9 @@ export function MandimitraChatWidget() {
                     className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`relative max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed shadow-2xs ${
+                      className={`relative ${
+                        m.menuOptions && m.menuOptions.length >= 4 ? "w-full max-w-[96%]" : "max-w-[88%]"
+                      } rounded-xl px-3 py-2 text-xs leading-relaxed shadow-2xs ${
                         isUser
                           ? "bg-[#2E7D32] text-white rounded-br-xs"
                           : "bg-white text-gray-900 border border-gray-200/80 rounded-bl-xs"
@@ -579,36 +654,78 @@ export function MandimitraChatWidget() {
                       {/* TEXT CONTENT */}
                       <p className="whitespace-pre-line">{m.content}</p>
 
-                      {/* INTERACTIVE MENU OPTIONS PILLS */}
-                      {m.menuOptions && m.menuOptions.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1.5">
-                          {m.menuOptions.map((opt, oIdx) => {
-                            if (opt.phone) {
-                              return (
-                                <a
-                                  key={oIdx}
-                                  href={`tel:${opt.phone.replace(/[^0-9+]/g, "")}`}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10.5px] px-2.5 py-1.5 shadow-2xs transition active:scale-95 no-underline"
-                                >
-                                  <PhoneCall className="h-3 w-3" />
-                                  <span>{opt.label}</span>
-                                </a>
-                              );
-                            }
-                            return (
+                      {/* RICH CLICKABLE SERVICE MENU CARDS */}
+                      {m.menuOptions && m.menuOptions.length >= 4 ? (
+                        <div className="mt-2.5 space-y-1.5 pt-1.5 border-t border-gray-100">
+                          {m.menuOptions.map((opt, oIdx) => (
+                            <div key={oIdx} className="group flex items-center gap-1.5">
                               <button
-                                key={oIdx}
                                 type="button"
                                 disabled={loading || isRecordingNote}
                                 onClick={() => handleSend(opt.action)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 font-semibold text-[10.5px] px-2 py-1 shadow-2xs transition active:scale-95 disabled:opacity-50 text-left"
+                                className="flex-1 flex items-center justify-between rounded-xl border border-emerald-200/90 bg-emerald-50/60 p-2 text-left hover:border-emerald-500 hover:bg-emerald-100/70 transition shadow-2xs active:scale-[0.99] disabled:opacity-50"
                               >
-                                {opt.icon && <span>{opt.icon}</span>}
-                                <span>{opt.label}</span>
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white text-sm shadow-xs">
+                                    {opt.icon || "🌾"}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-[11.5px] font-bold text-gray-900 leading-tight">
+                                      {opt.label}
+                                    </p>
+                                    {opt.description && (
+                                      <p className="text-[9.5px] text-gray-600 leading-tight mt-0.5 truncate">
+                                        {opt.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <ChevronRight className="h-3.5 w-3.5 text-emerald-700 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition shrink-0 ml-1.5" />
                               </button>
-                            );
-                          })}
+
+                              {opt.phone && (
+                                <a
+                                  href={`tel:${opt.phone.replace(/[^0-9+]/g, "")}`}
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition active:scale-95 no-underline"
+                                  title={language === "hi" ? "सीधा फोन कॉल करें" : language === "bn" ? "সরাসরি ফোন করুন" : "Direct Phone Call"}
+                                >
+                                  <PhoneCall className="h-4 w-4" />
+                                </a>
+                              )}
+                            </div>
+                          ))}
                         </div>
+                      ) : (
+                        m.menuOptions && m.menuOptions.length > 0 && (
+                          <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-1.5">
+                            {m.menuOptions.map((opt, oIdx) => {
+                              if (opt.phone) {
+                                return (
+                                  <a
+                                    key={oIdx}
+                                    href={`tel:${opt.phone.replace(/[^0-9+]/g, "")}`}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10.5px] px-2.5 py-1.5 shadow-2xs transition active:scale-95 no-underline"
+                                  >
+                                    <PhoneCall className="h-3 w-3" />
+                                    <span>{opt.label}</span>
+                                  </a>
+                                );
+                              }
+                              return (
+                                <button
+                                  key={oIdx}
+                                  type="button"
+                                  disabled={loading || isRecordingNote}
+                                  onClick={() => handleSend(opt.action)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 font-semibold text-[10.5px] px-2 py-1 shadow-2xs transition active:scale-95 disabled:opacity-50 text-left"
+                                >
+                                  {opt.icon && <span>{opt.icon}</span>}
+                                  <span>{opt.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )
                       )}
 
                       {/* FOOTER OF BUBBLE (TTS SPEAKER & TIMESTAMP) */}

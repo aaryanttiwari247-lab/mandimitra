@@ -340,6 +340,7 @@ export interface MenuItemOption {
   icon?: string;
   phone?: string;
   link?: string;
+  description?: string;
   variant?: "primary" | "secondary" | "danger" | "call";
 }
 
@@ -353,31 +354,127 @@ export interface SmartEngineResult {
 export function getMainMenuOptions(language: "hi" | "en" | "bn" = "hi"): MenuItemOption[] {
   if (language === "hi") {
     return [
-      { label: "🎫 1. टोकन व कतार स्थिति", action: "टोकन स्थिति", icon: "🎫" },
-      { label: "📞 2. केंद्र से संपर्क करें", action: "केंद्र संपर्क", icon: "📞", variant: "call" },
-      { label: "⚖️ 3. तुलाई व गुणवत्ता जांच", action: "तुलाई और वजन", icon: "⚖️" },
-      { label: "💰 4. एमएसपी दरें व भुगतान", action: "एमएसपी और भुगतान", icon: "💰" },
-      { label: "🕒 5. आने का सही समय व भीड़", action: "आने का सही समय", icon: "🕒" },
-      { label: "🚨 6. किसान हेल्पलाइन व सहायता", action: "किसान हेल्पलाइन", icon: "🚨" },
+      {
+        label: "टोकन व कतार स्थिति",
+        description: "सक्रिय टोकन, नंबर और कतार में प्रतीक्षा समय",
+        action: "टोकन स्थिति",
+        icon: "🎫",
+      },
+      {
+        label: "केंद्र से संपर्क करें",
+        description: "प्रभारी अधिकारी का नंबर, समय व सीधा कॉल",
+        action: "केंद्र संपर्क",
+        icon: "📞",
+        phone: "0755-2741021",
+        variant: "call",
+      },
+      {
+        label: "तुलाई व गुणवत्ता जांच",
+        description: "धर्मकांटा वजन, नमी और ग्रेडिंग रिपोर्ट",
+        action: "तुलाई और वजन",
+        icon: "⚖️",
+      },
+      {
+        label: "एमएसपी दरें व भुगतान",
+        description: "2026-27 सरकारी भाव और DBT बैंक अंतरण",
+        action: "एमएसपी और भुगतान",
+        icon: "💰",
+      },
+      {
+        label: "आने का सही समय",
+        description: "आज की भीड़ सारणी व न्यूनतम प्रतीक्षा समय",
+        action: "आने का सही समय",
+        icon: "🕒",
+      },
+      {
+        label: "किसान हेल्पलाइन व सहायता",
+        description: "टोल-फ्री 1800-180-1551 व शिकायत दर्ज करें",
+        action: "किसान हेल्पलाइन",
+        icon: "🚨",
+      },
     ];
   }
   if (language === "bn") {
     return [
-      { label: "🎫 ১. টোকেন ও লাইভ সারি", action: "টোকেন অবস্থা", icon: "🎫" },
-      { label: "📞 ২. কেন্দ্রে যোগাযোগ করুন", action: "কেন্দ্রে যোগাযোগ", icon: "📞", variant: "call" },
-      { label: "⚖️ ৩. ফসলের ওজন ও মান", action: "ফসলের ওজন", icon: "⚖️" },
-      { label: "💰 ৪. এমএসপি ও পেমেন্ট", action: "এমএসপি ও পেমেন্ট", icon: "💰" },
-      { label: "🕒 ৫. আসার সেরা সময়", action: "আসার সেরা সময়", icon: "🕒" },
-      { label: "🚨 ৬. হেল্পলাইন ও অভিযোগ", action: "কৃষক হেল্পলাইন", icon: "🚨" },
+      {
+        label: "টোকেন ও লাইভ সারি",
+        description: "সক্রিয় টোকেন নম্বর ও সারির অপেক্ষার সময়",
+        action: "টোকেন অবস্থা",
+        icon: "🎫",
+      },
+      {
+        label: "কেন্দ্রে যোগাযোগ করুন",
+        description: "কর্মকর্তার ফোন নম্বর, সময়সূচী ও সরাসরি কল",
+        action: "কেন্দ্রে যোগাযোগ",
+        icon: "📞",
+        phone: "0755-2741021",
+        variant: "call",
+      },
+      {
+        label: "ফসলের ওজন ও মান",
+        description: "ধর্মকাঁটার ওজন, আর্দ্রতা ও গ্রেডিং রিপোর্ট",
+        action: "ফসলের ওজন",
+        icon: "⚖️",
+      },
+      {
+        label: "এমএসপি ও পেমেন্ট",
+        description: "২০২৬-২৭ সরকারি দর ও ডিবিটি ব্যাংক পেমেন্ট",
+        action: "এমএসপি ও পেমেন্ট",
+        icon: "💰",
+      },
+      {
+        label: "আসার সেরা সময়",
+        description: "কম ভিড়ের সময়সূচী ও দ্রুত খালাস ব্যবস্থা",
+        action: "আসার সেরা সময়",
+        icon: "🕒",
+      },
+      {
+        label: "কৃষক হেল্পলাইন ও সাহায্য",
+        description: "টোল-ফ্রি ১৮০০-১৮০-১৫৫১ ও অভিযোগ নিবন্ধন",
+        action: "কৃষক হেল্পলাইন",
+        icon: "🚨",
+      },
     ];
   }
   return [
-    { label: "🎫 1. Token & Queue Status", action: "Token status", icon: "🎫" },
-    { label: "📞 2. Contact Centre", action: "Contact centre", icon: "📞", variant: "call" },
-    { label: "⚖️ 3. Weighbridge & Quality", action: "Weighbridge quality", icon: "⚖️" },
-    { label: "💰 4. MSP Rates & Payment", action: "MSP payment", icon: "💰" },
-    { label: "🕒 5. Best Arrival Time", action: "Best arrival time", icon: "🕒" },
-    { label: "🚨 6. Helpline & Support", action: "Kisan helpline", icon: "🚨" },
+    {
+      label: "Token & Queue Status",
+      description: "Active smart token & real-time wait minutes",
+      action: "Token status",
+      icon: "🎫",
+    },
+    {
+      label: "Contact Centre",
+      description: "Officer phone, operating hours & direct call",
+      action: "Contact centre",
+      icon: "📞",
+      phone: "0755-2741021",
+      variant: "call",
+    },
+    {
+      label: "Weighbridge & Quality",
+      description: "Net weighment, moisture & FAQ grade",
+      action: "Weighbridge quality",
+      icon: "⚖️",
+    },
+    {
+      label: "MSP Rates & Payment",
+      description: "2026-27 MSP rates & DBT bank account transfer",
+      action: "MSP payment",
+      icon: "💰",
+    },
+    {
+      label: "Best Arrival Time",
+      description: "Hourly rush chart & recommended unloading window",
+      action: "Best arrival time",
+      icon: "🕒",
+    },
+    {
+      label: "Helpline & Grievance",
+      description: "Toll-Free 1800-180-1551 & supervisor support",
+      action: "Kisan helpline",
+      icon: "🚨",
+    },
   ];
 }
 
@@ -687,10 +784,10 @@ export function smartRuleEngine(
   // DEFAULT / MAIN MENU (menu, मेनू, 0, hello, hi, नमस्ते, etc.)
   const text =
     language === "hi"
-      ? `🌾 **मंडीमित्र किसान सेवा मेनू (MandiMitra AI):**\nकृपया नीचे दिए गए विकल्पों में से चुनें या नंबर लिखकर / बोलकर पूछें:\n\n1️⃣ **टोकन व कतार** — सक्रिय टोकन, नंबर और कतार में समय\n2️⃣ **केंद्र संपर्क** — केंद्र प्रभारी का फोन नंबर और मंडी विवरण\n3️⃣ **तुलाई व गुणवत्ता** — वजन, नमी और ग्रेडिंग रिपोर्ट\n4️⃣ **एमएसपी दरें व भुगतान** — आज के भाव और बैंक खाता भुगतान\n5️⃣ **आने का सही समय** — आज की भीड़ व सबसे अच्छा अनलोड समय\n6️⃣ **हेल्पलाइन व शिकायत** — टोल-फ्री नंबर (1800-180-1551) व सहायता`
+      ? `🌾 **मंडीमित्र किसान सेवा:**\nकृपया सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें:`
       : language === "bn"
-      ? `🌾 **মান্ডিমিত্র কৃষক সেবা মেনু:**\nনিচের বিকল্প থেকে নির্বাচন করুন বা নম্বর টাইপ করুন:\n\n১️⃣ **টোকেন ও সারি** — সক্রিয় টোকেন ও অপেক্ষার সময়\n২️⃣ **কেন্দ্রে যোগাযোগ** — কেন্দ্র ভারপ্রাপ্ত কর্মকর্তার ফোন নম্বর\n৩️⃣ **ওজন ও মান** — ওজন, আর্দ্রতা ও গ্রেড\n৪️⃣ **এমএসপি ও পেমেন্ট** — আজকের দাম ও ব্যাংক পেমেন্ট\n৫️⃣ **আসার সেরা সময়** — কম ভিড়ের সময়সূচী\n৬️⃣ **হেল্পলাইন** — টোল-ফ্রি কিষাণ কল সেন্টার`
-      : `🌾 **MandiMitra Farmer Service Menu:**\nPlease choose an option from below or type/speak a number:\n\n1️⃣ **Token & Queue** — Active token & real-time wait minutes\n2️⃣ **Contact Centre** — Officer phone numbers & mandi address\n3️⃣ **Weighbridge & Quality** — Net weight, moisture & FAQ grade\n4️⃣ **MSP Rates & Payment** — Official price card & DBT bank transfer\n5️⃣ **Best Arrival Time** — Avoid rush hours & fastest bays\n6️⃣ **Helpline & Support** — Toll-Free Kisan Call Centre (1800-180-1551)`;
+      ? `🌾 **মান্ডিমিত্র কৃষক সেবা:**\nসহায়তার জন্য নিচের যে কোনো সেবার বোতামে চাপ দিন:`
+      : `🌾 **MandiMitra Farmer Services:**\nPlease tap any option below to access instant services:`;
 
   return {
     text,
