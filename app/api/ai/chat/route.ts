@@ -41,102 +41,115 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.GEMINI_API_KEY;
 
-    // 1. If GEMINI_API_KEY is available, execute via Google Gemini 2.5 Flash with Tool Calling
+    // 1. If GEMINI_API_KEY is available, execute via Google Gemini with Tool Calling
     if (apiKey) {
-      try {
-        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const candidateModels = Array.from(
+        new Set([
+          process.env.GEMINI_MODEL || "gemini-2.5-flash",
+          "gemini-2.0-flash",
+          "gemini-1.5-flash",
+        ])
+      );
 
-        // Format conversation for Gemini
-        const contents = messages.slice(-8).map((m: any) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        }));
+      // Format conversation for Gemini
+      const contents = messages.slice(-8).map((m: any) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
 
-        // Convert tool declarations to Gemini format
-        const functionDeclarations = AI_TOOL_DECLARATIONS.map((tool) => ({
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters,
-        }));
+      // Convert tool declarations to Gemini format
+      const functionDeclarations = AI_TOOL_DECLARATIONS.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+      }));
 
-        let response = await fetch(geminiEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-            contents,
-            tools: [{ functionDeclarations }],
-            tool_config: { function_calling_config: { mode: "AUTO" } },
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 600,
-            },
-          }),
-        });
+      for (const modelName of candidateModels) {
+        try {
+          const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-        if (response.ok) {
-          const data = await response.json();
-          const candidate = data.candidates?.[0]?.content;
-          const functionCalls = candidate?.parts?.filter((p: any) => p.functionCall);
-
-          if (functionCalls && functionCalls.length > 0) {
-            // Execute the requested tool(s)
-            const toolResultsParts = [];
-            for (const part of functionCalls) {
-              const call = part.functionCall;
-              const result = executeTool(call.name, call.args || {}, context);
-              toolResultsParts.push({
-                functionResponse: {
-                  name: call.name,
-                  response: { result },
-                },
-              });
-            }
-
-            // Second turn: send tool results back to Gemini for natural language formulation
-            const followupContents = [
-              ...contents,
-              candidate,
-              {
-                role: "user",
-                parts: toolResultsParts,
+          let response = await fetch(geminiEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+              contents,
+              tools: [{ functionDeclarations }],
+              tool_config: { function_calling_config: { mode: "AUTO" } },
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 600,
               },
-            ];
+            }),
+          });
 
-            const followupRes = await fetch(geminiEndpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-                contents: followupContents,
-                generationConfig: {
-                  temperature: 0.3,
-                  maxOutputTokens: 600,
+          if (response.ok) {
+            const data = await response.json();
+            const candidate = data.candidates?.[0]?.content;
+            const functionCalls = candidate?.parts?.filter((p: any) => p.functionCall);
+
+            if (functionCalls && functionCalls.length > 0) {
+              // Execute the requested tool(s)
+              const toolResultsParts = [];
+              for (const part of functionCalls) {
+                const call = part.functionCall;
+                const result = executeTool(call.name, call.args || {}, context);
+                toolResultsParts.push({
+                  functionResponse: {
+                    name: call.name,
+                    response: { result },
+                  },
+                });
+              }
+
+              // Second turn: send tool results back to Gemini for natural language formulation
+              const followupContents = [
+                ...contents,
+                candidate,
+                {
+                  role: "user",
+                  parts: toolResultsParts,
                 },
-              }),
-            });
+              ];
 
-            if (followupRes.ok) {
-              const followupData = await followupRes.json();
-              const finalText =
-                followupData.candidates?.[0]?.content?.parts?.[0]?.text ||
-                "Record checked successfully.";
-              return NextResponse.json({
-                text: finalText,
-                demoMode: false,
-                toolCalls: functionCalls.map((fc: any) => fc.functionCall.name),
+              const followupRes = await fetch(geminiEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+                  contents: followupContents,
+                  generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 600,
+                  },
+                }),
               });
-            }
-          }
 
-          // Direct text without tool call
-          const textPart = candidate?.parts?.find((p: any) => p.text)?.text;
-          if (textPart) {
-            return NextResponse.json({ text: textPart, demoMode: false });
+              if (followupRes.ok) {
+                const followupData = await followupRes.json();
+                const finalText =
+                  followupData.candidates?.[0]?.content?.parts?.[0]?.text ||
+                  "Record checked successfully.";
+                return NextResponse.json({
+                  text: finalText,
+                  demoMode: false,
+                  model: modelName,
+                  toolCalls: functionCalls.map((fc: any) => fc.functionCall.name),
+                });
+              }
+            }
+
+            // Direct text without tool call
+            const textPart = candidate?.parts?.find((p: any) => p.text)?.text;
+            if (textPart) {
+              return NextResponse.json({ text: textPart, demoMode: false, model: modelName });
+            }
+          } else {
+            console.warn(`Gemini model ${modelName} returned status ${response.status}. Trying next...`);
           }
+        } catch (geminiErr) {
+          console.warn(`Gemini API call with ${modelName} failed:`, geminiErr);
         }
-      } catch (geminiErr) {
-        console.warn("Gemini API call failed, falling back to smart rule engine:", geminiErr);
       }
     }
 
