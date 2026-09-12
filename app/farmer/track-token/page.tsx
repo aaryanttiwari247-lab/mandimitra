@@ -805,6 +805,16 @@ function TrackTokenContent() {
                     {booking.farmerName} • {booking.farmerMobile}
                   </p>
 
+                  {booking.crops && booking.crops.length > 1 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {booking.crops.map((c, idx) => (
+                        <span key={idx} className="rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
+                          🌾 {c.crop}: {c.actualQuantity ?? c.quantity} qtl {c.cropGrade ? `(${c.cropGrade})` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <p className="mt-1 max-w-xl text-sm leading-6 text-white/80">
                     {statusDescription()}
                   </p>
@@ -919,6 +929,38 @@ function TrackTokenContent() {
                   <p className="text-[11px] text-gray-500">{t("tracker.creditedAadhaar")}</p>
                 </div>
               </div>
+
+              {/* MULTI-CROP ITEMIZATION */}
+              {booking.crops && booking.crops.length > 1 && (
+                <div className="mt-5 border-t border-[#CDE8D0] pt-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#2E7D32] mb-3">
+                    Itemized Multi-Crop Weighment & Payout:
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {booking.crops.map((c, idx) => {
+                      const cRate = c.mspRate || getCropMspData(c.crop).standardMsp;
+                      const cQty = c.actualQuantity ?? c.quantity ?? 0;
+                      const cPayout = c.totalPayout ?? (cQty * cRate);
+                      return (
+                        <div key={idx} className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-gray-900">{c.crop}</span>
+                            <span className="rounded bg-[#E8F5E9] px-2 py-0.5 text-[11px] font-extrabold text-[#2E7D32]">
+                              {c.cropGrade || "Graded"}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-gray-600">
+                            Weighed: <strong>{cQty} qtl</strong> @ ₹{cRate.toLocaleString("en-IN")}/q
+                          </p>
+                          <p className="mt-2 text-sm font-black text-[#2E7D32]">
+                            {formatINR(cPayout)}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -962,8 +1004,21 @@ function TrackTokenContent() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase">Crop & Grade</p>
-                  <p className="mt-1 font-extrabold text-gray-900">{booking.crop} ({booking.cropGrade || "Grade A"})</p>
-                  <p className="text-xs text-gray-500">Weighed: {booking.actualQuantity || booking.quantity} Quintals</p>
+                  {booking.crops && booking.crops.length > 1 ? (
+                    <div className="mt-1 space-y-1">
+                      {booking.crops.map((c, i) => (
+                        <p key={i} className="text-xs font-bold text-gray-900">
+                          {c.crop} ({c.cropGrade || booking.cropGrade || "Grade A"}): {c.actualQuantity ?? c.quantity} Qtl
+                        </p>
+                      ))}
+                      <p className="text-xs text-gray-500 font-semibold">Total: {booking.actualQuantity || booking.quantity} Qtl</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mt-1 font-extrabold text-gray-900">{booking.crop} ({booking.cropGrade || "Grade A"})</p>
+                      <p className="text-xs text-gray-500">Weighed: {booking.actualQuantity || booking.quantity} Quintals</p>
+                    </>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-400 uppercase">Total DBT Payout</p>

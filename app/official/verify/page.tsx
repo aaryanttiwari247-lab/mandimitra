@@ -20,6 +20,7 @@ import { matchesBookingIdentifier } from "@/lib/procurement-store";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
 import { CancellationModal } from "@/components/CancellationModal";
+import { BookingCropItem } from "@/lib/types";
 
 type Booking = {
   bookingId?: string;
@@ -32,6 +33,7 @@ type Booking = {
 
   crop?: string;
   quantity?: number;
+  crops?: BookingCropItem[];
 
   date?: string;
   centre?: string;
@@ -778,32 +780,51 @@ function VerifyContent() {
               {t("official.procurementDetailsTitle")}
             </h2>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {booking.crops && booking.crops.length > 1 ? (
+              <div className="mt-4 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {booking.crops.map((c, idx) => (
+                    <div key={idx} className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+                      <div className="flex items-center gap-2">
+                        <Wheat className="h-5 w-5 text-[#2E7D32]" />
+                        <span className="text-xs font-bold text-[#2E7D32] uppercase">Crop #{idx + 1}</span>
+                      </div>
+                      <p className="mt-2 text-base font-extrabold text-gray-900">{c.crop}</p>
+                      <p className="mt-0.5 text-sm font-semibold text-gray-600">{c.quantity} {t("common.quintals")}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-5 py-3.5">
+                  <span className="text-sm font-bold text-gray-700">Combined Total Produce:</span>
+                  <span className="text-base font-black text-[#2E7D32]">{booking.quantity} {t("common.quintals")}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <InfoCard
+                  icon={
+                    <Wheat className="h-5 w-5 text-[#2E7D32]" />
+                  }
+                  label={t("official.crop")}
+                  value={
+                    booking.crop ??
+                    "Not available"
+                  }
+                />
 
-              <InfoCard
-                icon={
-                  <Wheat className="h-5 w-5 text-[#2E7D32]" />
-                }
-                label={t("official.crop")}
-                value={
-                  booking.crop ??
-                  "Not available"
-                }
-              />
-
-              <InfoCard
-                icon={
-                  <Truck className="h-5 w-5 text-[#2E7D32]" />
-                }
-                label={t("official.quantity")}
-                value={
-                  booking.quantity
-                    ? `${booking.quantity} ${t("common.quintals")}`
-                    : "Not available"
-                }
-              />
-
-            </div>
+                <InfoCard
+                  icon={
+                    <Truck className="h-5 w-5 text-[#2E7D32]" />
+                  }
+                  label={t("official.quantity")}
+                  value={
+                    booking.quantity
+                      ? `${booking.quantity} ${t("common.quintals")}`
+                      : "Not available"
+                  }
+                />
+              </div>
+            )}
 
           </div>
 
@@ -832,7 +853,11 @@ function VerifyContent() {
               />
 
               <CheckItem
-                text={t("official.checkProduce")}
+                text={
+                  booking.crops && booking.crops.length > 1
+                    ? `Verify produce matches all ${booking.crops.length} declared crops (${booking.crops.map((c) => `${c.crop} - ${c.quantity}q`).join(", ")})`
+                    : t("official.checkProduce")
+                }
               />
 
               <CheckItem

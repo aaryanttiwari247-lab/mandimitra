@@ -6,9 +6,12 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Coins,
   MapPin,
+  Plus,
   Sparkles,
   Sprout,
+  Trash2,
   Wheat,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -17,7 +20,7 @@ import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 import { getFarmerSession } from "@/lib/farmer-auth";
-import { Booking } from "@/lib/types";
+import { Booking, BookingCropItem } from "@/lib/types";
 import { CROP_MSP_RATES, getCropMspData, formatINR } from "@/lib/msp-rates";
 import {
   LOCATIONS_DATA,
@@ -89,14 +92,48 @@ export default function BookProcurementSlot() {
 
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  const [crop, setCrop] = useState("Wheat");
-  const [quantity, setQuantity] = useState("");
+  const [cropsList, setCropsList] = useState<Array<{ id: string; crop: string; quantity: string }>>([
+    { id: "1", crop: "Wheat", quantity: "" },
+  ]);
   const [date, setDate] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Bhopal");
 
-  const selectedCropMsp = useMemo(() => {
-    return getCropMspData(crop);
-  }, [crop]);
+  const totalQuantity = useMemo(() => {
+    return cropsList.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  }, [cropsList]);
+
+  const combinedCropNames = useMemo(() => {
+    return cropsList.map((item) => item.crop).filter(Boolean).join(" + ");
+  }, [cropsList]);
+
+  const totalEstimatedPayout = useMemo(() => {
+    return cropsList.reduce((sum, item) => {
+      const q = Number(item.quantity) || 0;
+      const mspData = getCropMspData(item.crop);
+      return sum + q * mspData.standardMsp;
+    }, 0);
+  }, [cropsList]);
+
+  const handleAddCrop = () => {
+    if (cropsList.length >= 3) return;
+    const existing = new Set(cropsList.map((c) => c.crop));
+    const nextAvailable = CROP_MSP_RATES.find((c) => !existing.has(c.name))?.name || "Mustard";
+    setCropsList((prev) => [
+      ...prev,
+      { id: String(Date.now()), crop: nextAvailable, quantity: "" },
+    ]);
+  };
+
+  const handleRemoveCrop = (id: string) => {
+    if (cropsList.length <= 1) return;
+    setCropsList((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateCrop = (id: string, field: "crop" | "quantity", value: string) => {
+    setCropsList((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
 
   const availableCentres = useMemo(() => {
     return getCentresByLocation(selectedLocation);
@@ -132,8 +169,8 @@ export default function BookProcurementSlot() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            crop,
-            quantity: Number(quantity) || 30,
+            crop: cropsList[0]?.crop || "Wheat",
+            quantity: totalQuantity || 30,
             preferredSlot: selectedSlot,
             location: selectedLocation,
           }),
@@ -152,7 +189,7 @@ export default function BookProcurementSlot() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [crop, quantity, selectedSlot, selectedLocation]);
+  }, [cropsList, totalQuantity, selectedSlot, selectedLocation]);
 
   // ============================================================
   // AUTHENTICATION
@@ -236,13 +273,12 @@ export default function BookProcurementSlot() {
     // VALIDATION
     // ----------------------------------------------------------
 
-    if (!crop) {
-      alert("Please select a crop.");
-      return;
-    }
+    const validCrops = cropsList.filter(
+      (c) => c.crop && Number(c.quantity) > 0
+    );
 
-    if (!quantity || Number(quantity) <= 0) {
-      alert("Please enter a valid quantity.");
+    if (validCrops.length === 0) {
+      alert("Please enter a valid quantity for at least one crop.");
       return;
     }
 
@@ -262,6 +298,24 @@ export default function BookProcurementSlot() {
     }
 
     setLoading(true);
+
+    // ==========================================================
+    // MULTI-CROP PAYLOAD CONSTRUCTION
+    // ==========================================================
+
+    const cropsPayload: BookingCropItem[] = validCrops.map((c) => {
+      const mspData = getCropMspData(c.crop);
+      const qty = Number(c.quantity);
+      return {
+        crop: c.crop,
+        quantity: qty,
+        mspRate: mspData.standardMsp,
+        totalPayout: qty * mspData.standardMsp,
+      };
+    });
+
+    const combinedCrop = validCrops.map((c) => c.crop).join(" + ");
+    const totalQty = validCrops.reduce((sum, c) => sum + Number(c.quantity), 0);
 
     // ==========================================================
     // GENERATE GUARANTEED UNIQUE TOKEN
@@ -311,9 +365,11 @@ export default function BookProcurementSlot() {
       // PROCUREMENT DETAILS
       // --------------------------------------------------------
 
-      crop,
+      crop: combinedCrop,
 
-      quantity: Number(quantity),
+      quantity: totalQty,
+
+      crops: cropsPayload,
 
       date,
 
@@ -634,84 +690,144 @@ export default function BookProcurementSlot() {
             {/* PROCUREMENT DETAILS */}
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
-              <h2 className="text-xl font-bold text-[#111827]">
-                {t("booking.step1Title")}
-              </h2>
-
-              {/* CROP */}
-
-              <div className="mt-7">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-gray-800">
-                    {t("booking.cropLabel")}
-                  </label>
-                  <span className="text-xs font-bold text-[#2E7D32]">
-                    {t("booking.baseMspLabel", { msp: selectedCropMsp.standardMsp.toLocaleString("en-IN") })}
-                  </span>
-                </div>
-
-                <div className="relative mt-2">
-                  <Wheat className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#2E7D32]" />
-
-                  <select
-                    value={crop}
-                    onChange={(e) => setCrop(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3.5 pl-12 pr-10 text-base font-semibold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
-                  >
-                    {CROP_MSP_RATES.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name} ({c.nameHi}) — ₹{c.standardMsp.toLocaleString("en-IN")} / quintal
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* LIVE MSP QUALITY GRADES & PAYOUT ESTIMATE */}
-                <div className="mt-3 rounded-2xl border border-[#CDE8D0] bg-[#F1F8F2] p-3.5 text-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-bold text-[#2E7D32]">
-                      {t("booking.qualityGradeRates")}
-                    </span>
-                    <span className="text-gray-700">
-                      Grade A: <strong>₹{selectedCropMsp.grades["Grade A"].price.toLocaleString("en-IN")}</strong> • Grade D: <strong>₹{selectedCropMsp.grades["Grade D"].price.toLocaleString("en-IN")}</strong>
-                    </span>
-                  </div>
-                  {Number(quantity) > 0 && (
-                    <div className="mt-2 pt-2 border-t border-[#CDE8D0] flex items-center justify-between text-gray-700">
-                      <span>{t("booking.estimatedPayout", { quantity })}</span>
-                      <strong className="text-sm font-black text-[#2E7D32]">
-                        {formatINR(Number(quantity) * selectedCropMsp.standardMsp)}
-                      </strong>
-                    </div>
-                  )}
-                </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-xl font-bold text-[#111827]">
+                  {t("booking.step1Title")}
+                </h2>
+                <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
+                  {t("booking.cropsList") || "Crops to Sell"} ({cropsList.length}/3)
+                </span>
               </div>
 
-              {/* QUANTITY */}
+              {/* SINGLE TOKEN INFO NOTICE */}
+              <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs font-medium text-emerald-900">
+                <Coins className="h-4 w-4 shrink-0 text-[#2E7D32]" />
+                <span>{t("booking.singleTokenNotice") || "All crops will be processed under the same Smart Token number."}</span>
+              </div>
 
-              <div className="mt-6">
-                <label className="text-sm font-semibold text-gray-800">
-                  {t("booking.quantityLabel")}
-                </label>
+              {/* CROPS LIST */}
+              <div className="mt-5 space-y-5">
+                {cropsList.map((item, index) => {
+                  const mspInfo = getCropMspData(item.crop);
+                  const itemQty = Number(item.quantity) || 0;
+                  const itemPayout = itemQty * mspInfo.standardMsp;
 
-                <div className="mt-2 flex overflow-hidden rounded-xl border border-gray-300 focus-within:border-[#2E7D32] focus-within:ring-2 focus-within:ring-[#2E7D32]/10">
-                  <input
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    placeholder={t("booking.quantityPlaceholder")}
-                    className="w-full bg-transparent px-4 py-3.5 text-base font-medium text-black placeholder:text-gray-500 outline-none"
-                  />
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4 sm:p-5 transition hover:border-gray-300"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2E7D32] text-xs font-bold text-white">
+                            {index + 1}
+                          </span>
+                          <span className="text-sm font-bold text-gray-900">
+                            {t("booking.cropItemTitle", { index: String(index + 1) }) || `Crop #${index + 1}`}
+                          </span>
+                        </div>
 
-                  <div className="flex items-center border-l border-gray-200 bg-gray-50 px-4 text-sm font-medium text-gray-700">
-                    {t("common.quintals")}
-                  </div>
+                        {cropsList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCrop(item.id)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 transition"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {t("booking.removeCropBtn") || "Remove"}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* CROP SELECTOR */}
+                      <div className="mt-3.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-gray-700">
+                            {t("booking.cropLabel")}
+                          </label>
+                          <span className="text-xs font-bold text-[#2E7D32]">
+                            {t("booking.baseMspLabel", { msp: mspInfo.standardMsp.toLocaleString("en-IN") })}
+                          </span>
+                        </div>
+
+                        <div className="relative mt-1.5">
+                          <Wheat className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2E7D32]" />
+                          <select
+                            value={item.crop}
+                            onChange={(e) => handleUpdateCrop(item.id, "crop", e.target.value)}
+                            className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-3 pl-10 text-sm font-bold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                          >
+                            {CROP_MSP_RATES.map((c) => (
+                              <option key={c.id} value={c.name}>
+                                {c.name} ({c.nameHi}) — ₹{c.standardMsp.toLocaleString("en-IN")} / quintal
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* QUANTITY INPUT */}
+                      <div className="mt-3">
+                        <label className="text-xs font-semibold text-gray-700">
+                          {t("booking.quantityLabel")} ({item.crop})
+                        </label>
+                        <div className="mt-1.5 flex overflow-hidden rounded-xl border border-gray-300 bg-white focus-within:border-[#2E7D32] focus-within:ring-2 focus-within:ring-[#2E7D32]/10">
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateCrop(item.id, "quantity", e.target.value)}
+                            placeholder={t("booking.quantityPlaceholder")}
+                            className="w-full bg-transparent px-3.5 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+                          />
+                          <div className="flex items-center border-l border-gray-200 bg-gray-50 px-3 text-xs font-semibold text-gray-600">
+                            {t("common.quintals")}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* INDIVIDUAL CROP PAYOUT PREVIEW */}
+                      {itemQty > 0 && (
+                        <div className="mt-2.5 flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs border border-gray-200/80">
+                          <span className="text-gray-600">{item.crop} Payout:</span>
+                          <span className="font-extrabold text-[#2E7D32]">
+                            {itemQty} qtl × ₹{mspInfo.standardMsp.toLocaleString("en-IN")} = {formatINR(itemPayout)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ADD ANOTHER CROP BUTTON */}
+              {cropsList.length < 3 && (
+                <button
+                  type="button"
+                  onClick={handleAddCrop}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#2E7D32]/50 bg-[#E8F5E9]/50 py-3 text-xs sm:text-sm font-bold text-[#2E7D32] hover:bg-[#E8F5E9] transition"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("booking.addCropBtn") || "Add Another Crop"} ({cropsList.length}/3)
+                </button>
+              )}
+
+              {/* COMBINED TOTAL SUMMARY CARD */}
+              <div className="mt-5 rounded-2xl border-2 border-[#2E7D32] bg-[#E8F5E9] p-4 text-xs sm:text-sm">
+                <div className="flex items-center justify-between border-b border-[#CDE8D0] pb-2 font-bold text-gray-800">
+                  <span>{t("booking.totalCombinedQuantity") || "Total Combined Quantity"}:</span>
+                  <span className="text-base font-black text-[#2E7D32]">{totalQuantity} {t("common.quintals")}</span>
                 </div>
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-bold text-gray-800">{t("booking.totalEstimatedPayout") || "Total Combined Payout"}:</span>
+                  <span className="text-lg font-black text-[#2E7D32]">{formatINR(totalEstimatedPayout)}</span>
+                </div>
+                <p className="mt-2 text-[11px] text-gray-600">
+                  {cropsList.map((c) => `${c.crop} (${c.quantity || 0} qtl)`).join(" + ")}
+                </p>
               </div>
 
               {/* DATE */}
-
               <div className="mt-6">
                 <label className="text-sm font-semibold text-gray-800">
                   {t("booking.procurementDate")}

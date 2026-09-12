@@ -30,6 +30,12 @@ type Booking = {
 
   crop?: string;
   quantity?: number;
+  crops?: Array<{
+    crop: string;
+    quantity: number;
+    mspRate?: number;
+    totalPayout?: number;
+  }>;
 
   date?: string;
   centre?: string;
@@ -486,23 +492,36 @@ export default function BookingConfirmationPage() {
 
               <div className="mt-6 space-y-4">
 
+                {booking.crops && booking.crops.length > 1 ? (
+                  <div className="border-b border-gray-100 pb-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#2E7D32] mb-2">
+                      {t("booking.cropsList") || "Crops Booked"} ({booking.crops.length})
+                    </p>
+                    <div className="space-y-2">
+                      {booking.crops.map((c, idx) => (
+                        <div key={idx} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
+                          <span className="font-bold text-gray-800">{c.crop}</span>
+                          <span className="font-extrabold text-[#2E7D32]">{c.quantity} {t("common.quintals")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <span className="text-sm text-gray-500">
+                      {t("booking.cropLabel")}
+                    </span>
+
+                    <span className="font-semibold text-gray-900">
+                      {booking.crop ?? "—"}
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between border-b border-gray-100 pb-4">
 
                   <span className="text-sm text-gray-500">
-                    {t("booking.cropLabel")}
-                  </span>
-
-                  <span className="font-semibold text-gray-900">
-                    {booking.crop ??
-                      "—"}
-                  </span>
-
-                </div>
-
-                <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-
-                  <span className="text-sm text-gray-500">
-                    {t("booking.quantityLabel")}
+                    {booking.crops && booking.crops.length > 1 ? (t("booking.totalCombinedQuantity") || "Total Combined Quantity") : t("booking.quantityLabel")}
                   </span>
 
                   <span className="font-semibold text-gray-900">

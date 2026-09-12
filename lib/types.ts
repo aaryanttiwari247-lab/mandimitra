@@ -40,6 +40,16 @@ export type TimeSlot = {
   available: number;
 };
 
+export type BookingCropItem = {
+  crop: string;
+  quantity: number;
+  actualQuantity?: number;
+  cropGrade?: "Grade A" | "Grade B" | "Grade C" | "Grade D" | string;
+  mspRate?: number;
+  totalPayout?: number;
+  moisture?: number;
+};
+
 export type Booking = {
   bookingId: string;
   tokenNumber: number;
@@ -51,6 +61,7 @@ export type Booking = {
 
   crop: string;
   quantity: number;
+  crops?: BookingCropItem[];
 
   date: string;
   centre: string;

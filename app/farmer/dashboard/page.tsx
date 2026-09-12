@@ -56,6 +56,12 @@ type Booking = {
 
   crop?: string;
   quantity?: number;
+  crops?: Array<{
+    crop: string;
+    quantity: number;
+    mspRate?: number;
+    totalPayout?: number;
+  }>;
 
   cropGrade?: "Grade A" | "Grade B" | "Grade C" | "Grade D";
   mspRate?: number;
@@ -630,6 +636,20 @@ export default function FarmerDashboard() {
                     </span>
                   </div>
 
+                  {booking.crops && booking.crops.length > 1 ? (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {booking.crops.map((c, idx) => (
+                        <span key={idx} className="rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
+                          🌾 {c.crop}: {c.quantity} qtl
+                        </span>
+                      ))}
+                    </div>
+                  ) : booking.crop ? (
+                    <p className="mt-2 text-xs font-bold text-white/90">
+                      🌾 {booking.crop} • {booking.quantity || 0} Quintals
+                    </p>
+                  ) : null}
+
                   <p className="mt-3 max-w-xl text-sm leading-6 text-white/85">
                     {t("dashboard.tokenActiveDesc")}
                   </p>
@@ -843,10 +863,19 @@ export default function FarmerDashboard() {
                     {t("booking.cropLabel")}
                   </div>
 
-                  <p className="mt-2 font-bold text-gray-900">
-                    {booking.crop ||
-                      "Not available"}
-                  </p>
+                  {booking.crops && booking.crops.length > 1 ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {booking.crops.map((c, idx) => (
+                        <span key={idx} className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-800">
+                          {c.crop}: {c.quantity} qtl
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 font-bold text-gray-900">
+                      {booking.crop || "Not available"}
+                    </p>
+                  )}
                 </div>
 
                 {/* QUANTITY */}
@@ -855,7 +884,7 @@ export default function FarmerDashboard() {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Truck className="h-4 w-4 text-[#2E7D32]" />
 
-                    {t("booking.quantityLabel")}
+                    {booking.crops && booking.crops.length > 1 ? (t("booking.totalCombinedQuantity") || "Total Quantity") : t("booking.quantityLabel")}
                   </div>
 
                   <p className="mt-2 font-bold text-gray-900">

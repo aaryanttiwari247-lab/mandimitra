@@ -31,6 +31,7 @@ import {
 import { broadcastProcurementUpdate, subscribeProcurementUpdates } from "@/lib/cross-tab-sync";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { BookingCropItem } from "@/lib/types";
 
 type Booking = {
   bookingId?: string;
@@ -44,6 +45,7 @@ type Booking = {
   crop?: string;
   cropGrade?: string;
   quantity?: number;
+  crops?: BookingCropItem[];
 
   date?: string;
   location?: string;
@@ -1212,18 +1214,31 @@ export default function OfficialDashboardPage() {
                                       </div>
 
                                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                                        <span className="font-semibold text-gray-900">
-                                          {booking.crop ?? "Crop"}
-                                        </span>
-                                        {booking.cropGrade && (
-                                          <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-800">
-                                            {booking.cropGrade}
-                                          </span>
+                                        {booking.crops && booking.crops.length > 1 ? (
+                                          <div className="flex flex-wrap items-center gap-1.5">
+                                            {booking.crops.map((c, i) => (
+                                              <span key={i} className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800 border border-emerald-200">
+                                                🌾 {c.crop} ({c.quantity} q)
+                                              </span>
+                                            ))}
+                                            <span className="font-bold text-gray-900 ml-1">Total: {booking.quantity ?? 0} Quintals</span>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <span className="font-semibold text-gray-900">
+                                              {booking.crop ?? "Crop"}
+                                            </span>
+                                            {booking.cropGrade && (
+                                              <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-800">
+                                                {booking.cropGrade}
+                                              </span>
+                                            )}
+                                            <span>•</span>
+                                            <span>
+                                              <strong>{booking.quantity ?? 0}</strong> Quintals
+                                            </span>
+                                          </>
                                         )}
-                                        <span>•</span>
-                                        <span>
-                                          <strong>{booking.quantity ?? 0}</strong> Quintals
-                                        </span>
                                         <span>•</span>
                                         <span className="text-gray-500">
                                           Slot: {booking.fullTime ?? booking.time ?? "Regular"}
@@ -1344,9 +1359,20 @@ export default function OfficialDashboardPage() {
                                     </span>
                                   )}
                                 </div>
-                                <p className="mt-1 text-xs text-gray-600">
-                                  {booking.crop ?? "Crop"} {booking.cropGrade ? `(${booking.cropGrade})` : ""} • {booking.quantity ?? 0} Quintals • Slot: {booking.fullTime ?? booking.time ?? "Regular"}
-                                </p>
+                                {booking.crops && booking.crops.length > 1 ? (
+                                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
+                                    {booking.crops.map((c, i) => (
+                                      <span key={i} className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800 border border-emerald-200">
+                                        🌾 {c.crop} ({c.quantity} q)
+                                      </span>
+                                    ))}
+                                    <span className="font-bold text-gray-900 ml-1">• Total: {booking.quantity ?? 0} Quintals • Slot: {booking.fullTime ?? booking.time ?? "Regular"}</span>
+                                  </div>
+                                ) : (
+                                  <p className="mt-1 text-xs text-gray-600">
+                                    {booking.crop ?? "Crop"} {booking.cropGrade ? `(${booking.cropGrade})` : ""} • {booking.quantity ?? 0} Quintals • Slot: {booking.fullTime ?? booking.time ?? "Regular"}
+                                  </p>
+                                )}
                                 <p className="mt-0.5 text-xs text-[#2E7D32] font-semibold">
                                   📍 {booking.centre ?? "Centre"} ({booking.location ?? "Location"})
                                 </p>
@@ -1440,14 +1466,25 @@ export default function OfficialDashboardPage() {
                     "Farmer"}
                 </p>
 
-                <p className="mt-3 text-sm text-gray-600">
-                  {currentFarmer.crop ??
-                    "Crop"}{" "}
-                  {currentFarmer.cropGrade ? `(${currentFarmer.cropGrade})` : ""} •{" "}
-                  {currentFarmer.quantity ??
-                    0}{" "}
-                  Quintals
-                </p>
+                {currentFarmer.crops && currentFarmer.crops.length > 1 ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-gray-600">
+                    {currentFarmer.crops.map((c, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800 border border-emerald-200">
+                        🌾 {c.crop} ({c.quantity} q)
+                      </span>
+                    ))}
+                    <span className="font-bold text-gray-900 ml-1">• Total: {currentFarmer.quantity ?? 0} Quintals</span>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-gray-600">
+                    {currentFarmer.crop ??
+                      "Crop"}{" "}
+                    {currentFarmer.cropGrade ? `(${currentFarmer.cropGrade})` : ""} •{" "}
+                    {currentFarmer.quantity ??
+                      0}{" "}
+                    Quintals
+                  </p>
+                )}
 
                 <p className="mt-1.5 text-xs font-semibold text-[#2E7D32]">
                   📍 {currentFarmer.centre ?? "Procurement Centre"} ({currentFarmer.location ?? "Yard"})
