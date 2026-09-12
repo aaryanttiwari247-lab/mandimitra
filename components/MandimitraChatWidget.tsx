@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/language-context";
 import { getFarmerSession, FarmerUser } from "@/lib/farmer-auth";
 import {
@@ -15,7 +15,6 @@ import {
   MicOff,
   Send,
   Volume2,
-  VolumeX,
   X,
   Sparkles,
   Sprout,
@@ -53,25 +52,25 @@ interface ChatMessage {
 }
 
 const LANGUAGE_SWITCH_MESSAGES: Record<SupportedLanguageCode, string> = {
-  hi: "नमस्ते किसान भाई! 🌾 भाषा बदलकर 'हिन्दी' कर दी गई है। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलें:",
-  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! 🌾 ਬੋਲੀ ਬਦਲ ਕੇ 'ਪੰਜਾਬੀ' ਕਰ ਦਿੱਤੀ ਗਈ ਹੈ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
-  mr: "नमस्कार शेतकरी बंधूंनो! 🌾 भाषा बदलून 'मराठी' केली आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोला:",
-  gu: "નમસ્તે ખેડૂત મિત્ર! 🌾 ભાષા બદલીને 'ગુજરાતી' કરવામાં આવી છે. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલો:",
-  bn: "নমস্কার কৃষক ভাই! 🌾 ভাষা পরিবর্তন করে 'বাংলা' করা হয়েছে। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
-  te: "నమస్కారం రైతు సోదరులారా! 🌾 భాష 'తెలుగు'గా మార్చబడింది. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
-  ta: "வணக்கம் விவசாய தோழரே! 🌾 மொழி 'தமிழ்' என மாற்றப்பட்டுள்ளது. உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
-  en: "Welcome farmer friend! 🌾 Language changed to 'English'. Please tap any service below to proceed or speak your query:",
+  hi: "नमस्ते किसान भाई! भाषा बदलकर 'हिन्दी' कर दी गई है। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलें:",
+  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! ਬੋਲੀ ਬਦਲ ਕੇ 'ਪੰਜਾਬੀ' ਕਰ ਦਿੱਤੀ ਗਈ ਹੈ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
+  mr: "नमस्कार शेतकरी बंधूंनो! भाषा बदलून 'मराठी' केली आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोला:",
+  gu: "નમસ્તે ખેડૂત મિત્ર! ભાષા બદલીને 'ગુજરાતી' કરવામાં આવી છે. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલો:",
+  bn: "নমস্কার কৃষক ভাই! ভাষা পরিবর্তন করে 'বাংলা' করা হয়েছে। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
+  te: "నమస్కారం రైతు సోదరులారా! భాష 'తెలుగు'గా మార్చబడింది. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
+  ta: "வணக்கம் விவசாய தோழரே! மொழி 'தமிழ்' என மாற்றப்பட்டுள்ளது. உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
+  en: "Welcome farmer friend! Language changed to 'English'. Please tap any service below to proceed or speak your query:",
 };
 
 const INITIAL_GREETING_MESSAGES: Record<SupportedLanguageCode, string> = {
-  hi: "नमस्ते किसान भाई! 🌾 मैं मंडीमित्र एआई खरीद सहायक हूँ। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलकर पूछें:",
-  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! 🌾 ਮੈਂ ਮੰਡੀਮਿੱਤਰ ਏ.ਆਈ. ਖਰੀਦ ਸਹਾਇਕ ਹਾਂ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
-  mr: "नमस्कार शेतकरी बंधूंनो! 🌾 मी मंडीमित्र एआय खरेदी सहाय्यक आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोलून विचारा:",
-  gu: "નમસ્તે ખેડૂત મિત્ર! 🌾 હું મંડીમિત્ર એઆઈ ખરીદ સહાયક છું. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલીને પૂછો:",
-  bn: "নমস্কার কৃষক ভাই! 🌾 আমি মান্ডিমিত্র এআই সংগ্রহ সহকারী। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
-  te: "నమస్కారం రైతు సోదరులారా! 🌾 నేను మండిమిత్ర ఏఐ సేకరణ సహాయకుడిని. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
-  ta: "வணக்கம் விவசாய தோழரே! 🌾 நான் மண்டிமித்ரா ஏஐ கொள்முதல் உதவியாளர். உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
-  en: "Welcome farmer friend! 🌾 I am MandiMitra AI procurement companion. Please tap any service below to proceed or speak your query:",
+  hi: "नमस्ते किसान भाई! मैं मंडीमित्र एआई खरीद सहायक हूँ। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलकर पूछें:",
+  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! ਮੈਂ ਮੰਡੀਮਿੱਤਰ ਏ.ਆਈ. ਖਰੀਦ ਸਹਾਇਕ ਹਾਂ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
+  mr: "नमस्कार शेतकरी बंधूंनो! मी मंडीमित्र एआय खरेदी सहाय्यक आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोलून विचारा:",
+  gu: "નમસ્તે ખેડૂત મિત્ર! હું મંડીમિત્ર એઆઈ ખરીદ સહાયક છું. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલીને પૂછો:",
+  bn: "নমস্কার কৃষক ভাই! আমি মান্ডিমিত্র এআই সংগ্রহ সহকারী। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
+  te: "నమస్కారం రైతు సోదరులారా! నేను మండిమిత్ర ఏఐ సేకరణ సహాయకుడిని. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
+  ta: "வணக்கம் விவசாய தோழரே! நான் மண்டிமித்ரா ஏஐ கொள்முதல் உதவியாளர். உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
+  en: "Welcome farmer friend! I am MandiMitra AI procurement companion. Please tap any service below to proceed or speak your query:",
 };
 
 const ERROR_MESSAGES: Record<SupportedLanguageCode, string> = {
@@ -89,92 +88,133 @@ const getLocalizedQuickActions = (lang: SupportedLanguageCode) => {
   switch (lang) {
     case "pa":
       return [
-        { label: "🌐 ਬੋਲੀ ਬਦਲੋ", prompt: "ਬੋਲੀ", icon: "🌐" },
-        { label: "📋 ਮੁੱਖ ਮੈਨੂ", prompt: "ਮੈਨੂ", icon: "📋" },
-        { label: "📞 ਕੇਂਦਰ ਸੰਪਰਕ", prompt: "ਕੇਂਦਰ ਸੰਪਰਕ", icon: "📞" },
-        { label: "🎫 ਮੇਰਾ ਟੋਕਨ", prompt: "ਟੋਕਨ ਸਥਿਤੀ", icon: "🎫" },
-        { label: "⚖️ ਤੁਲਾਈ ਤੇ ਵਜ਼ਨ", prompt: "ਤੁਲਾਈ ਤੇ ਵਜ਼ਨ", icon: "⚖️" },
-        { label: "💰 ਐੱਮ.ਐੱਸ.ਪੀ. ਭੁਗਤਾਨ", prompt: "ਐੱਮਐੱਸਪੀ ਭੁਗਤਾਨ", icon: "💰" },
-        { label: "🕒 ਆਉਣ ਦਾ ਸਮਾਂ", prompt: "ਆਉਣ ਦਾ ਸਹੀ ਸਮਾਂ", icon: "🕒" },
-        { label: "🚨 ਹੈਲਪਲਾਈਨ", prompt: "ਕਿਸਾਨ ਹੈਲਪਲਾਈਨ", icon: "🚨" },
+        { label: "ਬੋਲੀ ਬਦਲੋ", prompt: "ਬੋਲੀ" },
+        { label: "ਮੁੱਖ ਮੈਨੂ", prompt: "ਮੈਨੂ" },
+        { label: "ਕੇਂਦਰ ਸੰਪਰਕ", prompt: "ਕੇਂਦਰ ਸੰਪਰਕ" },
+        { label: "ਮੇਰਾ ਟੋਕਨ", prompt: "ਟੋਕਨ ਸਥਿਤੀ" },
+        { label: "ਤੁਲਾਈ ਤੇ ਵਜ਼ਨ", prompt: "ਤੁਲਾਈ ਤੇ ਵਜ਼ਨ" },
+        { label: "ਐੱਮ.ਐੱਸ.ਪੀ. ਭੁਗਤਾਨ", prompt: "ਐੱਮਐੱਸਪੀ ਭੁਗਤਾਨ" },
+        { label: "ਆਉਣ ਦਾ ਸਮਾਂ", prompt: "ਆਉਣ ਦਾ ਸਹੀ ਸਮਾਂ" },
+        { label: "ਹੈਲਪਲਾਈਨ", prompt: "ਕਿਸਾਨ ਹੈਲਪਲਾਈਨ" },
       ];
     case "mr":
       return [
-        { label: "🌐 भाषा निवडा", prompt: "भाषा", icon: "🌐" },
-        { label: "📋 मुख्य मेनू", prompt: "मेनू", icon: "📋" },
-        { label: "📞 केंद्र संपर्क", prompt: "केंद्र संपर्क", icon: "📞" },
-        { label: "🎫 माझे टोकन", prompt: "टोकन स्थिती", icon: "🎫" },
-        { label: "⚖️ वजन तपासणी", prompt: "वजन तपासणी", icon: "⚖️" },
-        { label: "💰 हमीभाव पेमेंट", prompt: "हमीभाव पेमेंट", icon: "💰" },
-        { label: "🕒 येण्याची वेळ", prompt: "येण्याची वेळ", icon: "🕒" },
-        { label: "🚨 हेल्पलाइन", prompt: "शेतकरी हेल्पलाइन", icon: "🚨" },
+        { label: "भाषा निवडा", prompt: "भाषा" },
+        { label: "मुख्य मेनू", prompt: "मेनू" },
+        { label: "केंद्र संपर्क", prompt: "केंद्र संपर्क" },
+        { label: "माझे टोकन", prompt: "टोकन स्थिती" },
+        { label: "वजन तपासणी", prompt: "वजन तपासणी" },
+        { label: "हमीभाव पेमेंट", prompt: "हमीभाव पेमेंट" },
+        { label: "येण्याची वेळ", prompt: "येण्याची वेळ" },
+        { label: "हेल्पलाइन", prompt: "शेतकरी हेल्पलाइन" },
       ];
     case "gu":
       return [
-        { label: "🌐 ભાષા બદલો", prompt: "ભાષા", icon: "🌐" },
-        { label: "📋 મુખ્ય મેનુ", prompt: "મેનુ", icon: "📋" },
-        { label: "📞 કેન્દ્ર સંપર્ક", prompt: "કેન્દ્ર સંપર્ક", icon: "📞" },
-        { label: "🎫 મારું ટોકન", prompt: "ટોકન સ્થિતિ", icon: "🎫" },
-        { label: "⚖️ તોલ વજન", prompt: "તોલ વજન", icon: "⚖️" },
-        { label: "💰 ટેકાના ભાવ", prompt: "ટેકાના ભાવ ચૂકવણી", icon: "💰" },
-        { label: "🕒 આવવાનો સમય", prompt: "આવવાનો સમય", icon: "🕒" },
-        { label: "🚨 હેલ્પલાઇન", prompt: "ખેડૂત હેલ્પલાઇન", icon: "🚨" },
+        { label: "ભાષા બદલો", prompt: "ભાષા" },
+        { label: "મુખ્ય મેનુ", prompt: "મેનુ" },
+        { label: "કેન્દ્ર સંપર્ક", prompt: "કેન્દ્ર સંપર્ક" },
+        { label: "મારું ટોકન", prompt: "ટોકન સ્થિતિ" },
+        { label: "તોલ વજન", prompt: "તોલ વજન" },
+        { label: "ટેકાના ભાવ", prompt: "ટેકાના ભાવ ચૂકવણી" },
+        { label: "આવવાનો સમય", prompt: "આવવાનો સમય" },
+        { label: "હેલ્પલાઇન", prompt: "ખેડૂત હેલ્પલાઇન" },
       ];
     case "te":
       return [
-        { label: "🌐 భాష మార్చండి", prompt: "భాష", icon: "🌐" },
-        { label: "📋 ప్రధాన మెనూ", prompt: "మెనూ", icon: "📋" },
-        { label: "📞 కేంద్రం సంప్రదించండి", prompt: "కేంద్రం సంప్రదించండి", icon: "📞" },
-        { label: "🎫 నా టోకెన్", prompt: "టోకెన్ స్థితి", icon: "🎫" },
-        { label: "⚖️ తూకం తనిఖీ", prompt: "తూకం తనిఖీ", icon: "⚖️" },
-        { label: "💰 ఎంఎస్‌పి చెల్లింపు", prompt: "ఎంఎస్‌పి చెల్లింపు", icon: "💰" },
-        { label: "🕒 రాక సమయం", prompt: "రాక సమయం", icon: "🕒" },
-        { label: "🚨 హెల్ప్‌లైన్", prompt: "రైతు హెల్ప్‌లైన్", icon: "🚨" },
+        { label: "భాష మార్చండి", prompt: "భాష" },
+        { label: "ప్రధాన మెనూ", prompt: "మెనూ" },
+        { label: "కేంద్రం సంప్రదించండి", prompt: "కేంద్రం సంప్రదించండి" },
+        { label: "నా టోకెన్", prompt: "టోకెన్ స్థితి" },
+        { label: "తూకం తనిఖీ", prompt: "తూకం తనిఖీ" },
+        { label: "ఎంఎస్‌పి చెల్లింపు", prompt: "ఎంఎస్‌పి చెల్లింపు" },
+        { label: "రాక సమయం", prompt: "రాక సమయం" },
+        { label: "హెల్ప్‌లైన్", prompt: "రైతు హెల్ప్‌లైన్" },
       ];
     case "ta":
       return [
-        { label: "🌐 மொழி மாற்று", prompt: "மொழி", icon: "🌐" },
-        { label: "📋 முதன்மை பட்டியல்", prompt: "பட்டியல்", icon: "📋" },
-        { label: "📞 மைய தொடர்பு", prompt: "மைய தொடர்பு", icon: "📞" },
-        { label: "🎫 என் டோக்கன்", prompt: "டோக்கன் நிலை", icon: "🎫" },
-        { label: "⚖️ எடை பரிசோதனை", prompt: "எடை பரிசோதனை", icon: "⚖️" },
-        { label: "💰 எம்எஸ்பி பணம்", prompt: "எம்எஸ்பி பணம்", icon: "💰" },
-        { label: "🕒 வருகை நேரம்", prompt: "வருகை நேரம்", icon: "🕒" },
-        { label: "🚨 உதவி மையம்", prompt: "விவசாயி உதவி", icon: "🚨" },
+        { label: "மொழி மாற்று", prompt: "மொழி" },
+        { label: "முதன்மை பட்டியல்", prompt: "பட்டியல்" },
+        { label: "மைய தொடர்பு", prompt: "மைய தொடர்பு" },
+        { label: "என் டோக்கன்", prompt: "டோக்கன் நிலை" },
+        { label: "எடை பரிசோதனை", prompt: "எடை பரிசோதனை" },
+        { label: "எம்எஸ்பி பணம்", prompt: "எம்எஸ்பி பணம்" },
+        { label: "வருகை நேரம்", prompt: "வருகை நேரம்" },
+        { label: "உதவி மையம்", prompt: "விவசாயி உதவி" },
       ];
     case "bn":
       return [
-        { label: "🌐 ভাষা পরিবর্তন", prompt: "ভাষা", icon: "🌐" },
-        { label: "📋 প্রধান মেনু", prompt: "মেনু", icon: "📋" },
-        { label: "📞 কেন্দ্রে যোগাযোগ", prompt: "কেন্দ্রে যোগাযোগ", icon: "📞" },
-        { label: "🎫 আমার টোকেন", prompt: "টোকেন অবস্থা", icon: "🎫" },
-        { label: "⚖️ ফসলের ওজন", prompt: "ফসলের ওজন", icon: "⚖️" },
-        { label: "💰 এমএসপি ও পেমেন্ট", prompt: "এমএসপি ও পেমেন্ট", icon: "💰" },
-        { label: "🕒 আসার সেরা সময়", prompt: "আসার সেরা সময়", icon: "🕒" },
-        { label: "🚨 হেল্পলাইন", prompt: "কৃষক হেল্পলাইন", icon: "🚨" },
+        { label: "ভাষা পরিবর্তন", prompt: "ভাষা" },
+        { label: "প্রধান মেনু", prompt: "মেনু" },
+        { label: "কেন্দ্রে যোগাযোগ", prompt: "কেন্দ্রে যোগাযোগ" },
+        { label: "আমার টোকেন", prompt: "টোকেন অবস্থা" },
+        { label: "ফসলের ওজন", prompt: "ফসলের ওজন" },
+        { label: "এমএসপি ও পেমেন্ট", prompt: "এমএসপি ও পেমেন্ট" },
+        { label: "আসার সেরা সময়", prompt: "আসার সেরা সময়" },
+        { label: "হেল্পলাইন", prompt: "কৃষক হেল্পলাইন" },
       ];
     case "en":
       return [
-        { label: "🌐 Language", prompt: "language", icon: "🌐" },
-        { label: "📋 Main Menu", prompt: "menu", icon: "📋" },
-        { label: "📞 Contact Centre", prompt: "contact centre", icon: "📞" },
-        { label: "🎫 My Token", prompt: "token status", icon: "🎫" },
-        { label: "⚖️ Weighbridge & Quality", prompt: "weighbridge quality", icon: "⚖️" },
-        { label: "💰 MSP Payment", prompt: "msp payment", icon: "💰" },
-        { label: "🕒 Best Arrival Time", prompt: "best arrival time", icon: "🕒" },
-        { label: "🚨 Kisan Helpline", prompt: "kisan helpline", icon: "🚨" },
+        { label: "Language", prompt: "language" },
+        { label: "Main Menu", prompt: "menu" },
+        { label: "Contact Centre", prompt: "contact centre" },
+        { label: "My Token", prompt: "token status" },
+        { label: "Weighbridge & Quality", prompt: "weighbridge quality" },
+        { label: "MSP Payment", prompt: "msp payment" },
+        { label: "Best Arrival Time", prompt: "best arrival time" },
+        { label: "Kisan Helpline", prompt: "kisan helpline" },
       ];
     default: // hi
       return [
-        { label: "🌐 भाषा बदलें", prompt: "भाषा", icon: "🌐" },
-        { label: "📋 मुख्य मेनू", prompt: "मेनू", icon: "📋" },
-        { label: "📞 केंद्र संपर्क", prompt: "केंद्र संपर्क", icon: "📞" },
-        { label: "🎫 मेरा टोकन", prompt: "टोकन स्थिति", icon: "🎫" },
-        { label: "⚖️ तुलाई और वजन", prompt: "तुलाई और वजन", icon: "⚖️" },
-        { label: "💰 एमएसपी भुगतान", prompt: "एमएसपी और भुगतान", icon: "💰" },
-        { label: "🕒 आने का समय", prompt: "आने का सही समय", icon: "🕒" },
-        { label: "🚨 किसान हेल्पलाइन", prompt: "किसान हेल्पलाइन", icon: "🚨" },
+        { label: "भाषा बदलें", prompt: "भाषा" },
+        { label: "मुख्य मेनू", prompt: "मेनू" },
+        { label: "केंद्र संपर्क", prompt: "केंद्र संपर्क" },
+        { label: "मेरा टोकन", prompt: "टोकन स्थिति" },
+        { label: "तुलाई और वजन", prompt: "तुलाई और वजन" },
+        { label: "एमएसपी भुगतान", prompt: "एमएसपी और भुगतान" },
+        { label: "आने का समय", prompt: "आने का सही समय" },
+        { label: "किसान हेल्पलाइन", prompt: "किसान हेल्पलाइन" },
       ];
+  }
+};
+
+const getListenButtonLabel = (lang: SupportedLanguageCode, isSpeaking: boolean) => {
+  if (isSpeaking) {
+    switch (lang) {
+      case "pa":
+        return "ਬੋਲ ਰਿਹਾ ਹੈ...";
+      case "mr":
+        return "बोलत आहे...";
+      case "gu":
+        return "બોલી રહ્યું છે...";
+      case "te":
+        return "మాట్లాడుతోంది...";
+      case "ta":
+        return "பேசுகிறது...";
+      case "bn":
+        return "বলছে...";
+      case "en":
+        return "Speaking...";
+      default:
+        return "बोल रहा है...";
+    }
+  }
+  switch (lang) {
+    case "pa":
+      return "ਸੁਣੋ";
+    case "mr":
+      return "ऐका";
+    case "gu":
+      return "સાંભળો";
+    case "te":
+      return "వినండి";
+    case "ta":
+      return "கேட்க";
+    case "bn":
+      return "শুনুন";
+    case "en":
+      return "Listen";
+    default:
+      return "सुनें";
   }
 };
 
@@ -185,6 +225,7 @@ export function openVoiceAssistant() {
 }
 
 export function MandimitraChatWidget() {
+  const router = useRouter();
   const pathname = usePathname();
   const { t, language, setLanguage } = useLanguage();
 
@@ -197,7 +238,6 @@ export function MandimitraChatWidget() {
   });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [autoSpeak, setAutoSpeak] = useState(true);
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
 
   // Synchronize chatLanguage when global language changes
@@ -226,13 +266,6 @@ export function MandimitraChatWidget() {
     };
 
     setMessages((prev) => [...prev, newMsg]);
-
-    if (autoSpeak) {
-      setSpeakingMsgId(newMsg.id);
-      speakText(switchMsg, newLang, () => {
-        setSpeakingMsgId(null);
-      });
-    }
   };
 
   // Dictation / Speech Recognition State
@@ -257,15 +290,37 @@ export function MandimitraChatWidget() {
   const [farmer, setFarmer] = useState<FarmerUser | null>(null);
   const [activeBooking, setActiveBooking] = useState<any>(null);
 
-  // Load session & active booking
+  // Load session & active booking strictly matching logged-in farmer
   const loadFarmerContext = useCallback(() => {
     try {
       const f = getFarmerSession();
       setFarmer(f);
 
+      if (!f) {
+        setActiveBooking(null);
+        return;
+      }
+
       const bRaw = localStorage.getItem("smartProcurementBooking");
       if (bRaw) {
-        setActiveBooking(JSON.parse(bRaw));
+        const parsed = JSON.parse(bRaw);
+        // Strictly verify that the booking belongs to this logged-in farmer and is NOT cancelled
+        const belongs =
+          (parsed.farmerMobile && f.mobile && String(parsed.farmerMobile) === String(f.mobile)) ||
+          (parsed.farmerId &&
+            (parsed.farmerId === f.farmerId ||
+              parsed.farmerId === f.farmerCode ||
+              parsed.farmerId === `FMR${f.mobile.slice(-4)}`));
+
+        if (belongs && parsed.status !== "CANCELLED" && parsed.token) {
+          setActiveBooking(parsed);
+        } else {
+          setActiveBooking(null);
+          // If stored booking belongs to another farmer, clean it up
+          if (!belongs) {
+            localStorage.removeItem("smartProcurementBooking");
+          }
+        }
       } else {
         setActiveBooking(null);
       }
@@ -284,8 +339,10 @@ export function MandimitraChatWidget() {
     };
 
     window.addEventListener("openMandimitraVoiceAssistant", handleOpen);
+    window.addEventListener("smartProcurementBookingUpdated", loadFarmerContext);
     return () => {
       window.removeEventListener("openMandimitraVoiceAssistant", handleOpen);
+      window.removeEventListener("smartProcurementBookingUpdated", loadFarmerContext);
     };
   }, [loadFarmerContext]);
 
@@ -365,6 +422,28 @@ export function MandimitraChatWidget() {
     setInput("");
     setLoading(true);
 
+    // Fresh synchronous lookup of current farmer & verified active booking from localStorage
+    const currentFarmer = getFarmerSession();
+    let freshBooking: any = null;
+    if (currentFarmer) {
+      try {
+        const bRaw = localStorage.getItem("smartProcurementBooking");
+        if (bRaw) {
+          const parsed = JSON.parse(bRaw);
+          const belongs =
+            (parsed.farmerMobile && currentFarmer.mobile && String(parsed.farmerMobile) === String(currentFarmer.mobile)) ||
+            (parsed.farmerId &&
+              (parsed.farmerId === currentFarmer.farmerId ||
+                parsed.farmerId === currentFarmer.farmerCode ||
+                parsed.farmerId === `FMR${currentFarmer.mobile.slice(-4)}`));
+
+          if (belongs && parsed.status !== "CANCELLED" && parsed.token) {
+            freshBooking = parsed;
+          }
+        }
+      } catch {}
+    }
+
     try {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
@@ -374,10 +453,10 @@ export function MandimitraChatWidget() {
             role: m.role,
             content: m.content,
           })),
-          farmerId: farmer?.farmerId,
-          farmerName: farmer?.name,
-          farmerMobile: farmer?.mobile,
-          activeBooking,
+          farmerId: currentFarmer?.farmerId,
+          farmerName: currentFarmer?.name,
+          farmerMobile: currentFarmer?.mobile,
+          activeBooking: freshBooking,
           language: activeLang,
         }),
       });
@@ -396,14 +475,6 @@ export function MandimitraChatWidget() {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-
-      // Auto-speak reply if enabled
-      if (autoSpeak && data.text) {
-        setSpeakingMsgId(assistantMsgId);
-        speakText(data.text, activeLang, () => {
-          setSpeakingMsgId(null);
-        });
-      }
     } catch {
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
@@ -416,6 +487,16 @@ export function MandimitraChatWidget() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle clicking menu action or navigating to link (e.g. Book Slot)
+  const handleOptionClick = (opt: MenuItemOption) => {
+    if (opt.link) {
+      router.push(opt.link);
+      setIsOpen(false);
+      return;
+    }
+    handleSend(opt.action);
   };
 
   // ============================================================
@@ -646,21 +727,6 @@ export function MandimitraChatWidget() {
                   />
                 </button>
 
-                {/* AUTO-SPEAK TOGGLE */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (autoSpeak) stopSpeaking();
-                    setAutoSpeak(!autoSpeak);
-                  }}
-                  className={`flex h-6.5 w-6.5 items-center justify-center rounded-full transition ${
-                    autoSpeak ? "bg-white/25 text-white" : "bg-white/10 text-white/50"
-                  }`}
-                  title={autoSpeak ? "Auto-Speak ON" : "Auto-Speak OFF"}
-                >
-                  {autoSpeak ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
-                </button>
-
                 {/* CLOSE BUTTON */}
                 <button
                   onClick={() => {
@@ -718,7 +784,6 @@ export function MandimitraChatWidget() {
                       >
                         <div>
                           <div className="flex items-center gap-1">
-                            <span className="text-xs">{item.flag}</span>
                             <span className="font-bold text-xs leading-tight">
                               {item.nativeName}
                             </span>
@@ -746,7 +811,7 @@ export function MandimitraChatWidget() {
 
                 <div className="mt-2 pt-2 border-t border-gray-100 text-center">
                   <p className="text-[9.5px] text-gray-400">
-                    💡 आप जिस भाषा में बोलेंगे या लिखेंगे, सहायक स्वतः पहचान कर उत्तर देगा।
+                    आप जिस भाषा में बोलेंगे या लिखेंगे, सहायक स्वतः पहचान कर उत्तर देगा।
                   </p>
                 </div>
               </div>
@@ -774,9 +839,8 @@ export function MandimitraChatWidget() {
                         handleSend(action.prompt);
                       }
                     }}
-                    className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-700 shadow-2xs hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition disabled:opacity-50"
+                    className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10.5px] font-semibold text-gray-700 shadow-2xs hover:border-[#2E7D32] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition disabled:opacity-50"
                   >
-                    <span>{action.icon}</span>
                     <span>{action.label}</span>
                   </button>
                 ))}
@@ -848,25 +912,43 @@ export function MandimitraChatWidget() {
                               <button
                                 type="button"
                                 disabled={loading || isRecordingNote}
-                                onClick={() => handleSend(opt.action)}
-                                className="flex-1 flex items-center justify-between rounded-xl border border-emerald-200/90 bg-emerald-50/60 p-2 text-left hover:border-emerald-500 hover:bg-emerald-100/70 transition shadow-2xs active:scale-[0.99] disabled:opacity-50"
+                                onClick={() => handleOptionClick(opt)}
+                                className={`flex-1 flex items-center justify-between rounded-xl border p-2 text-left transition shadow-2xs active:scale-[0.99] disabled:opacity-50 ${
+                                  opt.variant === "primary"
+                                    ? "border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700"
+                                    : "border-emerald-200/90 bg-emerald-50/60 hover:border-emerald-500 hover:bg-emerald-100/70"
+                                }`}
                               >
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white text-sm shadow-xs">
-                                    {opt.icon || "🌾"}
+                                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg shadow-xs ${
+                                    opt.variant === "primary" ? "bg-white/20 text-white" : "bg-emerald-700 text-white"
+                                  }`}>
+                                    {opt.phone ? (
+                                      <PhoneCall className="h-3.5 w-3.5" />
+                                    ) : opt.link ? (
+                                      <Check className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <ChevronRight className="h-3.5 w-3.5" />
+                                    )}
                                   </span>
                                   <div className="min-w-0">
-                                    <p className="text-[11.5px] font-bold text-gray-900 leading-tight">
+                                    <p className={`text-[11.5px] font-bold leading-tight ${
+                                      opt.variant === "primary" ? "text-white" : "text-gray-900"
+                                    }`}>
                                       {opt.label}
                                     </p>
                                     {opt.description && (
-                                      <p className="text-[9.5px] text-gray-600 leading-tight mt-0.5 truncate">
+                                      <p className={`text-[9.5px] leading-tight mt-0.5 truncate ${
+                                        opt.variant === "primary" ? "text-emerald-100" : "text-gray-600"
+                                      }`}>
                                         {opt.description}
                                       </p>
                                     )}
                                   </div>
                                 </div>
-                                <ChevronRight className="h-3.5 w-3.5 text-emerald-700 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition shrink-0 ml-1.5" />
+                                <ChevronRight className={`h-3.5 w-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition shrink-0 ml-1.5 ${
+                                  opt.variant === "primary" ? "text-white" : "text-emerald-700"
+                                }`} />
                               </button>
 
                               {opt.phone && (
@@ -902,10 +984,13 @@ export function MandimitraChatWidget() {
                                   key={oIdx}
                                   type="button"
                                   disabled={loading || isRecordingNote}
-                                  onClick={() => handleSend(opt.action)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-600/30 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 font-semibold text-[10.5px] px-2 py-1 shadow-2xs transition active:scale-95 disabled:opacity-50 text-left"
+                                  onClick={() => handleOptionClick(opt)}
+                                  className={`inline-flex items-center gap-1 rounded-lg border text-semibold text-[10.5px] px-2.5 py-1 shadow-2xs transition active:scale-95 disabled:opacity-50 text-left ${
+                                    opt.variant === "primary"
+                                      ? "border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                      : "border-emerald-600/30 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-950 font-semibold"
+                                  }`}
                                 >
-                                  {opt.icon && <span>{opt.icon}</span>}
                                   <span>{opt.label}</span>
                                 </button>
                               );
@@ -932,10 +1017,10 @@ export function MandimitraChatWidget() {
                             <button
                               type="button"
                               onClick={() => toggleSpeakMessage(m.id, m.content)}
-                              className={`flex items-center gap-0.5 rounded px-1 py-0.5 font-bold transition ${
+                              className={`flex items-center gap-1 rounded px-2 py-0.5 font-bold text-[10px] transition border shadow-2xs ${
                                 isSpeakingThis
-                                  ? "bg-[#2E7D32] text-white"
-                                  : "hover:bg-gray-100 text-gray-500 hover:text-gray-800"
+                                  ? "bg-[#2E7D32] text-white border-[#2E7D32] animate-pulse"
+                                  : "bg-emerald-50/90 text-emerald-800 border-emerald-300/70 hover:bg-emerald-100 hover:text-emerald-950"
                               }`}
                               title={
                                 isSpeakingThis
@@ -943,8 +1028,8 @@ export function MandimitraChatWidget() {
                                   : t("assistant.listenTooltip") || "उत्तर सुनें"
                               }
                             >
-                              <Volume2 className="h-2.5 w-2.5" />
-                              <span>{isSpeakingThis ? "बोल रहा है..." : "सुनें"}</span>
+                              <Volume2 className="h-3 w-3" />
+                              <span>{getListenButtonLabel(chatLanguage, isSpeakingThis)}</span>
                             </button>
                           </div>
                         )}
