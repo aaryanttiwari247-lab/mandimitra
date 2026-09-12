@@ -14,14 +14,18 @@ export async function POST(req: NextRequest) {
       farmerMobile,
       activeBooking,
       language = "hi",
+      isLoggedIn = false,
     } = body;
 
+    const actuallyLoggedIn = Boolean(isLoggedIn && (farmerMobile || farmerId));
+
     const context: FarmerChatContext = {
-      farmerId: farmerId || activeBooking?.farmerId,
-      farmerName: farmerName || activeBooking?.farmerName,
-      farmerMobile: farmerMobile || activeBooking?.farmerMobile,
-      activeBooking,
+      farmerId: actuallyLoggedIn ? (farmerId || activeBooking?.farmerId) : undefined,
+      farmerName: actuallyLoggedIn ? (farmerName || activeBooking?.farmerName) : undefined,
+      farmerMobile: actuallyLoggedIn ? (farmerMobile || activeBooking?.farmerMobile) : undefined,
+      activeBooking: actuallyLoggedIn ? activeBooking : null,
       language,
+      isLoggedIn: actuallyLoggedIn,
     };
 
     const userMessages = (messages as Array<{ role: string; content: string }>).filter(

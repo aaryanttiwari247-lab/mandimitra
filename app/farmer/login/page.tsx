@@ -18,6 +18,7 @@ import {
   saveFarmerSession,
   saveOtp,
   getOtp,
+  clearFarmerSession,
   FarmerUser,
 } from "@/lib/farmer-auth";
 
@@ -31,6 +32,11 @@ export default function FarmerLogin() {
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(30);
   const [message, setMessage] = useState("");
+
+  // Clear any previous farmer session or booking upon arriving at login
+  useEffect(() => {
+    clearFarmerSession();
+  }, []);
 
   // Verification state
   const [verified, setVerified] = useState(false);
@@ -163,7 +169,10 @@ export default function FarmerLogin() {
             <div className="flex items-center gap-3">
               <LanguageSelector />
               <button
-                onClick={() => router.push("/")}
+                onClick={() => {
+                  clearFarmerSession();
+                  router.push("/");
+                }}
                 className="text-sm font-medium text-gray-600 transition hover:text-[#2E7D32]"
               >
                 {t("common.logout")}

@@ -196,9 +196,9 @@ function TrackTokenContent() {
         }
       }
 
-      // 3. Fallback to currentBooking ONLY if no farmer session or belongs to farmer
-      if (!foundBooking && !cleanTokenParam && currentBooking) {
-        if (!farmer || belongsToFarmer(currentBooking, farmer)) {
+      // 3. Fallback to currentBooking ONLY if logged-in farmer session exists AND belongs to that farmer
+      if (!foundBooking && !cleanTokenParam && currentBooking && farmer) {
+        if (belongsToFarmer(currentBooking, farmer)) {
           foundBooking = currentBooking;
         }
       }

@@ -293,10 +293,17 @@ export function MandimitraChatWidget() {
   // Load session & active booking strictly matching logged-in farmer
   const loadFarmerContext = useCallback(() => {
     try {
+      // If user is currently on the login page, they are unauthenticated
+      if (pathname === "/farmer/login") {
+        setFarmer(null);
+        setActiveBooking(null);
+        return;
+      }
+
       const f = getFarmerSession();
       setFarmer(f);
 
-      if (!f) {
+      if (!f || !f.mobile) {
         setActiveBooking(null);
         return;
       }
@@ -304,7 +311,7 @@ export function MandimitraChatWidget() {
       const bRaw = localStorage.getItem("smartProcurementBooking");
       if (bRaw) {
         const parsed = JSON.parse(bRaw);
-        // Strictly verify that the booking belongs to this logged-in farmer and is NOT cancelled
+        // Strictly verify that the booking belongs to this logged-in farmer
         const belongs =
           (parsed.farmerMobile && f.mobile && String(parsed.farmerMobile) === String(f.mobile)) ||
           (parsed.farmerId &&
@@ -312,7 +319,13 @@ export function MandimitraChatWidget() {
               parsed.farmerId === f.farmerCode ||
               parsed.farmerId === `FMR${f.mobile.slice(-4)}`));
 
-        if (belongs && parsed.status !== "CANCELLED" && parsed.token) {
+        // ACTIVE booking must not be CANCELLED, COMPLETED, or REJECTED!
+        const isActiveStatus =
+          parsed.status !== "CANCELLED" &&
+          parsed.status !== "COMPLETED" &&
+          parsed.status !== "REJECTED";
+
+        if (belongs && isActiveStatus && parsed.token) {
           setActiveBooking(parsed);
         } else {
           setActiveBooking(null);
@@ -328,7 +341,7 @@ export function MandimitraChatWidget() {
       setFarmer(null);
       setActiveBooking(null);
     }
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     loadFarmerContext();
@@ -423,9 +436,12 @@ export function MandimitraChatWidget() {
     setLoading(true);
 
     // Fresh synchronous lookup of current farmer & verified active booking from localStorage
-    const currentFarmer = getFarmerSession();
+    const isLoginPage = pathname === "/farmer/login";
+    const currentFarmer = isLoginPage ? null : getFarmerSession();
+    const isFarmerLoggedIn = Boolean(currentFarmer && currentFarmer.mobile && !isLoginPage);
     let freshBooking: any = null;
-    if (currentFarmer) {
+
+    if (isFarmerLoggedIn && currentFarmer) {
       try {
         const bRaw = localStorage.getItem("smartProcurementBooking");
         if (bRaw) {
@@ -437,7 +453,12 @@ export function MandimitraChatWidget() {
                 parsed.farmerId === currentFarmer.farmerCode ||
                 parsed.farmerId === `FMR${currentFarmer.mobile.slice(-4)}`));
 
-          if (belongs && parsed.status !== "CANCELLED" && parsed.token) {
+          const isActiveStatus =
+            parsed.status !== "CANCELLED" &&
+            parsed.status !== "COMPLETED" &&
+            parsed.status !== "REJECTED";
+
+          if (belongs && isActiveStatus && parsed.token) {
             freshBooking = parsed;
           }
         }
@@ -453,11 +474,12 @@ export function MandimitraChatWidget() {
             role: m.role,
             content: m.content,
           })),
-          farmerId: currentFarmer?.farmerId,
-          farmerName: currentFarmer?.name,
-          farmerMobile: currentFarmer?.mobile,
+          farmerId: isFarmerLoggedIn ? currentFarmer?.farmerId : undefined,
+          farmerName: isFarmerLoggedIn ? currentFarmer?.name : undefined,
+          farmerMobile: isFarmerLoggedIn ? currentFarmer?.mobile : undefined,
           activeBooking: freshBooking,
           language: activeLang,
+          isLoggedIn: isFarmerLoggedIn,
         }),
       });
 

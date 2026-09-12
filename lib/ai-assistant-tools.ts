@@ -30,6 +30,7 @@ export interface FarmerChatContext {
   farmerMobile?: string;
   activeBooking?: Partial<Booking> | null;
   language?: string;
+  isLoggedIn?: boolean;
 }
 
 export const AI_TOOL_DECLARATIONS = [
@@ -116,24 +117,44 @@ export const AI_TOOL_DECLARATIONS = [
 const complaintsDb: Array<{ id: string; farmerMobile: string; message: string; timestamp: string; status: string }> = [];
 
 export function executeTool(name: string, args: Record<string, any>, context: FarmerChatContext): any {
-  const booking = context.activeBooking;
-  const farmerName = context.farmerName || booking?.farmerName || "Farmer";
-  const farmerMobile = context.farmerMobile || (booking?.farmerMobile ? booking.farmerMobile : "");
+  const isLoggedIn =
+    context.isLoggedIn !== undefined
+      ? Boolean(context.isLoggedIn)
+      : Boolean(context.farmerMobile && context.farmerMobile.trim().length > 0);
+  const booking = isLoggedIn ? context.activeBooking : null;
+  const farmerName = isLoggedIn ? (context.farmerName || booking?.farmerName || "Farmer") : "";
+  const farmerMobile = isLoggedIn ? (context.farmerMobile || (booking?.farmerMobile ? booking.farmerMobile : "")) : "";
 
   switch (name) {
     case "get_token_status": {
-      const isCancelled = booking?.status === "CANCELLED";
-      if (!booking || !booking.token || isCancelled) {
+      if (!isLoggedIn) {
         return {
           hasActiveToken: false,
+          isLoggedIn: false,
+          message: "Please log in to view your token status.",
+        };
+      }
+
+      const isCancelled = booking?.status === "CANCELLED";
+      const isCompleted = booking?.status === "COMPLETED";
+
+      if (!booking || !booking.token || isCancelled || isCompleted) {
+        return {
+          hasActiveToken: false,
+          isLoggedIn: true,
           isCancelled: Boolean(isCancelled),
-          message: isCancelled
+          isCompleted: Boolean(isCompleted),
+          lastToken: booking?.token,
+          message: isCompleted
+            ? "Your previous procurement slot was completed. Please book a new slot to receive a new token."
+            : isCancelled
             ? "Your previous procurement slot was cancelled. Please book a new slot to receive a token."
             : "No active procurement booking found. Farmer needs to book a slot first.",
         };
       }
       return {
         hasActiveToken: true,
+        isLoggedIn: true,
         token: booking.token || (booking.tokenNumber ? `#${booking.tokenNumber}` : ""),
         status: booking.status || booking.queueStatus || "WAITING",
         centre: booking.centre || "Lakshmipur Procurement Centre",
@@ -149,9 +170,12 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
 
     case "get_queue_status": {
       const isCancelled = booking?.status === "CANCELLED";
-      if (!booking || !booking.token || isCancelled) {
+      const isCompleted = booking?.status === "COMPLETED";
+
+      if (!isLoggedIn || !booking || !booking.token || isCancelled || isCompleted) {
         return {
           inQueue: false,
+          isLoggedIn: Boolean(isLoggedIn),
           message: "No active queue position. You can book a new token anytime.",
         };
       }
@@ -160,6 +184,7 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
       const waitTime = booking.status === "WAITING" ? booking.waitTime ?? (farmersAhead * 6 || 10) : 0;
       return {
         inQueue: true,
+        isLoggedIn: true,
         token: booking.token,
         queuePosition: position,
         farmersAhead,
@@ -229,10 +254,19 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
     }
 
     case "get_procurement_status": {
+      if (!isLoggedIn) {
+        return {
+          hasActiveToken: false,
+          isLoggedIn: false,
+          status: "NO_RECORD",
+          message: "Please log in to view crop weighbridge and quality records.",
+        };
+      }
       const isCancelled = booking?.status === "CANCELLED";
       if (!booking || !booking.token || isCancelled) {
         return {
           hasActiveToken: false,
+          isLoggedIn: true,
           status: "NO_RECORD",
           message: "No active procurement found. Farmer needs to book a slot first.",
         };
@@ -242,6 +276,7 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
       const isGraded = Boolean(booking.cropGrade || booking.status === "PROCESSING" || booking.status === "COMPLETED");
       return {
         hasActiveToken: true,
+        isLoggedIn: true,
         token: booking.token,
         crop,
         grade: booking.cropGrade || (isGraded ? "Grade A" : "Pending Inspection"),
@@ -256,10 +291,19 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
     }
 
     case "get_payment_status": {
+      if (!isLoggedIn) {
+        return {
+          hasActiveToken: false,
+          isLoggedIn: false,
+          status: "NO_PAYMENT",
+          message: "Please log in to track your personal DBT disbursement.",
+        };
+      }
       const isCancelled = booking?.status === "CANCELLED";
       if (!booking || !booking.token || isCancelled) {
         return {
           hasActiveToken: false,
+          isLoggedIn: true,
           status: "NO_PAYMENT",
           message: "No procurement payout record found. Book a slot and complete weighment first.",
         };
@@ -273,6 +317,7 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
 
       return {
         hasActiveToken: true,
+        isLoggedIn: true,
         token: booking.token,
         totalPayout: totalAmount,
         formattedPayout: formatINR(totalAmount),
@@ -288,8 +333,19 @@ export function executeTool(name: string, args: Record<string, any>, context: Fa
     }
 
     case "get_farmer_profile": {
-      const hasToken = Boolean(booking?.token && booking.status !== "CANCELLED");
+      if (!isLoggedIn) {
+        return {
+          isLoggedIn: false,
+          farmerName: "Guest Farmer",
+          farmerMobile: "",
+          farmerId: "",
+          activeBookingsCount: 0,
+          activeToken: "None",
+        };
+      }
+      const hasToken = Boolean(booking?.token && booking.status !== "CANCELLED" && booking.status !== "COMPLETED");
       return {
+        isLoggedIn: true,
         farmerName,
         farmerMobile,
         farmerId: context.farmerId || (booking?.farmerId ? booking.farmerId : ""),
@@ -918,6 +974,77 @@ export function smartRuleEngine(
     const tokenData = executeTool("get_token_status", {}, context);
     const queueData = executeTool("get_queue_status", {}, context);
 
+    // Case A: Farmer is NOT logged in
+    if (!tokenData.isLoggedIn) {
+      let text = "";
+      if (l === "pa") {
+        text = "**ਤੁਸੀਂ ਅਜੇ ਲੌਗਇਨ ਨਹੀਂ ਹੋ:**\nਆਪਣਾ ਸਮਾਰਟ ਟੋਕਨ, ਲਾਈਵ ਕਤਾਰ ਅਤੇ ਭੁਗਤਾਨ ਵੇਰਵੇ ਦੇਖਣ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ ਰਜਿਸਟਰਡ ਮੋਬਾਈਲ ਨੰਬਰ ਨਾਲ ਲੌਗਇਨ ਕਰੋ।";
+      } else if (l === "mr") {
+        text = "**तुम्ही अद्याप लॉगिन केलेले नाही:**\nआपले स्मार्ट टोकन, थेट रांग व पेमेंट तपशील पाहण्यासाठी कृपया नोंदणीकृत मोबाईल क्रमांकासह लॉगिन करा.";
+      } else if (l === "gu") {
+        text = "**તમે હજુ લૉગિન નથી કર્યું:**\nતમારું સ્માર્ટ ટોકન, લાઇવ કતાર અને ચુકવણી વિગત જોવા માટે કૃપા કરીને તમારા મોબાઇલ નંબર સાથે લૉગિન કરો.";
+      } else if (l === "bn") {
+        text = "**আপনি এখনো লগইন করেননি:**\nআপনার স্মার্ট টোকেন, লাইভ সারি ও পেমেন্ট বিবরণ দেখতে অনুগ্রহ করে মোবাইল নম্বর দিয়ে লগইন করুন।";
+      } else if (l === "te") {
+        text = "**మీరు ఇంకా లాగిన్ కాలేదు:**\nమీ స్మార్ట్ టోకెన్, లైవ్ క్యూ మరియు చెల్లింపు వివరాలను చూడటానికి దయచేసి మొబైల్ నంబర్‌తో లాగిన్ అవ్వండి.";
+      } else if (l === "ta") {
+        text = "**நீங்கள் இன்னும் உள்நுழையவில்லை:**\nஉங்கள் ஸ்மார்ட் டோக்கன், நேரலை வரிசை மற்றும் கட்டண விவரங்களைக் காண உங்கள் கைபேசி எண்ணுடன் உள்நுழையவும்.";
+      } else if (l === "en") {
+        text = "**You are not logged in yet:**\nPlease log in to your farmer account with your registered mobile number to view your active smart token and live queue status.";
+      } else {
+        text = "**आप अभी लॉगिन नहीं हैं:**\nअपना स्मार्ट टोकन, लाइव कतार और भुगतान विवरण देखने के लिए कृपया अपने पंजीकृत मोबाइल नंबर से लॉगिन करें।";
+      }
+
+      return {
+        text,
+        toolUsed: "get_token_status",
+        toolResult: tokenData,
+        menuOptions: [
+          {
+            label: l === "en" ? "Log In to Farmer Portal" : "किसान पोर्टल में लॉगिन करें",
+            action: "login",
+            link: "/farmer/login",
+            variant: "primary",
+          },
+          getBookSlotOption(l),
+          getBackOption(l),
+        ],
+      };
+    }
+
+    // Case B: Previous booking was COMPLETED
+    if (tokenData.isCompleted) {
+      let text = "";
+      if (l === "pa") {
+        text = `**ਪਿਛਲੀ ਖਰੀਦ ਮੁਕੰਮਲ ਹੋ ਚੁੱਕੀ ਹੈ:**\nਤੁਹਾਡਾ ਪਿਛਲਾ ਟੋਕਨ #${tokenData.lastToken || ""} ਸਫ਼ਲਤਾਪੂਰਵਕ ਪੂਰਾ (COMPLETED) ਹੋ ਚੁੱਕਾ ਹੈ। ਇਸ ਸਮੇਂ ਕਤਾਰ ਵਿੱਚ ਕੋਈ ਪੈਂਡਿੰਗ ਟੋਕਨ ਨਹੀਂ ਹੈ। ਹੋਰ ਉਪਜ ਵੇਚਣ ਲਈ ਨਵਾਂ ਸਲਾਟ ਬੁੱਕ ਕਰੋ।`;
+      } else if (l === "mr") {
+        text = `**मागील खरेदी पूर्ण झाली आहे:**\nतुमचे मागील टोकन #${tokenData.lastToken || ""} यशस्वीरीत्या पूर्ण (COMPLETED) झाले आहे. सध्या रांगेत कोणतेही प्रलंबित टोकन नाही. नवीन धान्य आणण्यासाठी नवीन स्लॉट बुक करा.`;
+      } else if (l === "gu") {
+        text = `**પાછલી ખરીદી પૂર્ણ થઈ ગઈ છે:**\nતમારું પાછલું ટોકન #${tokenData.lastToken || ""} સફળતાપૂર્વક પૂર્ણ (COMPLETED) થઈ ચૂક્યું છે. હાલમાં કતારમાં કોઈ બાકી ટોકન નથી. નવી ઉપજ માટે નવો સ્લોટ બુક કરો።`;
+      } else if (l === "bn") {
+        text = `**পূর্ববর্তী সংগ্রহ সম্পন্ন হয়েছে:**\nআপনার পূর্ববর্তী টোকেন #${tokenData.lastToken || ""} সফলভাবে সম্পন্ন (COMPLETED) হয়েছে। বর্তমানে সারিতে কোনো অপেক্ষমাণ টোকেন নেই। নতুন ফসলের জন্য নতুন স্লট বুক করুন।`;
+      } else if (l === "te") {
+        text = `**గత కొనుగోలు పూర్తయింది:**\nమీ మునుపటి టోకెన్ #${tokenData.lastToken || ""} విజయవంతంగా పూర్తయింది (COMPLETED). ప్రస్తుతం క్యూలో పెండింగ్ టోకెన్ ఏదీ లేదు. కొత్త పంట కోసం కొత్త స్లాట్ బుక్ చేసుకోండి.`;
+      } else if (l === "ta") {
+        text = `**முந்தைய கொள்முதல் முடிந்தது:**\nஉங்கள் முந்தைய டோக்கன் #${tokenData.lastToken || ""} வெற்றிகரமாக நிறைவடைந்தது (COMPLETED). தற்போது வரிசையில் நிலுவையில் உள்ள டோக்கன் இல்லை. புதிய முன்பதிவு செய்யவும்.`;
+      } else if (l === "en") {
+        text = `**Previous Procurement Completed:**\nYour previous token #${tokenData.lastToken || ""} was successfully completed. You have no pending active token in the queue right now. Please book a new slot to deliver additional produce.`;
+      } else {
+        text = `**पिछली खरीद पूर्ण हो चुकी है:**\nआपका पिछला टोकन #${tokenData.lastToken || ""} सफलतापूर्वक संपन्न (COMPLETED) हो चुका है। वर्तमान में कतार में कोई लंबित टोकन सक्रिय नहीं है। नई उपज लाने के लिए नया स्लॉट बुक करें।`;
+      }
+
+      return {
+        text,
+        toolUsed: "get_token_status",
+        toolResult: tokenData,
+        menuOptions: [
+          getBookSlotOption(l),
+          { label: "केंद्र से संपर्क करें", action: "केंद्र संपर्क", variant: "call" },
+          getBackOption(l),
+        ],
+      };
+    }
+
     if (!tokenData.hasActiveToken) {
       const text =
         l === "pa"
@@ -1001,33 +1128,64 @@ export function smartRuleEngine(
 
     if (!data.hasActiveToken || data.status === "NO_RECORD") {
       let text = "";
-      if (l === "pa") {
-        text = "**ਧਰਮਕੰਡਾ ਤੁਲਾਈ ਅਤੇ ਗੁਣਵੱਤਾ:**\nਇਸ ਵੇਲੇ ਤੁਹਾਡਾ ਕੋਈ ਸਰਗਰਮ ਖਰੀਦ ਟੋਕਨ ਨਹੀਂ ਹੈ। ਸਲਾਟ ਬੁੱਕ ਕਰਨ ਉਪਰੰਤ ਮੰਡੀ ਵਿੱਚ ਫਸਲ ਦੀ ਤੁਲਾਈ ਅਤੇ ਗੁਣਵੱਤਾ (FAQ Grade) ਰਿਪੋਰਟ ਇੱਥੇ ਲਾਈਵ ਦਿਖਾਈ ਦੇਵੇਗੀ।";
-      } else if (l === "mr") {
-        text = "**काटा वजन व गुणवत्ता तपासणी:**\nसध्या तुमचे कोणतेही सक्रिय खरेदी टोकन नाही. स्लॉट बुक करून शेतमाल आणल्यानंतर काटा वजन व प्रतवारी येथे दिसेल.";
-      } else if (l === "gu") {
-        text = "**તોલ અને ગુણવત્તા:**\nહાલમાં તમારી પાસે કોઈ સક્રિય ટોકન નથી. સ્લોટ બુક કર્યા પછી મંડીમાં તોલ અને ગુણવત્તા વિગત અહીં દેખાશે.";
-      } else if (l === "bn") {
-        text = "**ফসলের ওজন ও গুণমান:**\nবর্তমানে আপনার কোনো সক্রিয় টোকেন নেই। স্লট বুক করে ফসল কেন্দ্রে আনলে ওজন ও গুণমান রিপোর্ট এখানে দেখতে পাবেন।";
-      } else if (l === "te") {
-        text = "**వేబ్రిడ్జ్ బరువు & నాణ్యత:**\nప్రస్తుతం మీకు యాక్టివ్ కొనుగోలు టోకెన్ లేదు. స్లాట్ బుక్ చేసుకుని కేంద్రానికి వచ్చినప్పుడు ఇక్కడ బరువు వివరాలు కనిపిస్తాయి.";
-      } else if (l === "ta") {
-        text = "**எடை & தர பரிசோதனை:**\nதற்போது செயலில் உள்ள கொள்முதல் டோக்கன் எதுவும் இல்லை. முன்பதிவு செய்து மையத்திற்கு வந்தவுடன் எடை விவரங்கள் இங்கு காட்டப்படும்.";
-      } else if (l === "en") {
-        text = "**Weighbridge & Crop Quality:**\nYou do not have an active procurement token right now. Once you book a slot and bring your produce to the centre, live weighbridge and FAQ grading details will appear here.";
+      if (!context.isLoggedIn) {
+        if (l === "pa") {
+          text = "**ਧਰਮਕੰਡਾ ਤੁਲਾਈ ਅਤੇ ਗੁਣਵੱਤਾ ਜਾਂਚ:**\nਤੁਸੀਂ ਅਜੇ ਲੌਗਇਨ ਨਹੀਂ ਹੋ। ਆਪਣੇ ਟੋਕਨ ਦਾ ਅਧਿਕਾਰਤ ਵਜ਼ਨ ਅਤੇ ਗੁਣਵੱਤਾ (FAQ Grade) ਰਿਪੋਰਟ ਦੇਖਣ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਲੌਗਇਨ ਕਰੋ।";
+        } else if (l === "mr") {
+          text = "**काटा वजन व गुणवत्ता तपासणी:**\nतुम्ही अद्याप लॉगिन केलेले नाही. आपल्या टोकनचे प्रत्यक्ष वजन व प्रतवारी पाहण्यासाठी कृपया लॉगिन करा.";
+        } else if (l === "gu") {
+          text = "**તોલ અને ગુણવત્તા તપાસ:**\nતમે હજુ લૉગિન નથી કર્યું. તમારા ટોકનનું વજન અને ગુણવત્તા જોવા માટે કૃપા કરીને લૉગિન કરો.";
+        } else if (l === "bn") {
+          text = "**ফসলের ওজন ও গুণমান যাচাই:**\nআপনি এখনো লগইন করেননি। আপনার টোকেনের ওজন ও গুণমান রিপোর্ট দেখতে অনুগ্রহ করে লগইন করুন।";
+        } else if (l === "te") {
+          text = "**వేబ్రిడ్జ్ బరువు & నాణ్యత తనిఖీ:**\nమీరు ఇంకా లాగిన్ కాలేదు. మీ టోకెన్ బరువు మరియు నాణ్యత నివేదికను చూడటానికి దయచేసి లాగిన్ అవ్వండి.";
+        } else if (l === "ta") {
+          text = "**எடை & தர பரிசோதனை:**\nநீங்கள் இன்னும் உள்நுழையவில்லை. உங்கள் டோக்கன் எடை மற்றும் தர அறிக்கையைக் காண தயவுசெய்து உள்நுழையவும்.";
+        } else if (l === "en") {
+          text = "**Weighbridge & Crop Quality:**\nYou are not logged in yet. Please log in to your account to view your live weighbridge weight and FAQ quality inspection report.";
+        } else {
+          text = "**धर्मकांटा तुलाई एवं गुणवत्ता जांच:**\nआप अभी लॉगिन नहीं हैं। अपने टोकन का तौला गया वजन एवं गुणवत्ता (FAQ Grade) रिपोर्ट देखने के लिए कृपया लॉगिन करें।";
+        }
       } else {
-        text = "**धर्मकांटा तुलाई एवं गुणवत्ता:**\nवर्तमान में आपका कोई सक्रिय खरीद टोकन नहीं है। जब आप स्लॉट बुक करके मंडी पहुंचेंगे, तो आपके टोकन का वास्तविक वजन व गुणवत्ता (FAQ Grade) यहां लाइव दिखेगा।";
+        if (l === "pa") {
+          text = "**ਧਰਮਕੰਡਾ ਤੁਲਾਈ ਅਤੇ ਗੁਣਵੱਤਾ:**\nਇਸ ਵੇਲੇ ਤੁਹਾਡਾ ਕੋਈ ਸਰਗਰਮ ਖਰੀਦ ਟੋਕਨ ਨਹੀਂ ਹੈ। ਸਲਾਟ ਬੁੱਕ ਕਰਨ ਉਪਰੰਤ ਮੰਡੀ ਵਿੱਚ ਫਸਲ ਦੀ ਤੁਲਾਈ ਅਤੇ ਗੁਣਵੱਤਾ (FAQ Grade) ਰਿਪੋਰਟ ਇੱਥੇ ਲਾਈਵ ਦਿਖਾਈ ਦੇਵੇਗੀ।";
+        } else if (l === "mr") {
+          text = "**काटा वजन व गुणवत्ता तपासणी:**\nसध्या तुमचे कोणतेही सक्रिय खरेदी टोकन नाही. स्लॉट बुक करून शेतमाल आणल्यानंतर काटा वजन व प्रतवारी येथे दिसेल.";
+        } else if (l === "gu") {
+          text = "**તોલ અને ગુણવત્તા:**\nહાલમાં તમારી પાસે કોઈ સક્રિય ટોકન નથી. સ્લોટ બુક કર્યા પછી મંડીમાં તોલ અને ગુણવત્તા વિગત અહીં દેખાશે.";
+        } else if (l === "bn") {
+          text = "**ফসলের ওজন ও গুণমান:**\nবর্তমানে আপনার কোনো সক্রিয় টোকেন নেই। স্লট বুক করে ফসল কেন্দ্রে আনলে ওজন ও গুণমান রিপোর্ট এখানে দেখতে পাবেন।";
+        } else if (l === "te") {
+          text = "**వేబ్రిడ్జ్ బరువు & నాణ్యత:**\nప్రస్తుతం మీకు యాక్టివ్ కొనుగోలు టోకెన్ లేదు. స్లాట్ బుక్ చేసుకుని కేంద్రానికి వచ్చినప్పుడు ఇక్కడ బరువు వివరాలు కనిపిస్తాయి.";
+        } else if (l === "ta") {
+          text = "**எடை & தர பரிசோதனை:**\nதற்போது செயலில் உள்ள கொள்முதல் டோக்கன் எதுவும் இல்லை. முன்பதிவு செய்து மையத்திற்கு வந்தவுடன் எடை விவரங்கள் இங்கு காட்டப்படும்.";
+        } else if (l === "en") {
+          text = "**Weighbridge & Crop Quality:**\nYou do not have an active procurement token right now. Once you book a slot and bring your produce to the centre, live weighbridge and FAQ grading details will appear here.";
+        } else {
+          text = "**धर्मकांटा तुलाई एवं गुणवत्ता:**\nवर्तमान में आपका कोई सक्रिय खरीद टोकन नहीं है। जब आप स्लॉट बुक करके मंडी पहुंचेंगे, तो आपके टोकन का वास्तविक वजन व गुणवत्ता (FAQ Grade) यहां लाइव दिखेगा।";
+        }
       }
 
       return {
         text,
         toolUsed: "get_procurement_status",
         toolResult: data,
-        menuOptions: [
-          getBookSlotOption(l),
-          { label: "एमएसपी दरें देखें", action: "एमएसपी और भुगतान" },
-          getBackOption(l),
-        ],
+        menuOptions: !context.isLoggedIn
+          ? [
+              {
+                label: l === "en" ? "Log In to Farmer Portal" : "किसान पोर्टल में लॉगिन करें",
+                action: "login",
+                link: "/farmer/login",
+                variant: "primary",
+              },
+              getBookSlotOption(l),
+              getBackOption(l),
+            ]
+          : [
+              getBookSlotOption(l),
+              { label: "एमएसपी दरें देखें", action: "एमएसपी और भुगतान" },
+              getBackOption(l),
+            ],
       };
     }
 
@@ -1062,7 +1220,7 @@ export function smartRuleEngine(
     };
   }
 
-  // 4. MSP RATES & DBT PAYMENT (Option 4 / msp / भाव / दर / payment / dbt / भुगतान / पैसा / ਭੁਗਤਾਨ / ਪੈਸੇ / ہمੀਭਾਵ / ચૂકવણી / చెల్లింపు / பணம்)
+  // 4. MSP RATES & DBT PAYMENT (Option 4 / msp / भाव / दर / payment / dbt / भुगतान / पैसा / ਭੁਗਤਾਨ / ਪੈਸੇ / हमੀਭਾਵ / ચૂકવણી / చెల్లింపు / பணம்)
   if (
     q === "4" ||
     q.includes("msp") ||
@@ -1087,32 +1245,75 @@ export function smartRuleEngine(
     if (!payData.hasActiveToken || payData.status === "NO_PAYMENT") {
       let text = "";
       if (l === "pa") {
-        text = `**ਸਰਕਾਰੀ ਐੱਮ.ਐੱਸ.ਪੀ. ਭਾਅ (2026-27):**\n• ਕਣਕ (Wheat): ₹2,425 / ਕੁਇੰਟਲ\n• ਝੋਨਾ (Paddy): ₹2,320 / ਕੁਇੰਟਲ\n• ਸਰ੍ਹੋਂ (Mustard): ₹5,950 / ਕੁਇੰਟਲ\n• ਛੋਲੇ (Gram): ₹5,440 / ਕੁਇੰਟਲ\n• ਮੱਕੀ (Maize): ₹2,090 / ਕੁਇੰਟਲ\n\n**ਡੀ.ਬੀ.ਟੀ. ਭੁਗਤਾਨ ਸਥਿਤੀ:**\nਇਸ ਸਮੇਂ ਤੁਹਾਡਾ ਕੋਈ ਸਰਗਰਮ ਖਰੀਦ ਟੋਕਨ ਜਾਂ ਬਕਾਇਆ ਭੁਗਤਾਨ ਨਹੀਂ ਹੈ। ਸਲਾਟ ਬੁੱਕ ਕਰਕੇ ਮੰਡੀ ਵਿੱਚ ਤੁਲਾਈ ਪੂਰੀ ਹੋਣ ਤੋਂ ਬਾਅਦ ਤੁਹਾਡੇ ਆਧਾਰ ਲਿੰਕ ਬੈਂਕ ਖਾਤੇ ਵਿੱਚ ਸਿੱਧਾ DBT ਭੁਗਤਾਨ ਜਮ੍ਹਾ ਕੀਤਾ ਜਾਵੇਗਾ।`;
+        text = `**ਸਰਕਾਰੀ ਐੱਮ.ਐੱਸ.ਪੀ. ਭਾਅ (2026-27):**\n• ਕਣਕ (Wheat): ₹2,425 / ਕੁਇੰਟਲ\n• ਝੋਨਾ (Paddy): ₹2,320 / ਕੁਇੰਟਲ\n• ਸਰ੍ਹੋਂ (Mustard): ₹5,950 / ਕੁਇੰਟਲ\n• ਛੋਲੇ (Gram): ₹5,440 / ਕੁਇੰਟਲ\n• ਮੱਕੀ (Maize): ₹2,090 / ਕੁਇੰਟਲ\n\n**ਡੀ.ਬੀ.ਟੀ. ਭੁਗਤਾਨ ਸਥਿਤੀ:**\n${
+          !context.isLoggedIn
+            ? "ਤੁਸੀਂ ਅਜੇ ਲੌਗਇਨ ਨਹੀਂ ਹੋ। ਆਪਣੇ ਨਿੱਜੀ ਬੈਂਕ ਭੁਗਤਾਨ ਦੀ ਸਥਿਤੀ ਦੇਖਣ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਲੌਗਇਨ ਕਰੋ।"
+            : "ਇਸ ਸਮੇਂ ਤੁਹਾਡਾ ਕੋਈ ਸਰਗਰਮ ਖਰੀਦ ਟੋਕਨ ਜਾਂ ਬਕਾਇਆ ਭੁਗਤਾਨ ਨਹੀਂ ਹੈ। ਸਲਾਟ ਬੁੱਕ ਕਰਕੇ ਮੰਡੀ ਵਿੱਚ ਤੁਲਾਈ ਪੂਰੀ ਹੋਣ ਤੋਂ ਬਾਅਦ ਤੁਹਾਡੇ ਆਧਾਰ ਲਿੰਕ ਬੈਂਕ ਖਾਤੇ ਵਿੱਚ ਸਿੱਧਾ DBT ਭੁਗਤਾਨ ਜਮ੍ਹਾ ਕੀਤਾ ਜਾਵੇਗਾ।"
+        }`;
       } else if (l === "mr") {
-        text = `**शासकीय हमीभाव दर (2026-27):**\n• गहू (Wheat): ₹2,425 / क्विंटल\n• धान (Paddy): ₹2,320 / क्विंटल\n• मोहरी (Mustard): ₹5,950 / क्विंटल\n• हरभरा (Gram): ₹5,440 / क्विंटल\n• मका (Maize): ₹2,090 / क्विंटल\n\n**DBT बँक पेमेंट स्थिती:**\nसध्या तुमचे कोणतेही सक्रिय खरेदी टोकन किंवा थकीत पेमेंट नाही. स्लॉट बुक करून शेतमाल तुलाई पूर्ण झाल्यानंतर आधार संलग्न बँक खात्यात 24-48 तासांत हमीभाव जमा होईल.`;
+        text = `**शासकीय हमीभाव दर (2026-27):**\n• गहू (Wheat): ₹2,425 / क्विंटल\n• धान (Paddy): ₹2,320 / क्विंटल\n• मोहरी (Mustard): ₹5,950 / क्विंटल\n• हरभरा (Gram): ₹5,440 / क्विंटल\n• मका (Maize): ₹2,090 / क्विंटल\n\n**DBT बँक पेमेंट स्थिती:**\n${
+          !context.isLoggedIn
+            ? "तुम्ही अद्याप लॉगिन केलेले नाही. आपले वैयक्तिक थेट बँक पेमेंट तपासण्यासाठी कृपया लॉगिन करा."
+            : "सध्या तुमचे कोणतेही सक्रिय खरेदी टोकन किंवा थकीत पेमेंट नाही. स्लॉट बुक करून शेतमाल तुलाई पूर्ण झाल्यानंतर आधार संलग्न बँक खात्यात 24-48 तासांत हमीभाव जमा होईल."
+        }`;
       } else if (l === "gu") {
-        text = `**સરકારી ટેકાના ભાવ (2026-27):**\n• ઘઉં: ₹2,425 / ક્વિન્ટલ\n• ડાંગર: ₹2,320 / ક્વિન્ટલ\n• રાયડો: ₹5,950 / ક્વિન્ટલ\n• ચણા: ₹5,440 / ક્વિન્ટલ\n• મકાઈ: ₹2,090 / ક્વિન્ટલ\n\n**DBT ચૂકવણી સ્થિતિ:**\nહાલમાં તમારી પાસે કોઈ સક્રિય ટોકન અથવા બાકી ચૂકવણી નથી. સ્લોટ બુક કરીને તોલ પૂર્ણ થયા બાદ તમારા બેંક ખાતામાં સીધા નાણાં જમા થશે.`;
+        text = `**સરકારી ટેકાના ભાવ (2026-27):**\n• ઘઉં: ₹2,425 / ક્વિન્ટલ\n• ડાંગર: ₹2,320 / ક્વિન્ટલ\n• રાયડો: ₹5,950 / ક્વિન્ટલ\n• ચણા: ₹5,440 / ક્વિન્ટલ\n• મકાઈ: ₹2,090 / ક્વિન્ટલ\n\n**DBT ચૂકવણી સ્થિતિ:**\n${
+          !context.isLoggedIn
+            ? "તમે હજુ લૉગિન નથી કર્યું. તમારા બેંક ખાતામાં ચૂકવણી સ્થિતિ જાણવા કૃપા કરીને લૉગિન કરો."
+            : "હાલમાં તમારી પાસે કોઈ સક્રિય ટોકન અથવા બાકી ચૂકવણી નથી. સ્લોટ બુક કરીને તોલ પૂર્ણ થયા બાદ તમારા બેંક ખાતામાં સીધા નાણાં જમા થશે."
+        }`;
       } else if (l === "bn") {
-        text = `**সরকারি এমএসপি হার (2026-27):**\n• গম: ₹২,৪২৫ / কুইন্টাল\n• ধান: ₹২,৩২০ / কুইন্টাল\n• সরিষা: ₹৫,৯৫০ / কুইন্টাল\n• ছোলা: ₹৫,৪৪০ / কুইন্টাল\n• ভুট্টা: ₹২,০৯০ / কুইন্টাল\n\n**ডিবিটি পেমেন্ট স্ট্যাটাস:**\nবর্তমানে আপনার কোনো সক্রিয় টোকেন বা বকেয়া পেমেন্ট নেই। স্লট বুক করে ধান/গম বিক্রির পর সরাসরি আপনার ব্যাংক অ্যাকাউন্টে টাকা পাঠানো হবে।`;
+        text = `**সরকারি এমএসপি হার (2026-27):**\n• গম: ₹২,৪২৫ / কুইন্টাল\n• ধান: ₹২,৩২০ / কুইন্টাল\n• সরিষা: ₹৫,৯৫০ / কুইন্টাল\n• ছোলা: ₹৫,৪৪০ / কুইন্টাল\n• ভুট্টা: ₹২,০৯০ / কুইন্টাল\n\n**ডিবিটি পেমেন্ট স্ট্যাটাস:**\n${
+          !context.isLoggedIn
+            ? "আপনি এখনো লগইন করেননি। আপনার ব্যাংক একাউন্টে পেমেন্ট স্ট্যাটাস দেখতে অনুগ্রহ করে লগইন করুন।"
+            : "বর্তমানে আপনার কোনো সক্রিয় টোকেন বা বকেয়া পেমেন্ট নেই। স্লট বুক করে ধান/গম বিক্রির পর সরাসরি আপনার ব্যাংক অ্যাকাউন্টে টাকা পাঠানো হবে।"
+        }`;
       } else if (l === "te") {
-        text = `**ప్రభుత్వ మద్దతు ధరలు (2026-27):**\n• గోధుమలు: ₹2,425 / క్వింటాల్\n• వరి: ₹2,320 / క్వింటాల్\n• ఆవాలు: ₹5,950 / క్వింటాల్\n• శనగలు: ₹5,440 / క్వింటాల్\n• మొక్కజొన్న: ₹2,090 / క్వింటాల్\n\n**డీబీటీ చెల్లింపు స్థితి:**\nప్రస్తుతం మీకు ఎటువంటి యాక్టివ్ కొనుగోలు టోకెన్ లేదా చెల్లింపు లేదు. స్లాట్ బుక్ చేసి తూకం పూర్తయిన 24-48 గంటల్లో మీ ఖాతాలో నగదు జమ అవుతుంది.`;
+        text = `**ప్రభుత్వ మద్దతు ధరలు (2026-27):**\n• గోధుమలు: ₹2,425 / క్వింటాల్\n• వరి: ₹2,320 / క్వింటాల్\n• ఆవాలు: ₹5,950 / క్వింటాల్\n• శనగలు: ₹5,440 / క్వింటాల్\n• మొక్కజొన్న: ₹2,090 / క్వింటాల్\n\n**డీబీటీ చెల్లింపు స్థితి:**\n${
+          !context.isLoggedIn
+            ? "మీరు ఇంకా లాగిన్ కాలేదు. మీ బ్యాంక్ ఖాతాలో చెల్లింపు వివరాలు చూడటానికి దయచేసి లాగిన్ అవ్వండి."
+            : "ప్రస్తుతం మీకు ఎటువంటి యాక్టివ్ కొనుగోలు టోకెన్ లేదా చెల్లింపు లేదు. స్లాట్ బుక్ చేసి తూకం పూర్తయిన 24-48 గంటల్లో మీ ఖాతాలో నగదు జమ అవుతుంది."
+        }`;
       } else if (l === "ta") {
-        text = `**அரசு கொள்முதல் விலை (MSP 2026-27):**\n• கோதுமை: ₹2,425 / குவிண்டால்\n• நெல்: ₹2,320 / குவிண்டால்\n• கடுகு: ₹5,950 / குவிண்டால்\n• கொண்டைக்கடலை: ₹5,440 / குவிண்டால்\n• சோளம்: ₹2,090 / குவிண்டால்\n\n**வங்கி நேரடி பணப்பரிவர்த்தனை (DBT):**\nதற்போது செயலில் உள்ள கொள்முதல் டோக்கன் எதுவும் இல்லை. முன்பதிவு செய்து கொள்முதல் முடிந்ததும் உங்கள் வங்கிக் கணக்கில் அரசு கொள்முதல் தொகை வரவு வைக்கப்படும்.`;
+        text = `**அரசு கொள்முதல் விலை (MSP 2026-27):**\n• கோதுமை: ₹2,425 / குவிண்டால்\n• நெல்: ₹2,320 / குவிண்டால்\n• கடுகு: ₹5,950 / குவிண்டால்\n• கொண்டைக்கடலை: ₹5,440 / குவிண்டால்\n• சோளம்: ₹2,090 / குவிண்டால்\n\n**வங்கி நேரடி பணப்பரிவர்த்தனை (DBT):**\n${
+          !context.isLoggedIn
+            ? "நீங்கள் இன்னும் உள்நுழையவில்லை. உங்கள் வங்கிக் கணக்கு கட்டண விவரங்களைக் காண தயவுசெய்து உள்நுழையவும்."
+            : "தற்போது செயலில் உள்ள கொள்முதல் டோக்கன் எதுவும் இல்லை. முன்பதிவு செய்து கொள்முதல் முடிந்ததும் உங்கள் வங்கிக் கணக்கில் அரசு கொள்முதல் தொகை வரவு வைக்கப்படும்."
+        }`;
       } else if (l === "en") {
-        text = `**Government MSP Rate Card (2026-27):**\n• Wheat: ₹2,425 / quintal\n• Paddy (Common): ₹2,320 / quintal\n• Mustard: ₹5,950 / quintal\n• Gram: ₹5,440 / quintal\n• Maize: ₹2,090 / quintal\n• Moong: ₹8,682 / quintal\n\n**Your DBT Payout Status:**\nYou do not have an active procurement token or pending payout right now. Once you book a slot and complete crop weighment at the mandi, your payment will be transferred directly to your Aadhaar-linked bank account within 24-48 hours.`;
+        text = `**Government MSP Rate Card (2026-27):**\n• Wheat: ₹2,425 / quintal\n• Paddy (Common): ₹2,320 / quintal\n• Mustard: ₹5,950 / quintal\n• Gram: ₹5,440 / quintal\n• Maize: ₹2,090 / quintal\n• Moong: ₹8,682 / quintal\n\n**Your DBT Payout Status:**\n${
+          !context.isLoggedIn
+            ? "You are not logged in yet. Please log in to your account to track your personal direct bank transfer (DBT) disbursement."
+            : "You do not have an active procurement token or pending payout right now. Once you book a slot and complete crop weighment at the mandi, your payment will be transferred directly to your Aadhaar-linked bank account within 24-48 hours."
+        }`;
       } else {
-        text = `**सरकारी न्यूनतम समर्थन मूल्य (MSP 2026-27):**\n• गेहूं (Wheat): ₹2,425 / क्विंटल\n• धान (Paddy Common): ₹2,320 / क्विंटल\n• सरसों (Mustard): ₹5,950 / क्विंटल\n• चना (Gram): ₹5,440 / क्विंटल\n• मक्का (Maize): ₹2,090 / क्विंटल\n• मूंग (Moong): ₹8,682 / क्विंटल\n\n**आपके डीबीटी भुगतान की स्थिति:**\nवर्तमान में आपका कोई सक्रिय खरीद टोकन या देय भुगतान नहीं है। नया स्लॉट बुक करके जब आप मंडी में फसल तौलवाएंगे, तो आपकी कुल राशि की गणना होकर 24-48 घंटों के भीतर सीधे आपके आधार लिंक बैंक खाते में DBT कर दी जाएगी।`;
+        text = `**सरकारी न्यूनतम समर्थन मूल्य (MSP 2026-27):**\n• गेहूं (Wheat): ₹2,425 / क्विंटल\n• धान (Paddy Common): ₹2,320 / क्विंटल\n• सरसों (Mustard): ₹5,950 / क्विंटल\n• चना (Gram): ₹5,440 / क्विंटल\n• मक्का (Maize): ₹2,090 / क्विंटल\n• मूंग (Moong): ₹8,682 / क्विंटल\n\n**आपके डीबीटी भुगतान की स्थिति:**\n${
+          !context.isLoggedIn
+            ? "आप अभी लॉगिन नहीं हैं। अपने व्यक्तिगत बैंक खाते में डीबीटी भुगतान की स्थिति देखने के लिए कृपया किसान पोर्टल में लॉगिन करें।"
+            : "वर्तमान में आपका कोई सक्रिय खरीद टोकन या देय भुगतान नहीं है। नया स्लॉट बुक करके जब आप मंडी में फसल तौलवाएंगे, तो आपकी कुल राशि की गणना होकर 24-48 घंटों के भीतर सीधे आपके आधार लिंक बैंक खाते में DBT कर दी जाएगी।"
+        }`;
       }
 
       return {
         text,
         toolUsed: "get_payment_status",
         toolResult: { payData, rateData },
-        menuOptions: [
-          getBookSlotOption(l),
-          { label: "केंद्र से संपर्क करें", action: "केंद्र संपर्क", variant: "call" },
-          getBackOption(l),
-        ],
+        menuOptions: !context.isLoggedIn
+          ? [
+              {
+                label: l === "en" ? "Log In to Farmer Portal" : "किसान पोर्टल में लॉगिन करें",
+                action: "login",
+                link: "/farmer/login",
+                variant: "primary",
+              },
+              getBookSlotOption(l),
+              getBackOption(l),
+            ]
+          : [
+              getBookSlotOption(l),
+              { label: "केंद्र से संपर्क करें", action: "केंद्र संपर्क", variant: "call" },
+              getBackOption(l),
+            ],
       };
     }
 
