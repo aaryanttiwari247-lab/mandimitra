@@ -685,7 +685,7 @@ export function MandimitraChatWidget() {
 
           <div className="flex items-center gap-1.5 font-bold">
             <Sprout className="h-4 w-4" />
-            <span>{t("assistant.floatingBtnShort") || "MandiHelp"}</span>
+            <span>MandiHelp</span>
           </div>
 
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
@@ -709,7 +709,7 @@ export function MandimitraChatWidget() {
                 <div>
                   <div className="flex items-center gap-1">
                     <h3 className="font-bold text-xs sm:text-sm leading-tight">
-                      {t("assistant.title") || "MandiHelp"}
+                      MandiHelp
                     </h3>
                   </div>
                   <p className="text-[9.5px] text-emerald-100 font-medium">

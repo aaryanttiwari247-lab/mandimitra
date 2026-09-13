@@ -483,10 +483,10 @@ export default function FarmerDashboard() {
               type="button"
               onClick={() => openVoiceAssistant()}
               className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs sm:text-sm font-bold text-[#2E7D32] hover:bg-emerald-100 hover:border-emerald-300 transition shadow-2xs"
-              title={t("assistant.floatingBtn") || "MandiHelp"}
+              title="MandiHelp"
             >
               <Mic className="h-4 w-4 text-[#2E7D32]" />
-              <span className="hidden md:inline">{t("assistant.floatingBtnShort") || "MandiHelp"}</span>
+              <span className="hidden md:inline">MandiHelp</span>
             </button>
 
             <LanguageSelector />
