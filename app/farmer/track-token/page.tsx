@@ -12,10 +12,14 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Download,
+  ExternalLink,
+  FileCheck2,
   IndianRupee,
   LogOut,
   MapPin,
   Printer,
+  ReceiptText,
   RotateCcw,
   Scale,
   Search,
@@ -98,6 +102,7 @@ function TrackTokenContent() {
   const [quickTokens, setQuickTokens] = useState<Array<{ token: string; name: string; crop: string }>>([]);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [showSlipPreview, setShowSlipPreview] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   // ============================================================
   // EXIT / LOGOUT
@@ -332,7 +337,30 @@ function TrackTokenContent() {
     router.push(`/farmer/track-token?token=${encodeURIComponent(token)}`);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsReceiptModalOpen(false);
+      }
+    };
+    if (isReceiptModalOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isReceiptModalOpen]);
+
   const handlePrintReceipt = () => {
+    if (!isReceiptModalOpen) {
+      setIsReceiptModalOpen(true);
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.print();
+        }
+      }, 150);
+      return;
+    }
     if (typeof window !== "undefined") {
       window.print();
     }
@@ -384,7 +412,7 @@ function TrackTokenContent() {
     booking?.totalPayout || Math.round(effectiveQty * effectiveRate)
   );
   const isCompleted = currentStatus === "COMPLETED";
-  const canShowSlip = isCompleted || showSlipPreview || Boolean(booking?.actualQuantity && booking?.totalPayout);
+  const canShowSlip = isCompleted || Boolean(booking?.actualQuantity && booking?.totalPayout);
 
   const localizeCrop = (cropName?: string) => {
     if (!cropName) return "";
@@ -697,6 +725,14 @@ function TrackTokenContent() {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
               }
+              .receipt-modal-backdrop {
+                position: static !important;
+                background: transparent !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+                inset: auto !important;
+              }
               .print\\:hidden,
               button,
               header,
@@ -932,11 +968,12 @@ function TrackTokenContent() {
                   </div>
                 </div>
                 <button
-                  onClick={handlePrintReceipt}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3 text-sm font-bold text-white hover:bg-[#256428] shadow-sm shrink-0"
+                  type="button"
+                  onClick={() => setIsReceiptModalOpen(true)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-[#1B5E2B] px-5 py-3 text-sm font-bold text-white hover:bg-[#13491E] shadow-sm shrink-0 cursor-pointer active:scale-95 transition-all"
                 >
-                  <Printer className="h-4 w-4" />
-                  {t("tracker.printReceipt")}
+                  <ReceiptText className="h-4 w-4" />
+                  <span>Open & Download Receipt</span>
                 </button>
               </div>
             </div>
@@ -1141,257 +1178,379 @@ function TrackTokenContent() {
             </div>
           )}
 
-          {/* J-SLIP PREVIEW TOGGLE (WHEN NOT YET COMPLETED) */}
-          {!isCompleted && (
+          {/* ====================================================
+              COMPACT RECEIPT NOTIFICATION POPUP CARD (NO GIANT INLINE SLIP)
+          ==================================================== */}
+          {canShowSlip ? (
+            <div className="mt-7 rounded-3xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-green-50 p-5 sm:p-6 shadow-sm print:hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#13491E] to-[#1B5E2B] text-white shadow-sm">
+                    <ReceiptText className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-[#13491E]">
+                        Receipt Ready
+                      </span>
+                      <span className="font-mono text-xs font-bold text-gray-500">
+                        J-{String(booking.token || "101").replace(/^#/, "")}
+                      </span>
+                    </div>
+                    <h3 className="mt-1 text-base sm:text-lg font-black text-gray-900">
+                      Official Mandi J-Slip Generated
+                    </h3>
+                    <p className="text-xs text-gray-600">
+                      Form &apos;J&apos; Sale Voucher is generated with certified weighment, MSP rate, and electronic DBT payout details.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsReceiptModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#13491E] to-[#1B5E2B] px-5 py-3 text-sm font-bold text-white shadow-md hover:from-[#0F3817] hover:to-[#13491E] active:scale-95 transition-all cursor-pointer shrink-0"
+                >
+                  <FileCheck2 className="h-4 w-4" />
+                  <span>Open Receipt to Download</span>
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="mt-6 flex justify-end print:hidden">
               <button
                 type="button"
-                onClick={() => setShowSlipPreview(!showSlipPreview)}
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-gray-700 shadow-xs hover:border-[#2E7D32] hover:text-[#2E7D32] transition"
+                onClick={() => setIsReceiptModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-gray-700 shadow-xs hover:border-[#1B5E2B] hover:text-[#1B5E2B] transition cursor-pointer"
               >
-                <Printer className="h-4 w-4 text-[#2E7D32]" />
-                {showSlipPreview ? "Hide J-Slip Voucher" : "View & Print Small J-Slip"}
+                <ReceiptText className="h-4 w-4 text-[#1B5E2B]" />
+                Preview J-Slip Voucher
+              </button>
+            </div>
+          )}
+
+          {/* FLOATING ACTION POPUP BADGE (QUICK ACCESS ANYWHERE ON PAGE) */}
+          {canShowSlip && !isReceiptModalOpen && (
+            <div className="fixed bottom-6 right-6 z-40 print:hidden">
+              <button
+                type="button"
+                onClick={() => setIsReceiptModalOpen(true)}
+                className="group flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] px-4 py-3 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all border border-emerald-300/40 cursor-pointer"
+                title="Open Official Mandi J-Slip"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white group-hover:rotate-6 transition-transform">
+                  <ReceiptText className="h-5 w-5" />
+                </div>
+                <div className="text-left pr-1">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-200">
+                    Receipt Generated
+                  </div>
+                  <div className="text-xs font-black tracking-tight">
+                    Click to Download J-Slip
+                  </div>
+                </div>
+                <ExternalLink className="h-4 w-4 text-emerald-300" />
               </button>
             </div>
           )}
 
           {/* ====================================================
-              COMPACT MANDI J-SLIP (J-FORM SALE VOUCHER)
+              MODAL POPUP: OFFICIAL MANDI J-SLIP (J-FORM SALE VOUCHER)
           ==================================================== */}
-          {canShowSlip && (
-            <div className="mt-7 flex flex-col items-center">
+          {isReceiptModalOpen && (
+            <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static">
+              {/* BACKDROP CLICK DISMISS */}
               <div
-                id="mandi-j-slip"
-                className="w-full max-w-[420px] rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-md print:m-0 print:w-full print:max-w-[390px] print:border-black print:p-3.5 print:shadow-none"
-              >
-                {/* APMC OFFICIAL HEADER */}
-                <div className="text-center border-b-2 border-gray-900 pb-3">
-                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#2E7D32] print:text-black">
-                    <ShieldCheck className="h-4 w-4 shrink-0" />
-                    <span>APMC Mandi Committee</span>
-                  </div>
-                  <h3 className="mt-0.5 text-base sm:text-lg font-black tracking-tight text-gray-950 uppercase">
-                    FORM &apos;J&apos; • SALE VOUCHER
-                  </h3>
-                  <p className="text-[10px] font-bold text-gray-600 print:text-gray-800">
-                    [Rule 24(1) - Electronic Procurement & Sale Voucher]
-                  </p>
-                  <p className="mt-1 text-xs font-black text-gray-900">
-                    {booking.centre || "APMC Procurement Centre"}
-                  </p>
-                </div>
+                className="fixed inset-0 print:hidden"
+                onClick={() => setIsReceiptModalOpen(false)}
+              />
 
-                {/* VOUCHER META & TOKEN */}
-                <div className="my-2.5 flex items-center justify-between border-b border-dashed border-gray-400 pb-2 text-[11px]">
-                  <div>
-                    <span className="text-gray-500 font-medium">J-Slip No:</span>
-                    <strong className="ml-1 text-gray-950 font-mono">
-                      J-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
-                    </strong>
-                  </div>
-                  <div className="rounded bg-gray-100 px-2 py-0.5 font-mono font-black text-gray-900 print:border print:border-black">
-                    Token #{String(booking.token || booking.tokenNumber || "101").replace(/^#/, "")}
-                  </div>
-                </div>
-
-                <div className="mb-2.5 flex items-center justify-between text-[11px] border-b border-dashed border-gray-400 pb-2">
-                  <span className="text-gray-500 font-medium">Date & Time:</span>
-                  <span className="font-bold text-gray-900">
-                    {formatEnglishDate(booking.date)} • {booking.time || "10:00 AM"}
-                  </span>
-                </div>
-
-                {/* SECTION 1: FARMER PARTICULARS */}
-                <div className="space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-                    Farmer Particulars
-                  </p>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Name:</span>
-                    <strong className="text-gray-950">
-                      {booking.farmerName || "Farmer"}
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Mobile Number:</span>
-                    <span className="font-semibold text-gray-800">{booking.farmerMobile || "---"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Farmer Registration ID:</span>
-                    <span className="font-mono font-bold text-gray-800">
-                      {booking.farmerId || `FMR-${booking.farmerMobile?.slice(-4) || "8924"}`}
-                    </span>
-                  </div>
-                </div>
-
-                {/* SECTION 2: CROP DETAILS */}
-                <div className="my-2.5 text-xs border-b border-dashed border-gray-400 pb-2.5">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">
-                    Crop & Quality Details
-                  </p>
-                  {booking.crops && booking.crops.length > 1 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-[11px]">
-                        <thead>
-                          <tr className="border-b border-gray-300 text-[10px] uppercase text-gray-600">
-                            <th className="py-1">Crop</th>
-                            <th className="py-1 text-center">Grade</th>
-                            <th className="py-1 text-right">Qty</th>
-                            <th className="py-1 text-right">MSP Rate</th>
-                            <th className="py-1 text-right">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {booking.crops.map((c, idx) => {
-                            const cRate = c.mspRate || getCropMspData(c.crop).standardMsp;
-                            const cQty = c.actualQuantity ?? c.quantity ?? 0;
-                            const cPayout = c.totalPayout ?? Math.round(cQty * cRate);
-                            return (
-                              <tr key={idx} className="font-medium text-gray-900">
-                                <td className="py-1 font-bold">{c.crop}</td>
-                                <td className="py-1 text-center text-[10px]">{c.cropGrade || "Grade A"}</td>
-                                <td className="py-1 text-right">{cQty} Q</td>
-                                <td className="py-1 text-right">₹{cRate}</td>
-                                <td className="py-1 text-right font-black">₹{cPayout.toLocaleString("en-IN")}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+              <div className="relative z-10 my-6 w-full max-w-[480px] rounded-3xl bg-white shadow-2xl border border-gray-200 overflow-hidden print:m-0 print:w-full print:max-w-[390px] print:border-none print:shadow-none print:rounded-none">
+                {/* MODAL HEADER */}
+                <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] px-5 py-3.5 text-white print:hidden">
+                  <div className="flex items-center gap-2.5">
+                    <ReceiptText className="h-5 w-5 text-emerald-200" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Mandi Sale Voucher (J-Slip)</h3>
+                      <p className="text-[11px] text-emerald-200">Official Form &apos;J&apos; • APMC Procurement</p>
                     </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Produce / Crop:</span>
-                        <strong className="text-gray-950 text-sm">{booking.crop || "Produce"}</strong>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePrintReceipt}
+                      className="flex items-center gap-1.5 rounded-lg bg-white/20 hover:bg-white/30 px-3 py-1.5 text-xs font-bold text-white transition active:scale-95 cursor-pointer"
+                      title="Download / Print Receipt (PDF)"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Download</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsReceiptModalOpen(false)}
+                      className="rounded-lg p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition cursor-pointer"
+                      title="Close"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* MODAL SCROLLABLE BODY CONTAINING #mandi-j-slip */}
+                <div className="max-h-[75vh] overflow-y-auto p-4 sm:p-5 flex flex-col items-center bg-gray-50/50 print:p-0 print:max-h-none print:bg-white print:overflow-visible">
+                  <div
+                    id="mandi-j-slip"
+                    className="w-full max-w-[420px] rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-md print:m-0 print:w-full print:max-w-[390px] print:border-black print:p-3.5 print:shadow-none"
+                  >
+                    {/* APMC OFFICIAL HEADER */}
+                    <div className="text-center border-b-2 border-gray-900 pb-3">
+                      <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#2E7D32] print:text-black">
+                        <ShieldCheck className="h-4 w-4 shrink-0" />
+                        <span>APMC Mandi Committee</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Quality Grade:</span>
-                        <span className="font-bold text-gray-900">
-                          {booking.cropGrade || "Grade A (FAQ Standard)"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Statutory MSP Rate:</span>
-                        <strong className="text-gray-950">
-                          ₹{effectiveRate.toLocaleString("en-IN")} / Quintal
+                      <h3 className="mt-0.5 text-base sm:text-lg font-black tracking-tight text-gray-950 uppercase">
+                        FORM &apos;J&apos; • SALE VOUCHER
+                      </h3>
+                      <p className="text-[10px] font-bold text-gray-600 print:text-gray-800">
+                        [Rule 24(1) - Electronic Procurement & Sale Voucher]
+                      </p>
+                      <p className="mt-1 text-xs font-black text-gray-900">
+                        {booking.centre || "APMC Procurement Centre"}
+                      </p>
+                    </div>
+
+                    {/* VOUCHER META & TOKEN */}
+                    <div className="my-2.5 flex items-center justify-between border-b border-dashed border-gray-400 pb-2 text-[11px]">
+                      <div>
+                        <span className="text-gray-500 font-medium">J-Slip No:</span>
+                        <strong className="ml-1 text-gray-950 font-mono">
+                          J-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
                         </strong>
                       </div>
+                      <div className="rounded bg-gray-100 px-2 py-0.5 font-mono font-black text-gray-900 print:border print:border-black">
+                        Token #{String(booking.token || booking.tokenNumber || "101").replace(/^#/, "")}
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* SECTION 3: QUANTITY DETAILS */}
-                <div className="my-2.5 space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-                    Quantity & Weighment Details
-                  </p>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Booked Quantity:</span>
-                    <span className="font-semibold text-gray-800">{booking.quantity || 0} Quintals</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Net Weighed Quantity:</span>
-                    <span className="font-black text-gray-950 text-sm">
-                      {effectiveQty} Quintals{" "}
-                      <span className="text-[11px] font-semibold text-gray-600">
-                        ({(effectiveQty * 100).toLocaleString("en-IN")} kg)
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-gray-500">
-                    <span>Weighbridge: Electronic Dharmkanta</span>
-                    <span className="text-emerald-700 font-bold print:text-black">Certified Gross & Tare Verified</span>
-                  </div>
-                </div>
-
-                {/* SECTION 4: AMOUNT SENT / DBT PAYOUT (HIGHLIGHT BOX) */}
-                <div className="my-3 rounded-xl border-2 border-[#2E7D32] bg-[#F1F8F2] p-3 text-center print:border-black print:bg-gray-50">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#2E7D32] print:text-black">
-                    TOTAL AMOUNT SENT (DBT PAYOUT)
-                  </p>
-                  <p className="mt-1 text-2xl font-black text-[#2E7D32] tracking-tight print:text-black">
-                    {formatINR(effectiveTotalPayout)}
-                  </p>
-                  <p className="mt-1 text-[11px] font-bold text-gray-800 leading-tight italic">
-                    {numberToIndianWords(effectiveTotalPayout)}
-                  </p>
-
-                  <div className="mt-2.5 border-t border-[#CDE8D0] pt-2 flex flex-col gap-1 text-[10px] text-left print:border-gray-300">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Payment Channel:</span>
-                      <strong className="text-gray-900">Direct Benefit Transfer (DBT)</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Payment Status:</span>
-                      <span className="font-black text-[#2E7D32] uppercase print:text-black">
-                        PAID / TRANSFERRED ✅
+                    <div className="mb-2.5 flex items-center justify-between text-[11px] border-b border-dashed border-gray-400 pb-2">
+                      <span className="text-gray-500 font-medium">Date & Time:</span>
+                      <span className="font-bold text-gray-900">
+                        {formatEnglishDate(booking.date)} • {booking.time || "10:00 AM"}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">DBT / UTR Reference:</span>
-                      <strong className="font-mono text-gray-900">
-                        UTR-DBT-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
-                      </strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Beneficiary Account:</span>
-                      <span className="text-gray-800 font-medium">
-                        Aadhaar-Linked Bank Account (Ending in *{booking.farmerMobile?.slice(-4) || "8924"})
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* SECTION 5: VERIFICATION & STAMP */}
-                <div className="mt-2.5 flex items-center justify-between text-[10px] text-gray-500 border-t border-dashed border-gray-400 pt-2">
-                  <div>
-                    <p className="font-bold text-gray-800">Mandi Procurement Officer:</p>
-                    <p>{booking.verifiedBy || "APMC Procurement Officer"}</p>
-                    <p className="text-[9px] text-emerald-800 font-semibold mt-0.5 print:text-black">
-                      Digitally Verified & Disbursed
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="inline-block rounded border border-gray-400 bg-white px-2 py-1 text-center">
-                      <p className="text-[9px] font-black text-[#2E7D32] print:text-black uppercase">
-                        APMC OFFICIAL
+                    {/* SECTION 1: FARMER PARTICULARS */}
+                    <div className="space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                        Farmer Particulars
                       </p>
-                      <p className="text-[8px] text-gray-500">J-FORM SEAL</p>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Name:</span>
+                        <strong className="text-gray-950">
+                          {booking.farmerName || "Farmer"}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Mobile Number:</span>
+                        <span className="font-semibold text-gray-800">{booking.farmerMobile || "---"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Farmer Registration ID:</span>
+                        <span className="font-mono font-bold text-gray-800">
+                          {booking.farmerId || `FMR-${booking.farmerMobile?.slice(-4) || "8924"}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: CROP DETAILS */}
+                    <div className="my-2.5 text-xs border-b border-dashed border-gray-400 pb-2.5">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">
+                        Crop & Quality Details
+                      </p>
+                      {booking.crops && booking.crops.length > 1 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-[11px]">
+                            <thead>
+                              <tr className="border-b border-gray-300 text-[10px] uppercase text-gray-600">
+                                <th className="py-1">Crop</th>
+                                <th className="py-1 text-center">Grade</th>
+                                <th className="py-1 text-right">Qty</th>
+                                <th className="py-1 text-right">MSP Rate</th>
+                                <th className="py-1 text-right">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {booking.crops.map((c, idx) => {
+                                const cRate = c.mspRate || getCropMspData(c.crop).standardMsp;
+                                const cQty = c.actualQuantity ?? c.quantity ?? 0;
+                                const cPayout = c.totalPayout ?? Math.round(cQty * cRate);
+                                return (
+                                  <tr key={idx} className="font-medium text-gray-900">
+                                    <td className="py-1 font-bold">{c.crop}</td>
+                                    <td className="py-1 text-center text-[10px]">{c.cropGrade || "Grade A"}</td>
+                                    <td className="py-1 text-right">{cQty} Q</td>
+                                    <td className="py-1 text-right">₹{cRate}</td>
+                                    <td className="py-1 text-right font-black">₹{cPayout.toLocaleString("en-IN")}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Produce / Crop:</span>
+                            <strong className="text-gray-950 text-sm">{booking.crop || "Produce"}</strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Quality Grade:</span>
+                            <span className="font-bold text-gray-900">
+                              {booking.cropGrade || "Grade A (FAQ Standard)"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Statutory MSP Rate:</span>
+                            <strong className="text-gray-950">
+                              ₹{effectiveRate.toLocaleString("en-IN")} / Quintal
+                            </strong>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* SECTION 3: QUANTITY DETAILS */}
+                    <div className="my-2.5 space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                        Quantity & Weighment Details
+                      </p>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Booked Quantity:</span>
+                        <span className="font-semibold text-gray-800">{booking.quantity || 0} Quintals</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500">Net Weighed Quantity:</span>
+                        <span className="font-black text-gray-950 text-sm">
+                          {effectiveQty} Quintals{" "}
+                          <span className="text-[11px] font-semibold text-gray-600">
+                            ({(effectiveQty * 100).toLocaleString("en-IN")} kg)
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-500">
+                        <span>Weighbridge: Electronic Dharmkanta</span>
+                        <span className="text-emerald-700 font-bold print:text-black">Certified Gross & Tare Verified</span>
+                      </div>
+                    </div>
+
+                    {/* SECTION 4: AMOUNT SENT / DBT PAYOUT (HIGHLIGHT BOX) */}
+                    <div className="my-3 rounded-xl border-2 border-[#2E7D32] bg-[#F1F8F2] p-3 text-center print:border-black print:bg-gray-50">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#2E7D32] print:text-black">
+                        TOTAL AMOUNT SENT (DBT PAYOUT)
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-[#2E7D32] tracking-tight print:text-black">
+                        {formatINR(effectiveTotalPayout)}
+                      </p>
+                      <p className="mt-1 text-[11px] font-bold text-gray-800 leading-tight italic">
+                        {numberToIndianWords(effectiveTotalPayout)}
+                      </p>
+
+                      <div className="mt-2.5 border-t border-[#CDE8D0] pt-2 flex flex-col gap-1 text-[10px] text-left print:border-gray-300">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Payment Channel:</span>
+                          <strong className="text-gray-900">Direct Benefit Transfer (DBT)</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Payment Status:</span>
+                          <span className="font-black text-[#2E7D32] uppercase print:text-black">
+                            PAID / TRANSFERRED ✅
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">DBT / UTR Reference:</span>
+                          <strong className="font-mono text-gray-900">
+                            UTR-DBT-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Beneficiary Account:</span>
+                          <span className="text-gray-800 font-medium">
+                            Aadhaar-Linked Bank Account (Ending in *{booking.farmerMobile?.slice(-4) || "8924"})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 5: VERIFICATION & STAMP */}
+                    <div className="mt-2.5 flex items-center justify-between text-[10px] text-gray-500 border-t border-dashed border-gray-400 pt-2">
+                      <div>
+                        <p className="font-bold text-gray-800">Mandi Procurement Officer:</p>
+                        <p>{booking.verifiedBy || "APMC Procurement Officer"}</p>
+                        <p className="text-[9px] text-emerald-800 font-semibold mt-0.5 print:text-black">
+                          Digitally Verified & Disbursed
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="inline-block rounded border border-gray-400 bg-white px-2 py-1 text-center">
+                          <p className="text-[9px] font-black text-[#2E7D32] print:text-black uppercase">
+                            APMC OFFICIAL
+                          </p>
+                          <p className="text-[8px] text-gray-500">J-FORM SEAL</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BARCODE & LEGAL FOOTER */}
+                    <div className="mt-2.5 flex flex-col items-center justify-center border-t border-gray-200 pt-2">
+                      <div className="flex h-6 items-center gap-[1.5px]">
+                        {[3, 1, 4, 2, 5, 1, 3, 4, 2, 6, 1, 3, 5, 2, 4, 1, 6, 2, 3, 5, 1, 4, 2, 5, 3, 1, 4, 2].map(
+                          (h, i) => (
+                            <div
+                              key={i}
+                              className="w-[1.5px] bg-black"
+                              style={{ height: `${h * 3.5 + 8}px` }}
+                            />
+                          )
+                        )}
+                      </div>
+                      <p className="mt-1 font-mono text-[9px] text-gray-500 tracking-wider">
+                        *J-SLIP-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}*
+                      </p>
+                      <p className="mt-1 text-center text-[8px] text-gray-400 leading-tight">
+                        Computer-generated official Mandi sale voucher under APMC Act. Certified proof of MSP procurement & electronic DBT credit.
+                      </p>
+                    </div>
+
+                    {/* PRINT / DOWNLOAD BUTTON INSIDE VOUCHER */}
+                    <div className="mt-4 pt-3 border-t border-gray-200 print:hidden">
+                      <button
+                        type="button"
+                        onClick={handlePrintReceipt}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1B5E2B] px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-[#13491E] transition cursor-pointer"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download / Print J-Slip (PDF)
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* BARCODE & LEGAL FOOTER */}
-                <div className="mt-2.5 flex flex-col items-center justify-center border-t border-gray-200 pt-2">
-                  <div className="flex h-6 items-center gap-[1.5px]">
-                    {[3, 1, 4, 2, 5, 1, 3, 4, 2, 6, 1, 3, 5, 2, 4, 1, 6, 2, 3, 5, 1, 4, 2, 5, 3, 1, 4, 2].map(
-                      (h, i) => (
-                        <div
-                          key={i}
-                          className="w-[1.5px] bg-black"
-                          style={{ height: `${h * 3.5 + 8}px` }}
-                        />
-                      )
-                    )}
-                  </div>
-                  <p className="mt-1 font-mono text-[9px] text-gray-500 tracking-wider">
-                    *J-SLIP-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}*
-                  </p>
-                  <p className="mt-1 text-center text-[8px] text-gray-400 leading-tight">
-                    Computer-generated official Mandi sale voucher under APMC Act. Certified proof of MSP procurement & electronic DBT credit.
-                  </p>
-                </div>
-
-                {/* PRINT BUTTON */}
-                <div className="mt-4 pt-3 border-t border-gray-200 print:hidden">
+                {/* MODAL FOOTER */}
+                <div className="flex items-center justify-between border-t border-gray-200 bg-white px-5 py-3.5 print:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsReceiptModalOpen(false)}
+                    className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                  >
+                    Close
+                  </button>
                   <button
                     type="button"
                     onClick={handlePrintReceipt}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-[#256428] transition"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#1B5E2B] px-5 py-2 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-[#13491E] transition active:scale-95 cursor-pointer"
                   >
-                    <Printer className="h-4 w-4" />
-                    Print Small J-Slip
+                    <Download className="h-4 w-4" />
+                    <span>Download / Print (PDF)</span>
                   </button>
                 </div>
               </div>
