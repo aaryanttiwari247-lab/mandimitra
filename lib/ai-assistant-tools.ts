@@ -1425,7 +1425,7 @@ export function smartRuleEngine(
     } else if (l === "en") {
       text = `**Farmer Helpline & Grievance Desk:**\n• **National Kisan Call Centre:** 1800-180-1551 (24x7 Toll-Free)\n• **Mandi State Control Room:** ${helpData.stateControlRoom}\n• **WhatsApp Support:** ${helpData.whatsappSupport}\n• **Email:** ${helpData.email}`;
     } else {
-      text = `**किसान हेल्पलाइन एवं समाधान डेस्क:**\n• **राष्ट्रीय किसान कॉल सेंटर:** 1800-180-1551 (24x7 टोल-फ्री)\n• **मंडी राज्य नियंत्रण कक्ष:** ${helpData.stateControlRoom}\n• **मंडीमित्र हेल्पलाइन:** ${helpData.whatsappSupport}\n• **ईमेल सहायता:** ${helpData.email}`;
+      text = `**किसान हेल्पलाइन एवं समाधान डेस्क:**\n• **राष्ट्रीय किसान कॉल सेंटर:** 1800-180-1551 (24x7 टोल-फ्री)\n• **मंडी राज्य नियंत्रण कक्ष:** ${helpData.stateControlRoom}\n• **MandHelp हेल्पलाइन:** ${helpData.whatsappSupport}\n• **ईमेल सहायता:** ${helpData.email}`;
     }
 
     return {
@@ -1442,21 +1442,21 @@ export function smartRuleEngine(
   // DEFAULT / MAIN MENU
   let text = "";
   if (l === "pa") {
-    text = `**ਮੰਡੀਮਿੱਤਰ ਕਿਸਾਨ ਸੇਵਾ:**\nਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ:`;
+    text = `**MandHelp ਕਿਸਾਨ ਸੇਵਾ:**\nਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ:`;
   } else if (l === "mr") {
-    text = `**मंडीमित्र शेतकरी सेवा:**\nमदतीसाठी खालीलपैकी कोणत्याही पर्यायावर टॅप करा:`;
+    text = `**MandHelp शेतकरी सेवा:**\nमदतीसाठी खालीलपैकी कोणत्याही पर्यायावर टॅप करा:`;
   } else if (l === "gu") {
-    text = `**મંડીમિત્ર ખેડૂત સેવા:**\nસહાય માટે નીચે આપેલ કોઈપણ વિકલ્પ પર ક્લિક કરો:`;
+    text = `**MandHelp ખેડૂત સેવા:**\nસહાય માટે નીચે આપેલ કોઈપણ વિકલ્પ પર ક્લિક કરો:`;
   } else if (l === "bn") {
-    text = `**মান্ডিমিত্র কৃষক সেবা:**\nসহায়তার জন্য নিচের যে কোনো সেবায় চাপ দিন:`;
+    text = `**MandHelp কৃষক সেবা:**\nসহায়তার জন্য নিচের যে কোনো সেবায় চাপ দিন:`;
   } else if (l === "te") {
-    text = `**మండిమిత్ర రైతు సేవలు:**\nసహాయం కోసం క్రింది ఎంపికలలో దేనినైనా ఎంచుకోండి:`;
+    text = `**MandHelp రైతు సేవలు:**\nసహాయం కోసం క్రింది ఎంపికలలో దేనినైనా ఎంచుకోండి:`;
   } else if (l === "ta") {
-    text = `**மண்டிமித்ரா விவசாயி சேவை:**\nஉதவிக்கு கீழே உள்ள விருப்பங்களில் ஒன்றைத் தட்டவும்:`;
+    text = `**MandHelp விவசாயி சேவை:**\nஉதவிக்கு கீழே உள்ள விருப்பங்களில் ஒன்றைத் தட்டவும்:`;
   } else if (l === "en") {
-    text = `**MandiMitra Farmer Services:**\nPlease tap any service below to proceed:`;
+    text = `**MandHelp Farmer Services:**\nPlease tap any service below to proceed:`;
   } else {
-    text = `**मंडीमित्र किसान सेवा:**\nकृपया सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें:`;
+    text = `**MandHelp किसान सेवा:**\nकृपया सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें:`;
   }
 
   return {
