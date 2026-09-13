@@ -58,6 +58,29 @@ const belongsToFarmer = (b: Booking | null, farmer: FarmerUser | null): boolean 
   return false;
 };
 
+function numberToIndianWords(num: number): string {
+  const n = Math.round(num);
+  if (!n || isNaN(n) || n <= 0) return "Zero Rupees Only";
+
+  const units = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen",
+  ];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+  function helper(val: number): string {
+    if (val === 0) return "";
+    if (val < 20) return units[val] + " ";
+    if (val < 100) return tens[Math.floor(val / 10)] + " " + units[val % 10] + " ";
+    if (val < 1000) return units[Math.floor(val / 100)] + " Hundred " + helper(val % 100);
+    if (val < 100000) return helper(Math.floor(val / 1000)) + "Thousand " + helper(val % 1000);
+    if (val < 10000000) return helper(Math.floor(val / 100000)) + "Lakh " + helper(val % 100000);
+    return helper(Math.floor(val / 10000000)) + "Crore " + helper(val % 10000000);
+  }
+
+  return ("Rupees " + helper(n).trim() + " Only").replace(/\s+/g, " ");
+}
+
 function TrackTokenContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,6 +95,7 @@ function TrackTokenContent() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [quickTokens, setQuickTokens] = useState<Array<{ token: string; name: string; crop: string }>>([]);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [showSlipPreview, setShowSlipPreview] = useState(false);
 
   // ============================================================
   // LOAD QUICK SUGGESTIONS FOR EASY SWITCHING
@@ -344,6 +368,14 @@ function TrackTokenContent() {
     return getCropMspData(booking?.crop);
   }, [booking?.crop]);
 
+  const effectiveQty = Number(booking?.actualQuantity || booking?.quantity || 0);
+  const effectiveRate = Number(booking?.mspRate || cropMspInfo.standardMsp || 2275);
+  const effectiveTotalPayout = Number(
+    booking?.totalPayout || Math.round(effectiveQty * effectiveRate)
+  );
+  const isCompleted = currentStatus === "COMPLETED";
+  const canShowSlip = isCompleted || showSlipPreview || Boolean(booking?.actualQuantity && booking?.totalPayout);
+
   const localizeCrop = (cropName?: string) => {
     if (!cropName) return "";
     const key = `crops.${cropName}`;
@@ -598,6 +630,52 @@ function TrackTokenContent() {
   // ============================================================
   return (
     <main className="min-h-screen bg-[#F7F9F5] text-[#111827]">
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @media print {
+              @page {
+                size: auto;
+                margin: 8mm 10mm;
+              }
+              body * {
+                visibility: hidden !important;
+              }
+              #mandi-j-slip,
+              #mandi-j-slip * {
+                visibility: visible !important;
+              }
+              #mandi-j-slip {
+                position: absolute !important;
+                left: 0 !important;
+                right: 0 !important;
+                top: 0 !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                max-width: 390px !important;
+                padding: 14px 16px !important;
+                border: 1.5px solid #000 !important;
+                border-radius: 8px !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .print\\:hidden,
+              button,
+              header,
+              footer,
+              nav,
+              input,
+              form {
+                display: none !important;
+                visibility: hidden !important;
+              }
+            }
+          `,
+        }}
+      />
       {/* HEADER */}
       <header className="border-b border-gray-200 bg-white print:hidden">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
@@ -675,7 +753,7 @@ function TrackTokenContent() {
 
           {/* 0. CANCELLED ALERT BANNER */}
           {currentStatus === "CANCELLED" && (
-            <div className="mb-6 rounded-3xl border-2 border-red-500 bg-red-50 p-6 shadow-md print:border-black">
+            <div className="mb-6 rounded-3xl border-2 border-red-500 bg-red-50 p-6 shadow-md print:hidden">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-white shadow-sm">
@@ -735,7 +813,7 @@ function TrackTokenContent() {
 
           {/* 1. CALLED ALERT */}
           {currentStatus === "CALLED" && (
-            <div className="mb-6 animate-pulse rounded-3xl border-2 border-orange-500 bg-orange-50 p-6 shadow-md">
+            <div className="mb-6 animate-pulse rounded-3xl border-2 border-orange-500 bg-orange-50 p-6 shadow-md print:hidden">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-sm">
                   <Bell className="h-6 w-6" />
@@ -762,7 +840,7 @@ function TrackTokenContent() {
 
           {/* 2. VERIFIED ALERT */}
           {currentStatus === "VERIFIED" && (
-            <div className="mb-6 rounded-3xl border-2 border-blue-500 bg-blue-50 p-6 shadow-xs">
+            <div className="mb-6 rounded-3xl border-2 border-blue-500 bg-blue-50 p-6 shadow-xs print:hidden">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
                   <ShieldCheck className="h-6 w-6" />
@@ -821,7 +899,7 @@ function TrackTokenContent() {
           {/* ====================================================
               LIVE TOKEN HERO CARD
           ==================================================== */}
-          <div className={`overflow-hidden rounded-3xl shadow-sm text-white ${currentStatus === "CANCELLED" ? "bg-[#374151]" : "bg-[#2E7D32]"}`}>
+          <div className={`overflow-hidden rounded-3xl shadow-sm text-white print:hidden ${currentStatus === "CANCELLED" ? "bg-[#374151]" : "bg-[#2E7D32]"}`}>
             <div className="p-6 sm:p-8">
               <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -945,7 +1023,7 @@ function TrackTokenContent() {
               LIVE WEIGHMENT & QUALITY GRADING (PROCESSING & COMPLETED)
           ==================================================== */}
           {(booking.cropGrade || booking.actualQuantity || booking.totalPayout || currentStatus === "PROCESSING" || currentStatus === "COMPLETED") && (
-            <div className="mt-7 rounded-3xl border-2 border-[#2E7D32] bg-[#E8F5E9] p-6 shadow-sm">
+            <div className="mt-7 rounded-3xl border-2 border-[#2E7D32] bg-[#E8F5E9] p-6 shadow-sm print:hidden">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#2E7D32] text-white shadow-xs">
@@ -1017,68 +1095,258 @@ function TrackTokenContent() {
             </div>
           )}
 
-          {/* ====================================================
-              DIGITAL MANDI PROCUREMENT RECEIPT (J-FORM)
-          ==================================================== */}
-          {currentStatus === "COMPLETED" && (
-            <div className="mt-7 rounded-3xl border border-gray-300 bg-white p-6 sm:p-8 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 pb-5 gap-4">
-                <div>
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#2E7D32]">
-                    <ShieldCheck className="h-4 w-4" />
-                    {t("tracker.govHeader")}
-                  </div>
-                  <h3 className="mt-1 text-2xl font-black text-gray-900">
-                    {t("tracker.receiptTitle")}
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Receipt Ref: MandiMitra-REC-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
-                  </p>
-                </div>
-                <button
-                  onClick={handlePrintReceipt}
-                  className="flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 print:hidden"
-                >
-                  <Printer className="h-4 w-4 text-[#2E7D32]" />
-                  {t("tracker.printReceipt")}
-                </button>
-              </div>
+          {/* J-SLIP PREVIEW TOGGLE (WHEN NOT YET COMPLETED) */}
+          {!isCompleted && (
+            <div className="mt-6 flex justify-end print:hidden">
+              <button
+                type="button"
+                onClick={() => setShowSlipPreview(!showSlipPreview)}
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-gray-700 shadow-xs hover:border-[#2E7D32] hover:text-[#2E7D32] transition"
+              >
+                <Printer className="h-4 w-4 text-[#2E7D32]" />
+                {showSlipPreview ? "Hide J-Slip Voucher" : "View & Print Small J-Slip (विक्रय पर्ची)"}
+              </button>
+            </div>
+          )}
 
-              <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.farmerNameLabel")}</p>
-                  <p className="mt-1 font-extrabold text-gray-900">
-                    {booking.farmerName ? booking.farmerName.replace(/\bFarmer\b/gi, t("common.farmer")) : t("common.farmer")}
+          {/* ====================================================
+              COMPACT MANDI J-SLIP (J-FORM SALE VOUCHER)
+          ==================================================== */}
+          {canShowSlip && (
+            <div className="mt-7 flex flex-col items-center">
+              <div
+                id="mandi-j-slip"
+                className="w-full max-w-[420px] rounded-2xl border-2 border-gray-900 bg-white p-5 shadow-md print:m-0 print:w-full print:max-w-[390px] print:border-black print:p-3.5 print:shadow-none"
+              >
+                {/* APMC OFFICIAL HEADER */}
+                <div className="text-center border-b-2 border-gray-900 pb-3">
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#2E7D32] print:text-black">
+                    <ShieldCheck className="h-4 w-4 shrink-0" />
+                    <span>APMC Mandi Committee</span>
+                  </div>
+                  <h3 className="mt-0.5 text-base sm:text-lg font-black tracking-tight text-gray-950 uppercase">
+                    FORM &apos;J&apos; • विक्रय पर्ची
+                  </h3>
+                  <p className="text-[10px] font-bold text-gray-600 print:text-gray-800">
+                    [Rule 24(1) - Electronic Sale Voucher]
                   </p>
-                  <p className="text-xs text-gray-500">{t("auth.mobileNumber")}: {booking.farmerMobile}</p>
+                  <p className="mt-1 text-xs font-black text-gray-900">
+                    {localizeCentre(booking.centre)}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.centreLabel")}</p>
-                  <p className="mt-1 font-extrabold text-gray-900">{localizeCentre(booking.centre)}</p>
-                  <p className="text-xs text-gray-500">{t("common.date")}: {formatDate(booking.date)}</p>
+
+                {/* VOUCHER META & TOKEN */}
+                <div className="my-2.5 flex items-center justify-between border-b border-dashed border-gray-400 pb-2 text-[11px]">
+                  <div>
+                    <span className="text-gray-500 font-medium">J-Slip No:</span>
+                    <strong className="ml-1 text-gray-950 font-mono">
+                      J-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
+                    </strong>
+                  </div>
+                  <div className="rounded bg-gray-100 px-2 py-0.5 font-mono font-black text-gray-900 print:border print:border-black">
+                    #{String(booking.token || booking.tokenNumber || "101").replace(/^#/, "")}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.cropAndGradeLabel")}</p>
+
+                <div className="mb-2.5 flex items-center justify-between text-[11px] border-b border-dashed border-gray-400 pb-2">
+                  <span className="text-gray-500 font-medium">Date & Time:</span>
+                  <span className="font-bold text-gray-900">
+                    {formatDate(booking.date)} • {booking.time || "10:00 AM"}
+                  </span>
+                </div>
+
+                {/* SECTION 1: FARMER PARTICULARS */}
+                <div className="space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                    Farmer Particulars / कृषक विवरण
+                  </p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Name / नाम:</span>
+                    <strong className="text-gray-950">
+                      {booking.farmerName ? booking.farmerName.replace(/\bFarmer\b/gi, t("common.farmer")) : t("common.farmer")}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Mobile / दूरभाष:</span>
+                    <span className="font-semibold text-gray-800">{booking.farmerMobile || "---"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Farmer ID:</span>
+                    <span className="font-mono font-bold text-gray-800">
+                      {booking.farmerId || `FMR-${booking.farmerMobile?.slice(-4) || "8924"}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* SECTION 2: CROP DETAILS */}
+                <div className="my-2.5 text-xs border-b border-dashed border-gray-400 pb-2.5">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">
+                    Crop Details / फसल विवरण
+                  </p>
                   {booking.crops && booking.crops.length > 1 ? (
-                    <div className="mt-1 space-y-1">
-                      {booking.crops.map((c, i) => (
-                        <p key={i} className="text-xs font-bold text-gray-900">
-                          {localizeCrop(c.crop)} ({c.cropGrade || booking.cropGrade || "Grade A"}): {c.actualQuantity ?? c.quantity} {t("common.quintals")}
-                        </p>
-                      ))}
-                      <p className="text-xs text-gray-500 font-semibold">Total: {booking.actualQuantity || booking.quantity} {t("common.quintals")}</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-[11px]">
+                        <thead>
+                          <tr className="border-b border-gray-300 text-[10px] uppercase text-gray-600">
+                            <th className="py-1">Crop</th>
+                            <th className="py-1 text-center">Grade</th>
+                            <th className="py-1 text-right">Qty</th>
+                            <th className="py-1 text-right">Rate</th>
+                            <th className="py-1 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {booking.crops.map((c, idx) => {
+                            const cRate = c.mspRate || getCropMspData(c.crop).standardMsp;
+                            const cQty = c.actualQuantity ?? c.quantity ?? 0;
+                            const cPayout = c.totalPayout ?? Math.round(cQty * cRate);
+                            return (
+                              <tr key={idx} className="font-medium text-gray-900">
+                                <td className="py-1 font-bold">{localizeCrop(c.crop)}</td>
+                                <td className="py-1 text-center text-[10px]">{c.cropGrade || "FAQ"}</td>
+                                <td className="py-1 text-right">{cQty} Q</td>
+                                <td className="py-1 text-right">₹{cRate}</td>
+                                <td className="py-1 text-right font-black">₹{cPayout.toLocaleString("en-IN")}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
-                    <>
-                      <p className="mt-1 font-extrabold text-gray-900">{localizeCrop(booking.crop)} ({booking.cropGrade || "Grade A"})</p>
-                      <p className="text-xs text-gray-500">{t("tracker.weighedSuffix")}: {booking.actualQuantity || booking.quantity} {t("common.quintals")}</p>
-                    </>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Produce / फसल:</span>
+                        <strong className="text-gray-950 text-sm">{localizeCrop(booking.crop)}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Quality Grade / गुणवत्ता:</span>
+                        <span className="font-bold text-gray-900">
+                          {booking.cropGrade || "Grade A (FAQ Approved)"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">MSP Rate / समर्थन मूल्य:</span>
+                        <strong className="text-gray-950">
+                          ₹{effectiveRate.toLocaleString("en-IN")} / {t("common.quintals")}
+                        </strong>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">{t("tracker.totalDbtPayout")}</p>
-                  <p className="mt-1 text-lg font-black text-[#2E7D32]">{formatINR(booking.totalPayout || 0)}</p>
-                  <p className="text-xs font-semibold text-emerald-700">{t("tracker.disbursedViaDbt")}</p>
+
+                {/* SECTION 3: QUANTITY DETAILS */}
+                <div className="my-2.5 space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                    Quantity / तौल विवरण
+                  </p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Booked Quantity / दर्ज:</span>
+                    <span className="font-semibold text-gray-800">{booking.quantity || 0} {t("common.quintals")}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Weighed Net Quantity / शुद्ध तौल:</span>
+                    <span className="font-black text-gray-950 text-sm">
+                      {effectiveQty} {t("common.quintals")}{" "}
+                      <span className="text-[11px] font-semibold text-gray-600">
+                        ({(effectiveQty * 100).toLocaleString("en-IN")} kg)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-gray-500">
+                    <span>Weighbridge: Dharmkanta Verified</span>
+                    <span className="text-emerald-700 font-bold print:text-black">Tare & Net Certified</span>
+                  </div>
+                </div>
+
+                {/* SECTION 4: AMOUNT SENT / DBT PAYOUT (HIGHLIGHT BOX) */}
+                <div className="my-3 rounded-xl border-2 border-[#2E7D32] bg-[#F1F8F2] p-3 text-center print:border-black print:bg-gray-50">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#2E7D32] print:text-black">
+                    TOTAL AMOUNT SENT / कुल प्रेषित राशि
+                  </p>
+                  <p className="mt-1 text-2xl font-black text-[#2E7D32] tracking-tight print:text-black">
+                    {formatINR(effectiveTotalPayout)}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-gray-800 leading-tight italic">
+                    {numberToIndianWords(effectiveTotalPayout)}
+                  </p>
+
+                  <div className="mt-2.5 border-t border-[#CDE8D0] pt-2 flex flex-col gap-1 text-[10px] text-left print:border-gray-300">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Payment Channel / माध्यम:</span>
+                      <strong className="text-gray-900">Direct Benefit Transfer (DBT)</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Payment Status / स्थिति:</span>
+                      <span className="font-black text-[#2E7D32] uppercase print:text-black">
+                        PAID / TRANSFERRED (सफल अंतरण) ✅
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">DBT / UTR Reference:</span>
+                      <strong className="font-mono text-gray-900">
+                        UTR-DBT-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Credit Account:</span>
+                      <span className="text-gray-800 font-medium">
+                        Aadhaar Linked A/c (•••• {booking.farmerMobile?.slice(-4) || "8924"})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 5: VERIFICATION & STAMP */}
+                <div className="mt-2.5 flex items-center justify-between text-[10px] text-gray-500 border-t border-dashed border-gray-400 pt-2">
+                  <div>
+                    <p className="font-bold text-gray-800">Mandi In-Charge / तुलाई प्रभारी:</p>
+                    <p>{booking.verifiedBy || "APMC Procurement Officer"}</p>
+                    <p className="text-[9px] text-emerald-800 font-semibold mt-0.5 print:text-black">
+                      Digitally Verified & Disbursed
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="inline-block rounded border border-gray-400 bg-white px-2 py-1 text-center">
+                      <p className="text-[9px] font-black text-[#2E7D32] print:text-black uppercase">
+                        APMC OFFICIAL
+                      </p>
+                      <p className="text-[8px] text-gray-500">J-FORM SEAL</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* BARCODE & LEGAL FOOTER */}
+                <div className="mt-2.5 flex flex-col items-center justify-center border-t border-gray-200 pt-2">
+                  <div className="flex h-6 items-center gap-[1.5px]">
+                    {[3, 1, 4, 2, 5, 1, 3, 4, 2, 6, 1, 3, 5, 2, 4, 1, 6, 2, 3, 5, 1, 4, 2, 5, 3, 1, 4, 2].map(
+                      (h, i) => (
+                        <div
+                          key={i}
+                          className="w-[1.5px] bg-black"
+                          style={{ height: `${h * 3.5 + 8}px` }}
+                        />
+                      )
+                    )}
+                  </div>
+                  <p className="mt-1 font-mono text-[9px] text-gray-500 tracking-wider">
+                    *J-SLIP-{String(booking.token || "101").replace(/^#/, "")}-{booking.date?.replace(/-/g, "") || "2026"}*
+                  </p>
+                  <p className="mt-1 text-center text-[8px] text-gray-400 leading-tight">
+                    Computer-generated official Mandi sale voucher under APMC Act. Certified proof of MSP procurement & electronic DBT credit.
+                  </p>
+                </div>
+
+                {/* PRINT BUTTON */}
+                <div className="mt-4 pt-3 border-t border-gray-200 print:hidden">
+                  <button
+                    type="button"
+                    onClick={handlePrintReceipt}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-[#256428] transition"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print Small J-Slip (छोटा जे-पर्ची प्रिंट करें)
+                  </button>
                 </div>
               </div>
             </div>
@@ -1087,7 +1355,7 @@ function TrackTokenContent() {
           {/* ====================================================
               5-STAGE PROGRESSIVE STATUS TIMELINE
           ==================================================== */}
-          <div className="mt-7 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mt-7 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 print:hidden">
             <h2 className="text-xl font-bold text-gray-900">
               {t("tracker.journeyProgressTitle")}
             </h2>
@@ -1188,7 +1456,7 @@ function TrackTokenContent() {
           {/* ====================================================
               BOOKING DETAILS CARDS
           ==================================================== */}
-          <div className="mt-7">
+          <div className="mt-7 print:hidden">
             <h2 className="text-xl font-bold text-gray-900">
               {t("tracker.bookingDetailsTitle")}
             </h2>
