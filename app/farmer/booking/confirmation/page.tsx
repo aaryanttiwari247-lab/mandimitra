@@ -202,7 +202,7 @@ export default function BookingConfirmationPage() {
 
         {/* HEADER */}
 
-        <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+        <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
 
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
 
@@ -222,7 +222,7 @@ export default function BookingConfirmationPage() {
                     "/farmer/dashboard"
                   )
                 }
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 transition hover:text-[#2E7D32] cursor-pointer"
+                className="flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-200 transition cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>{t("common.back")}</span>
@@ -232,8 +232,8 @@ export default function BookingConfirmationPage() {
             <div className="flex items-center gap-3">
               <LanguageSelector />
 
-              <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-                <BrandLogo size="xs" />
+              <div className="flex items-center gap-2 font-semibold text-white">
+                <BrandLogo size="xs" className="ring-1 ring-white/30" />
                 {t("common.appName")}
               </div>
             </div>
@@ -325,7 +325,7 @@ export default function BookingConfirmationPage() {
           HEADER
       ====================================================== */}
 
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
 
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
 
@@ -345,7 +345,7 @@ export default function BookingConfirmationPage() {
                   "/farmer/dashboard"
                 )
               }
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 transition hover:text-[#2E7D32] cursor-pointer"
+              className="flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-200 transition cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>{t("confirmation.backToDashboard")}</span>
@@ -355,8 +355,8 @@ export default function BookingConfirmationPage() {
           <div className="flex items-center gap-3">
             <LanguageSelector />
 
-            <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-              <Sprout className="h-5 w-5" />
+            <div className="flex items-center gap-2 font-semibold text-white">
+              <Sprout className="h-5 w-5 text-emerald-200" />
               {t("common.appName")}
             </div>
           </div>

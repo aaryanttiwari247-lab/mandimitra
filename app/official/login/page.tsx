@@ -97,22 +97,22 @@ export default function OfficialLoginPage() {
           HEADER
       ===================================================== */}
 
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
 
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
 
           {/* BRAND */}
 
           <div className="flex items-center gap-3">
-            <BrandLogo size="md" />
+            <BrandLogo size="md" className="ring-1 ring-white/30" />
 
             <div>
 
-              <p className="text-lg font-bold text-[#2E7D32]">
+              <p className="text-lg font-bold text-white">
                 {t("common.appName")}
               </p>
 
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-emerald-200">
                 {t("official.portalTitle")}
               </p>
 
@@ -127,9 +127,9 @@ export default function OfficialLoginPage() {
 
             <LanguageSelector />
 
-            <div className="hidden items-center gap-2 text-sm text-gray-500 sm:flex">
+            <div className="hidden items-center gap-2 text-sm text-emerald-100 sm:flex">
 
-              <ShieldCheck className="h-4 w-4 text-[#2E7D32]" />
+              <ShieldCheck className="h-4 w-4 text-emerald-200" />
 
               {t("official.secureAccess")}
 

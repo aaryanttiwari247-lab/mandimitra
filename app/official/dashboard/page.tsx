@@ -763,7 +763,7 @@ export default function OfficialDashboardPage() {
           HEADER
       ====================================================== */}
 
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
 
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
 
@@ -773,9 +773,9 @@ export default function OfficialDashboardPage() {
                 "/official/dashboard"
               )
             }
-            className="flex items-center gap-2 font-bold text-[#2E7D32]"
+            className="flex items-center gap-2 font-bold text-white hover:text-emerald-100 transition"
           >
-            <BrandLogo size="xs" />
+            <BrandLogo size="xs" className="ring-1 ring-white/30" />
             {t("common.appName")}
           </button>
 
@@ -784,11 +784,11 @@ export default function OfficialDashboardPage() {
             <LanguageSelector />
 
             <div className="hidden text-right sm:block">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-emerald-200">
                 {t("official.loggedInAs")}
               </p>
 
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-sm font-bold text-white">
                 {t("official.procurementOfficer")}
               </p>
             </div>
@@ -797,7 +797,7 @@ export default function OfficialDashboardPage() {
               onClick={() =>
                 router.push("/official/login")
               }
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-red-200 hover:text-red-600"
+              className="rounded-xl border border-emerald-400/30 bg-emerald-800/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 hover:border-red-600 cursor-pointer shadow-xs"
             >
               {t("common.logout")}
             </button>

@@ -102,20 +102,20 @@ export default function FarmerRegister() {
   if (isSuccess) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4]">
-        <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+        <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
             <div className="flex items-center gap-3">
-              <BrandLogo size="md" />
+              <BrandLogo size="md" className="ring-1 ring-white/30" />
               <div>
-                <p className="font-bold text-[#176B2B]">{t("common.appName")}</p>
-                <p className="text-xs text-gray-500">{t("register.title")}</p>
+                <p className="font-bold text-white">{t("common.appName")}</p>
+                <p className="text-xs text-emerald-200">{t("register.title")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <LanguageSelector />
               <Link
                 href="/"
-                className="text-sm font-medium text-gray-600 transition hover:text-[#2E7D32]"
+                className="text-sm font-medium text-emerald-100 transition hover:text-white"
               >
                 {t("common.home")}
               </Link>
@@ -173,11 +173,11 @@ export default function FarmerRegister() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4]">
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <Link
             href="/farmer/login"
-            className="flex items-center gap-2 text-sm font-medium text-gray-600 transition hover:text-[#2E7D32]"
+            className="flex items-center gap-2 text-sm font-medium text-white transition hover:text-emerald-200"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("register.backToLogin")}

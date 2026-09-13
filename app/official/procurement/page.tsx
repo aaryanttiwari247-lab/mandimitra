@@ -759,7 +759,7 @@ function ProcurementContent() {
     return (
       <main className="min-h-screen bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4]">
 
-        <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+        <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
 
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
 
@@ -769,7 +769,7 @@ function ProcurementContent() {
                   "/official/dashboard"
                 )
               }
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32]"
+              className="flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-200 transition cursor-pointer"
             >
 
               <ArrowLeft className="h-4 w-4" />
@@ -781,8 +781,8 @@ function ProcurementContent() {
             <div className="flex items-center gap-3">
               <LanguageSelector />
 
-              <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-                <BrandLogo size="xs" />
+              <div className="flex items-center gap-2 font-semibold text-white">
+                <BrandLogo size="xs" className="ring-1 ring-white/30" />
                 {t("common.appName")}
               </div>
             </div>
@@ -839,7 +839,7 @@ function ProcurementContent() {
           HEADER
       ====================================================== */}
 
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
 
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
 
@@ -849,7 +849,7 @@ function ProcurementContent() {
                 "/official/dashboard"
               )
             }
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32]"
+            className="flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-200 transition cursor-pointer"
           >
 
             <ArrowLeft className="h-4 w-4" />
@@ -861,12 +861,11 @@ function ProcurementContent() {
           <div className="flex items-center gap-3">
             <LanguageSelector />
 
-            <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-              <BrandLogo size="xs" />
+            <div className="flex items-center gap-2 font-semibold text-white">
+              <BrandLogo size="xs" className="ring-1 ring-white/30" />
               {t("common.appName")}
             </div>
           </div>
-
         </div>
 
       </header>

@@ -447,7 +447,7 @@ export default function FarmerHistoryPage() {
           HEADER
       ====================================================== */}
 
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
 
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
 
@@ -468,7 +468,7 @@ export default function FarmerHistoryPage() {
                   "/farmer/dashboard"
                 )
               }
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 transition hover:text-[#2E7D32] cursor-pointer"
+              className="flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-200 transition cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">{t("history.backToDashboard")}</span>
@@ -484,9 +484,9 @@ export default function FarmerHistoryPage() {
                 "/farmer/dashboard"
               )
             }
-            className="flex items-center gap-2 font-bold text-[#2E7D32]"
+            className="flex items-center gap-2 font-bold text-white hover:text-emerald-100 transition"
           >
-            <BrandLogo size="xs" />
+            <BrandLogo size="xs" className="ring-1 ring-white/30" />
             {t("common.appName")}
           </button>
 

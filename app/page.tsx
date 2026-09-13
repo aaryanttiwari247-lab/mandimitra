@@ -20,23 +20,23 @@ export default function Home() {
 
   return (
     <main className="min-h-screen lg:h-screen lg:max-h-screen flex flex-col justify-between bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4] text-[#182230] overflow-y-auto lg:overflow-hidden">
-      {/* LIGHT COLOR HEADER SUITED TO THE SITE */}
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] backdrop-blur-md sticky top-0 z-30 shadow-2xs shrink-0">
+      {/* DARK GREEN HEADER SUITED TO THE SITE */}
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white backdrop-blur-md sticky top-0 z-30 shadow-md shrink-0">
         <div className="mx-auto flex h-14 sm:h-16 max-w-[1320px] items-center justify-between px-4 sm:px-6">
           {/* Brand Logo & Name */}
           <Link href="/" className="flex items-center gap-3 group cursor-pointer">
-            <BrandLogo size="md" className="transition-transform group-hover:scale-105" />
+            <BrandLogo size="md" className="transition-transform group-hover:scale-105 ring-1 ring-white/30" />
 
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-[19px] font-extrabold leading-tight text-[#176B2B]">
+                <h1 className="text-lg sm:text-[19px] font-extrabold leading-tight text-white">
                   {t("common.appName")}
                 </h1>
-                <span className="hidden md:inline-flex items-center rounded-full bg-emerald-100/80 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                <span className="hidden md:inline-flex items-center rounded-full bg-emerald-800/80 px-2 py-0.5 text-[10px] font-bold text-emerald-200 border border-emerald-600/50">
                   e-Procurement
                 </span>
               </div>
-              <p className="text-[11px] font-semibold text-[#64748B]">
+              <p className="text-[11px] font-semibold text-emerald-200/90">
                 {t("common.tagline")} • MSP Portal
               </p>
             </div>
@@ -47,21 +47,21 @@ export default function Home() {
             <div className="hidden sm:flex items-center gap-2">
               <Link
                 href="/farmer/login"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#D8E6D9] bg-[#EBF3EC]/90 px-3 py-1 text-xs font-bold text-[#237A31] hover:bg-[#DEEFE0] transition shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-800/70 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700/80 transition shadow-2xs"
               >
-                <Users className="h-3.5 w-3.5" />
+                <Users className="h-3.5 w-3.5 text-emerald-200" />
                 <span>{t("home.farmerCardTitle")}</span>
               </Link>
               <Link
                 href="/official/login"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#D8E6D9] bg-[#F3F7F3]/90 px-3 py-1 text-xs font-bold text-[#2E6A38] hover:bg-[#E5EFE6] transition shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-800/70 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700/80 transition shadow-2xs"
               >
-                <ShieldCheck className="h-3.5 w-3.5" />
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-200" />
                 <span>{t("home.officialCardTitle")}</span>
               </Link>
             </div>
 
-            <div className="hidden sm:block h-6 w-px bg-[#D8E6D9]" />
+            <div className="hidden sm:block h-6 w-px bg-emerald-700/60" />
 
             <LanguageSelector />
           </div>

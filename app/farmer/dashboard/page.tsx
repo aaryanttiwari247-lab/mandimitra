@@ -452,7 +452,7 @@ export default function FarmerDashboard() {
           HEADER
       ====================================================== */}
 
-      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
+      <header className="border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] text-white shadow-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           {/* LEFT: EXIT BUTTON & LOGO */}
           <div className="flex items-center gap-3 sm:gap-4">
@@ -473,14 +473,14 @@ export default function FarmerDashboard() {
               }
               className="flex items-center gap-3"
             >
-              <BrandLogo size="md" />
+              <BrandLogo size="md" className="ring-1 ring-white/30" />
 
               <div className="text-left">
-                <p className="text-lg font-bold text-[#2E7D32]">
+                <p className="text-lg font-bold text-white">
                   {t("common.appName")}
                 </p>
 
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-emerald-200">
                   {t("common.tagline")}
                 </p>
               </div>
@@ -493,30 +493,30 @@ export default function FarmerDashboard() {
             <button
               type="button"
               onClick={() => openVoiceAssistant()}
-              className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs sm:text-sm font-bold text-[#2E7D32] hover:bg-emerald-100 hover:border-emerald-300 transition shadow-2xs"
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-400/40 bg-emerald-800/80 px-3 py-2 text-xs sm:text-sm font-bold text-white hover:bg-emerald-700 transition shadow-2xs cursor-pointer"
               title="MandiHelp"
             >
-              <Mic className="h-4 w-4 text-[#2E7D32]" />
+              <Mic className="h-4 w-4 text-emerald-200" />
               <span className="hidden md:inline">MandiHelp</span>
             </button>
 
             <LanguageSelector />
 
-            <div className="hidden h-9 w-px bg-gray-200 sm:block" />
+            <div className="hidden h-9 w-px bg-emerald-700/60 sm:block" />
 
             {/* FARMER PROFILE */}
 
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2E7D32] text-sm font-bold text-white shadow-xs">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-800 text-sm font-bold text-white border border-emerald-400/40 shadow-xs">
                 {(farmer?.name || "F").charAt(0).toUpperCase()}
               </div>
 
               <div className="hidden text-left sm:block">
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm font-semibold text-white">
                   {farmer?.name || "Farmer"}
                 </p>
 
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-emerald-200">
                   +91 {farmer?.mobile}
                 </p>
               </div>
@@ -526,7 +526,7 @@ export default function FarmerDashboard() {
 
             <button
               onClick={handleLogout}
-              className="text-sm font-medium text-gray-600 transition hover:text-red-600"
+              className="text-sm font-medium text-emerald-100 transition hover:text-white cursor-pointer"
             >
               {t("common.logout")}
             </button>
