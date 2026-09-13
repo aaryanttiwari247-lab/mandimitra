@@ -91,13 +91,13 @@ export default function OfficialLoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-slate-50/50 to-[#F7F9F5]">
+    <main className="min-h-screen bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4]">
 
       {/* =====================================================
           HEADER
       ===================================================== */}
 
-      <header className="border-b border-slate-200/80 bg-gradient-to-r from-emerald-50/80 via-slate-50/90 to-teal-50/70 shadow-2xs">
+      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
 
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
 

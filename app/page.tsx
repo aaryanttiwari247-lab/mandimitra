@@ -19,9 +19,9 @@ export default function Home() {
   const { t } = useLanguage();
 
   return (
-    <main className="min-h-screen lg:h-screen lg:max-h-screen flex flex-col justify-between bg-gradient-to-b from-[#F2F7F2] via-[#F8FAF7] to-[#EDF5EE] text-[#182230] overflow-y-auto lg:overflow-hidden">
+    <main className="min-h-screen lg:h-screen lg:max-h-screen flex flex-col justify-between bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4] text-[#182230] overflow-y-auto lg:overflow-hidden">
       {/* LIGHT COLOR HEADER SUITED TO THE SITE */}
-      <header className="border-b border-emerald-200/90 bg-gradient-to-r from-emerald-100/80 via-emerald-50/70 to-green-100/60 backdrop-blur-md sticky top-0 z-30 shadow-2xs shrink-0">
+      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] backdrop-blur-md sticky top-0 z-30 shadow-2xs shrink-0">
         <div className="mx-auto flex h-14 sm:h-16 max-w-[1320px] items-center justify-between px-4 sm:px-6">
           {/* Brand Logo & Name */}
           <Link href="/" className="flex items-center gap-3 group cursor-pointer">
@@ -47,21 +47,21 @@ export default function Home() {
             <div className="hidden sm:flex items-center gap-2">
               <Link
                 href="/farmer/login"
-                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/90 px-3 py-1 text-xs font-bold text-[#237A31] hover:bg-emerald-100 transition shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#D8E6D9] bg-[#EBF3EC]/90 px-3 py-1 text-xs font-bold text-[#237A31] hover:bg-[#DEEFE0] transition shadow-2xs"
               >
                 <Users className="h-3.5 w-3.5" />
                 <span>{t("home.farmerCardTitle")}</span>
               </Link>
               <Link
                 href="/official/login"
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50/90 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#D8E6D9] bg-[#F3F7F3]/90 px-3 py-1 text-xs font-bold text-[#2E6A38] hover:bg-[#E5EFE6] transition shadow-2xs"
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
                 <span>{t("home.officialCardTitle")}</span>
               </Link>
             </div>
 
-            <div className="hidden sm:block h-6 w-px bg-emerald-200/60" />
+            <div className="hidden sm:block h-6 w-px bg-[#D8E6D9]" />
 
             <LanguageSelector />
           </div>
@@ -138,39 +138,39 @@ export default function Home() {
           {/* ADMIN PORTAL CARD */}
           <Link
             href="/official/login"
-            className="group rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white via-white to-slate-50/50 p-4 sm:p-5 lg:p-6 shadow-xs transition-all hover:-translate-y-0.5 hover:border-slate-500 hover:shadow-lg flex flex-col justify-between"
+            className="group rounded-2xl border-2 border-[#BCD7BF] bg-gradient-to-br from-white via-white to-[#EBF3EC]/60 p-4 sm:p-5 lg:p-6 shadow-xs transition-all hover:-translate-y-0.5 hover:border-[#3D7A47] hover:shadow-lg flex flex-col justify-between"
           >
             <div>
               <div className="flex items-start justify-between">
-                <div className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition-transform group-hover:scale-105 shadow-2xs">
-                  <Building2 className="h-6 w-6 sm:h-7 sm:w-7 text-[#334155]" />
+                <div className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-2xl bg-[#EAF3EB] text-[#2E7D32] transition-transform group-hover:scale-105 shadow-2xs">
+                  <Building2 className="h-6 w-6 sm:h-7 sm:w-7 text-[#2E7D32]" />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700 border border-slate-200">
+                  <span className="hidden sm:inline-block rounded-full bg-[#EAF3EB] px-2.5 py-0.5 text-[11px] font-bold text-[#276B32] border border-[#D5E6D8]">
                     APMC Official
                   </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 group-hover:bg-slate-800 transition">
-                    <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-white transition group-hover:translate-x-0.5" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EB] group-hover:bg-[#2E7D32] transition">
+                    <ArrowRight className="h-4 w-4 text-[#2E7D32] group-hover:text-white transition group-hover:translate-x-0.5" />
                   </div>
                 </div>
               </div>
 
-              <h3 className="mt-3 sm:mt-4 text-xl sm:text-2xl font-bold text-[#172033] group-hover:text-slate-900 transition">
+              <h3 className="mt-3 sm:mt-4 text-xl sm:text-2xl font-bold text-[#18311B] group-hover:text-[#2E7D32] transition">
                 {t("home.officialCardTitle")}
               </h3>
 
-              <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[#54657A]">
+              <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[#4E6252]">
                 {t("home.officialCardDesc")}
               </p>
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-              <span className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#172033] group-hover:underline">
+            <div className="mt-4 flex items-center justify-between border-t border-[#E5EFE6] pt-3">
+              <span className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#18311B] group-hover:text-[#2E7D32] group-hover:underline">
                 {t("home.officialCardBtn")}
                 <ArrowRight className="h-4 w-4" />
               </span>
-              <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+              <span className="text-[11px] font-semibold text-[#276B32] bg-[#EAF3EB] px-2 py-0.5 rounded-md">
                 Weighbridge & Queue
               </span>
             </div>

@@ -101,8 +101,8 @@ export default function FarmerRegister() {
 
   if (isSuccess) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-[#F7F9F5] to-[#F7F9F5]">
-        <header className="border-b border-emerald-200/80 bg-gradient-to-r from-emerald-100/80 via-emerald-50/70 to-green-100/60 shadow-2xs">
+      <main className="min-h-screen bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4]">
+        <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
             <div className="flex items-center gap-3">
               <BrandLogo size="md" />
@@ -172,8 +172,8 @@ export default function FarmerRegister() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-[#F7F9F5] to-[#F7F9F5]">
-      <header className="border-b border-emerald-200/80 bg-gradient-to-r from-emerald-100/80 via-emerald-50/70 to-green-100/60 shadow-2xs">
+    <main className="min-h-screen bg-gradient-to-b from-[#EFF5F0] via-[#F8FAF7] to-[#F3F7F4]">
+      <header className="border-b border-[#D8E6D9] bg-gradient-to-r from-[#EBF3EC] via-[#F5F8F4] to-[#EDF4EE] shadow-2xs">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <Link
             href="/farmer/login"
