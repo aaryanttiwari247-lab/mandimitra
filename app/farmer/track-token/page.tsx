@@ -14,7 +14,6 @@ import {
   Clock3,
   Download,
   ExternalLink,
-  FileCheck2,
   IndianRupee,
   LogOut,
   MapPin,
@@ -101,7 +100,6 @@ function TrackTokenContent() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [quickTokens, setQuickTokens] = useState<Array<{ token: string; name: string; crop: string }>>([]);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [showSlipPreview, setShowSlipPreview] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   // ============================================================
@@ -1175,57 +1173,6 @@ function TrackTokenContent() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* ====================================================
-              COMPACT RECEIPT NOTIFICATION POPUP CARD (NO GIANT INLINE SLIP)
-          ==================================================== */}
-          {canShowSlip ? (
-            <div className="mt-7 rounded-3xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-green-50 p-5 sm:p-6 shadow-sm print:hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#13491E] to-[#1B5E2B] text-white shadow-sm">
-                    <ReceiptText className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-[#13491E]">
-                        Receipt Ready
-                      </span>
-                      <span className="font-mono text-xs font-bold text-gray-500">
-                        J-{String(booking.token || "101").replace(/^#/, "")}
-                      </span>
-                    </div>
-                    <h3 className="mt-1 text-base sm:text-lg font-black text-gray-900">
-                      Official Mandi J-Slip Generated
-                    </h3>
-                    <p className="text-xs text-gray-600">
-                      Form &apos;J&apos; Sale Voucher is generated with certified weighment, MSP rate, and electronic DBT payout details.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsReceiptModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#13491E] to-[#1B5E2B] px-5 py-3 text-sm font-bold text-white shadow-md hover:from-[#0F3817] hover:to-[#13491E] active:scale-95 transition-all cursor-pointer shrink-0"
-                >
-                  <FileCheck2 className="h-4 w-4" />
-                  <span>Open Receipt to Download</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-6 flex justify-end print:hidden">
-              <button
-                type="button"
-                onClick={() => setIsReceiptModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-gray-700 shadow-xs hover:border-[#1B5E2B] hover:text-[#1B5E2B] transition cursor-pointer"
-              >
-                <ReceiptText className="h-4 w-4 text-[#1B5E2B]" />
-                Preview J-Slip Voucher
-              </button>
             </div>
           )}
 
