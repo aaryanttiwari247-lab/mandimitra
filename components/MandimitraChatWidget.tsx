@@ -63,25 +63,25 @@ const LANGUAGE_SWITCH_MESSAGES: Record<SupportedLanguageCode, string> = {
 };
 
 const INITIAL_GREETING_MESSAGES: Record<SupportedLanguageCode, string> = {
-  hi: "नमस्ते किसान भाई! मैं मांडहेल्प (MandHelp) एआई खरीद सहायक हूँ। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलकर पूछें:",
-  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! ਮੈਂ MandHelp ਏ.ਆਈ. ਖਰੀਦ ਸਹਾਇਕ ਹਾਂ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
-  mr: "नमस्कार शेतकरी बंधूंनो! मी MandHelp एआय खरेदी सहाय्यक आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोलून विचारा:",
-  gu: "નમસ્તે ખેડૂત મિત્ર! હું MandHelp એઆઈ ખરીદ સહાયક છું. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલીને પૂછો:",
-  bn: "নমস্কার কৃষক ভাই! আমি MandHelp এআই সংগ্রহ সহকারী। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
-  te: "నమస్కారం రైతు సోదరులారా! నేను MandHelp ఏఐ సేకరణ సహాయకుడిని. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
-  ta: "வணக்கம் விவசாய தோழரே! நான் MandHelp ஏஐ கொள்முதல் உதவியாளர். உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
-  en: "Welcome farmer friend! I am MandHelp AI procurement companion. Please tap any service below to proceed or speak your query:",
+  hi: "नमस्ते किसान भाई! मैं मंडीहेल्प (MandiHelp) एआई खरीद सहायक हूँ। सहायता के लिए नीचे दिए गए किसी भी विकल्प पर टैप करें या बोलकर पूछें:",
+  pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! ਮੈਂ MandiHelp ਏ.ਆਈ. ਖਰੀਦ ਸਹਾਇਕ ਹਾਂ। ਸਹਾਇਤਾ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਵਿਕਲਪ 'ਤੇ ਟੈਪ ਕਰੋ ਜਾਂ ਬੋਲੋ:",
+  mr: "नमस्कार शेतकरी बंधूंनो! मी MandiHelp एआय खरेदी सहाय्यक आहे. मदतीसाठी खालील पर्यायांवर टॅप करा किंवा बोलून विचारा:",
+  gu: "નમસ્તે ખેડૂત મિત્ર! હું MandiHelp એઆઈ ખરીદ સહાયક છું. સહાય માટે નીચે આપેલા વિકલ્પ પર ક્લિક કરો અથવા બોલીને પૂછો:",
+  bn: "নমস্কার কৃষক ভাই! আমি MandiHelp এআই সংগ্রহ সহকারী। সহায়তার জন্য নিচের যে কোনো সেবায় ক্লিক করুন বা বলুন:",
+  te: "నమస్కారం రైతు సోదరులారా! నేను MandiHelp ఏఐ సేకరణ సహాయకుడిని. సహాయం కోసం క్రింది సేవలపై ట్యాప్ చేయండి లేదా మాట్లాడండి:",
+  ta: "வணக்கம் விவசாய தோழரே! நான் MandiHelp ஏஐ கொள்முதல் உதவியாளர். உதவிக்கு கீழே உள்ள சேவையை கிளிக் செய்யவும் அல்லது பேசவும்:",
+  en: "Welcome farmer friend! I am MandiHelp AI procurement companion. Please tap any service below to proceed or speak your query:",
 };
 
 const ERROR_MESSAGES: Record<SupportedLanguageCode, string> = {
-  hi: "MandHelp सहायक इस समय उत्तर देने में असमर्थ है। कृपया दोबारा प्रयास करें।",
-  pa: "MandHelp ਸਹਾਇਕ ਇਸ ਵੇਲੇ ਜਵਾਬ ਦੇਣ ਵਿੱਚ ਅਸਮਰੱਥ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
-  mr: "MandHelp सहाय्यक सध्या उत्तर देण्यास असमर्थ आहे. कृपया पुन्हा प्रयत्न करा.",
-  gu: "MandHelp સહાયક હાલમાં જવાબ આપવામાં અસમર્થ છે. કૃપા કરીને ફરી પ્રયાસ કરો.",
-  bn: "MandHelp সহকারী এই মুহূর্তে উত্তর দিতে পারছে না। অনুগ্রহ করে আবার চেষ্টা করুন।",
-  te: "MandHelp సహాయకుడు ప్రస్తుతం స్పందించలేకపోతున్నారు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
-  ta: "MandHelp உதவியாளர் தற்போது பதிலளிக்க முடியவில்லை. தயவுசெய்து மீண்டும் முயற்செய்து பார்க்கவும்.",
-  en: "MandHelp is temporarily unavailable. Please try again.",
+  hi: "MandiHelp सहायक इस समय उत्तर देने में असमर्थ है। कृपया दोबारा प्रयास करें।",
+  pa: "MandiHelp ਸਹਾਇਕ ਇਸ ਵੇਲੇ ਜਵਾਬ ਦੇਣ ਵਿੱਚ ਅਸਮਰੱਥ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+  mr: "MandiHelp सहाय्यक सध्या उत्तर देण्यास असमर्थ आहे. कृपया पुन्हा प्रयत्न करा.",
+  gu: "MandiHelp સહાયક હાલમાં જવાબ આપવામાં અસમર્થ છે. કૃપા કરીને ફરી પ્રયાસ કરો.",
+  bn: "MandiHelp সহকারী এই মুহূর্তে উত্তর দিতে পারছে না। অনুগ্রহ করে আবার চেষ্টা করুন।",
+  te: "MandiHelp సహాయకుడు ప్రస్తుతం స్పందించలేకపోతున్నారు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+  ta: "MandiHelp உதவியாளர் தற்போது பதிலளிக்க முடியவில்லை. தயவுசெய்து மீண்டும் முயற்செய்து பார்க்கவும்.",
+  en: "MandiHelp is temporarily unavailable. Please try again.",
 };
 
 const getLocalizedQuickActions = (lang: SupportedLanguageCode) => {
@@ -676,7 +676,7 @@ export function MandimitraChatWidget() {
             setIsOpen(true);
           }}
           className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-[#2E7D32] px-3.5 py-2 text-white shadow-xl transition hover:bg-[#256428] hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/30 print:hidden text-xs sm:text-sm font-bold"
-          title={t("assistant.floatingBtn") || "MandHelp • Voice Help"}
+          title={t("assistant.floatingBtn") || "MandiHelp"}
         >
           <span className="relative flex h-2.5 w-2.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75"></span>
@@ -685,7 +685,7 @@ export function MandimitraChatWidget() {
 
           <div className="flex items-center gap-1.5 font-bold">
             <Sprout className="h-4 w-4" />
-            <span>{t("assistant.floatingBtnShort") || "आवाज सहायता"}</span>
+            <span>{t("assistant.floatingBtnShort") || "MandiHelp"}</span>
           </div>
 
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
@@ -709,7 +709,7 @@ export function MandimitraChatWidget() {
                 <div>
                   <div className="flex items-center gap-1">
                     <h3 className="font-bold text-xs sm:text-sm leading-tight">
-                      {t("assistant.title") || "MandHelp"}
+                      {t("assistant.title") || "MandiHelp"}
                     </h3>
                   </div>
                   <p className="text-[9.5px] text-emerald-100 font-medium">
@@ -1069,7 +1069,7 @@ export function MandimitraChatWidget() {
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2E7D32] opacity-75"></span>
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#2E7D32]"></span>
                     </span>
-                    <span>MandHelp जाँच कर रहा है...</span>
+                    <span>MandiHelp जाँच कर रहा है...</span>
                   </div>
                 </div>
               )}

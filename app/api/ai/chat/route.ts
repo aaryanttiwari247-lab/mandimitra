@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     console.error("AI Assistant chat error:", error);
     return NextResponse.json(
       {
-        text: "MandHelp सहायक इस समय व्यस्त है। कृपया थोड़ी देर बाद पुनः प्रयास करें।",
+        text: "MandiHelp सहायक इस समय व्यस्त है। कृपया थोड़ी देर बाद पुनः प्रयास करें।",
         error: error?.message || "Internal error",
         demoMode: true,
       },
