@@ -15,6 +15,7 @@ import {
   Clock3,
   IndianRupee,
   Info,
+  LogOut,
   MapPin,
   Mic,
   RotateCcw,
@@ -319,14 +320,15 @@ export default function FarmerDashboard() {
   }, [router, loadBooking]);
 
   // ============================================================
-  // LOGOUT
+  // EXIT / LOGOUT
   // ============================================================
 
-  const handleLogout = () => {
+  const handleExit = () => {
     clearFarmerSession();
-
-    router.replace("/");
+    router.replace("/farmer/login");
   };
+
+  const handleLogout = handleExit;
 
   // ============================================================
   // BOOK PROCUREMENT SLOT
@@ -452,28 +454,38 @@ export default function FarmerDashboard() {
 
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          {/* LOGO */}
+          {/* LEFT: EXIT BUTTON & LOGO */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              onClick={handleExit}
+              className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm font-bold text-red-700 transition hover:bg-red-100 hover:border-red-300 active:scale-95 shadow-2xs cursor-pointer"
+              title="Exit and Logout"
+            >
+              <LogOut className="h-4 w-4 text-red-600" />
+              <span>{t("common.exit")}</span>
+            </button>
 
-          <button
-            onClick={() =>
-              router.push(
-                "/farmer/dashboard"
-              )
-            }
-            className="flex items-center gap-3"
-          >
-            <BrandLogo size="md" />
+            <button
+              onClick={() =>
+                router.push(
+                  "/farmer/dashboard"
+                )
+              }
+              className="flex items-center gap-3"
+            >
+              <BrandLogo size="md" />
 
-            <div className="text-left">
-              <p className="text-lg font-bold text-[#2E7D32]">
-                {t("common.appName")}
-              </p>
+              <div className="text-left">
+                <p className="text-lg font-bold text-[#2E7D32]">
+                  {t("common.appName")}
+                </p>
 
-              <p className="text-xs text-gray-500">
-                {t("common.tagline")}
-              </p>
-            </div>
-          </button>
+                <p className="text-xs text-gray-500">
+                  {t("common.tagline")}
+                </p>
+              </div>
+            </button>
+          </div>
 
           {/* RIGHT SIDE */}
 

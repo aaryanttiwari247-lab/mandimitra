@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Clock3,
   IndianRupee,
+  LogOut,
   MapPin,
   Printer,
   RotateCcw,
@@ -30,7 +31,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { getFarmerSession, FarmerUser } from "@/lib/farmer-auth";
+import { getFarmerSession, clearFarmerSession, FarmerUser } from "@/lib/farmer-auth";
 import { formatINR, getCropMspData } from "@/lib/msp-rates";
 import { subscribeProcurementUpdates, ProcurementSyncMessage } from "@/lib/cross-tab-sync";
 import { matchesBookingIdentifier, normalizeTokenClean } from "@/lib/procurement-store";
@@ -97,6 +98,14 @@ function TrackTokenContent() {
   const [quickTokens, setQuickTokens] = useState<Array<{ token: string; name: string; crop: string }>>([]);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [showSlipPreview, setShowSlipPreview] = useState(false);
+
+  // ============================================================
+  // EXIT / LOGOUT
+  // ============================================================
+  const handleExit = () => {
+    clearFarmerSession();
+    router.replace("/farmer/login");
+  };
 
   // ============================================================
   // LOAD QUICK SUGGESTIONS FOR EASY SWITCHING
@@ -537,13 +546,24 @@ function TrackTokenContent() {
       <main className="min-h-screen bg-[#F7F9F5] text-[#111827]">
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
-            <button
-              onClick={() => router.push("/farmer/dashboard")}
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t("common.backToDashboard")}
-            </button>
+            <div className="flex items-center gap-2.5 sm:gap-4">
+              <button
+                onClick={handleExit}
+                className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs sm:text-sm font-bold text-red-700 transition hover:bg-red-100 hover:border-red-300 active:scale-95 shadow-2xs cursor-pointer"
+                title="Exit and Logout"
+              >
+                <LogOut className="h-4 w-4 text-red-600" />
+                <span>{t("common.exit")}</span>
+              </button>
+
+              <button
+                onClick={() => router.push("/farmer/dashboard")}
+                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32] cursor-pointer"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("common.backToDashboard")}</span>
+              </button>
+            </div>
             <div className="flex items-center gap-3">
               <LanguageSelector />
               <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
@@ -694,13 +714,24 @@ function TrackTokenContent() {
       {/* HEADER */}
       <header className="border-b border-gray-200 bg-white print:hidden">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <button
-            onClick={() => router.push("/farmer/dashboard")}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t("common.backToDashboard")}
-          </button>
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            <button
+              onClick={handleExit}
+              className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs sm:text-sm font-bold text-red-700 transition hover:bg-red-100 hover:border-red-300 active:scale-95 shadow-2xs cursor-pointer"
+              title="Exit and Logout"
+            >
+              <LogOut className="h-4 w-4 text-red-600" />
+              <span>{t("common.exit")}</span>
+            </button>
+
+            <button
+              onClick={() => router.push("/farmer/dashboard")}
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2E7D32] cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">{t("common.backToDashboard")}</span>
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <LanguageSelector />
             <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">

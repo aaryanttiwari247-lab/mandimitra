@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock3,
   Coins,
+  LogOut,
   MapPin,
   Plus,
   Sparkles,
@@ -20,7 +21,7 @@ import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { BrandLogo } from "@/components/BrandLogo";
 
-import { getFarmerSession } from "@/lib/farmer-auth";
+import { getFarmerSession, clearFarmerSession } from "@/lib/farmer-auth";
 import { Booking, BookingCropItem } from "@/lib/types";
 import { CROP_MSP_RATES, getCropMspData, formatINR } from "@/lib/msp-rates";
 import {
@@ -552,6 +553,15 @@ export default function BookProcurementSlot() {
   };
 
   // ============================================================
+  // EXIT / LOGOUT
+  // ============================================================
+
+  const handleExit = () => {
+    clearFarmerSession();
+    router.replace("/farmer/login");
+  };
+
+  // ============================================================
   // AUTH CHECK SCREEN
   // ============================================================
 
@@ -581,13 +591,24 @@ export default function BookProcurementSlot() {
 
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <button
-            onClick={() => router.push("/farmer/dashboard")}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 transition hover:text-[#2E7D32]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t("common.back")}
-          </button>
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            <button
+              onClick={handleExit}
+              className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs sm:text-sm font-bold text-red-700 transition hover:bg-red-100 hover:border-red-300 active:scale-95 shadow-2xs cursor-pointer"
+              title="Exit and Logout"
+            >
+              <LogOut className="h-4 w-4 text-red-600" />
+              <span>{t("common.exit")}</span>
+            </button>
+
+            <button
+              onClick={() => router.push("/farmer/dashboard")}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-700 transition hover:text-[#2E7D32] cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>{t("common.back")}</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-3">
             <LanguageSelector />

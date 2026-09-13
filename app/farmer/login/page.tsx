@@ -222,9 +222,13 @@ export default function FarmerLogin() {
               <button
                 onClick={() => {
                   clearFarmerSession();
-                  router.push("/");
+                  setVerified(false);
+                  setShowOtp(false);
+                  setOtp("");
+                  setDevelopmentOtp("");
+                  router.push("/farmer/login");
                 }}
-                className="text-sm font-medium text-gray-600 transition hover:text-[#2E7D32]"
+                className="text-sm font-medium text-gray-600 transition hover:text-[#2E7D32] cursor-pointer"
               >
                 {t("common.logout")}
               </button>
