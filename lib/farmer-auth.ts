@@ -16,9 +16,21 @@ export function getRegisteredFarmers(): Record<string, FarmerUser> {
   }
 }
 
+export function findFarmerByAadhaar(aadhaar: string): FarmerUser | null {
+  const clean = aadhaar.replace(/\D/g, "");
+  if (!clean || clean.length !== 12) return null;
+  const farmers = getRegisteredFarmers();
+  return (
+    Object.values(farmers).find(
+      (f) => f.aadhaar && f.aadhaar.replace(/\D/g, "") === clean
+    ) || null
+  );
+}
+
 export function registerFarmerProfile(data: {
   mobile: string;
   name: string;
+  aadhaar?: string;
   village?: string;
   district?: string;
   landAcres?: number;
@@ -57,6 +69,7 @@ export function saveFarmerSession(input: string | (Partial<FarmerUser> & { mobil
     name,
     farmerId,
     farmerCode,
+    aadhaar: farmerData.aadhaar !== undefined ? farmerData.aadhaar : existing?.aadhaar,
     village: farmerData.village !== undefined ? farmerData.village : existing?.village,
     district: farmerData.district !== undefined ? farmerData.district : existing?.district,
     landAcres: farmerData.landAcres !== undefined ? farmerData.landAcres : existing?.landAcres,

@@ -11,6 +11,7 @@ export type FarmerUser = {
   name: string;
   farmerId: string;
   farmerCode?: string;
+  aadhaar?: string;
   village?: string;
   district?: string;
   landAcres?: number;

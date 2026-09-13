@@ -4,10 +4,19 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { mobile } = body;
+    const { mobile, aadhaar } = body;
+    const cleanAadhaar = aadhaar ? String(aadhaar).replace(/\D/g, "") : null;
+    let cleanMobile = mobile ? String(mobile).replace(/\D/g, "") : null;
 
-    if (!mobile || String(mobile).length !== 10) {
-      return NextResponse.json({ success: false, message: "Valid 10-digit mobile number required" }, { status: 400 });
+    if (!cleanMobile && cleanAadhaar && cleanAadhaar.length === 12) {
+      cleanMobile = `98765${cleanAadhaar.slice(-5)}`;
+    }
+
+    if (!cleanMobile || cleanMobile.length !== 10) {
+      return NextResponse.json(
+        { success: false, message: "Valid 10-digit mobile number or 12-digit Aadhaar number required" },
+        { status: 400 }
+      );
     }
 
     // Lookup farmer in PostgreSQL database
@@ -37,6 +46,7 @@ export async function POST(req: Request) {
           farmerCode: farmer.farmerCode,
           name: farmer.name,
           mobile: farmer.mobile,
+          aadhaar: cleanAadhaar || undefined,
           village: farmer.village || "",
           district: farmer.district || "",
           landAcres: farmer.landAcres || 0,
@@ -48,8 +58,10 @@ export async function POST(req: Request) {
     }
 
     // If not found in DB, return dynamic new farmer profile
-    const farmerCode = `FMR${String(mobile).slice(-4)}`;
-    const defaultName = `Farmer (${String(mobile).slice(-4)})`;
+    const farmerCode = `FMR${cleanMobile.slice(-4)}`;
+    const defaultName = cleanAadhaar
+      ? `Farmer (UID *${cleanAadhaar.slice(-4)})`
+      : `Farmer (${cleanMobile.slice(-4)})`;
 
     return NextResponse.json({
       success: true,
@@ -58,7 +70,8 @@ export async function POST(req: Request) {
         farmerId: farmerCode,
         farmerCode,
         name: defaultName,
-        mobile: String(mobile),
+        mobile: cleanMobile,
+        aadhaar: cleanAadhaar || undefined,
         village: "",
         district: "",
         landAcres: 0,
