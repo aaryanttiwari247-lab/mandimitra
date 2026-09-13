@@ -21,7 +21,7 @@ export default function Home() {
   return (
     <main className="min-h-screen lg:h-screen lg:max-h-screen flex flex-col justify-between bg-gradient-to-b from-[#F2F7F2] via-[#F8FAF7] to-[#EDF5EE] text-[#182230] overflow-y-auto lg:overflow-hidden">
       {/* LIGHT COLOR HEADER SUITED TO THE SITE */}
-      <header className="border-b border-emerald-100/90 bg-gradient-to-r from-[#F3F9F3]/95 via-white/95 to-[#EFF7F0]/95 backdrop-blur-md sticky top-0 z-30 shadow-2xs shrink-0">
+      <header className="border-b border-emerald-200/90 bg-gradient-to-r from-emerald-100/80 via-emerald-50/70 to-green-100/60 backdrop-blur-md sticky top-0 z-30 shadow-2xs shrink-0">
         <div className="mx-auto flex h-14 sm:h-16 max-w-[1320px] items-center justify-between px-4 sm:px-6">
           {/* Brand Logo & Name */}
           <Link href="/" className="flex items-center gap-3 group cursor-pointer">
@@ -81,7 +81,7 @@ export default function Home() {
           {/* Heading */}
           <h2 className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold leading-tight tracking-tight text-gray-900">
             {t("home.heroTitle1")}{" "}
-            <span className="text-[#2E7D32] underline decoration-emerald-300 decoration-wavy underline-offset-4">
+            <span className="text-[#2E7D32]">
               {t("home.heroTitle2")}
             </span>
           </h2>

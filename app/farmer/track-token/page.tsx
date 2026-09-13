@@ -543,8 +543,8 @@ function TrackTokenContent() {
   // ============================================================
   if (!booking) {
     return (
-      <main className="min-h-screen bg-[#F7F9F5] text-[#111827]">
-        <header className="border-b border-gray-200 bg-white">
+      <main className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-[#F7F9F5] to-[#F7F9F5] text-[#111827]">
+        <header className="border-b border-emerald-200/80 bg-gradient-to-r from-emerald-100/80 via-emerald-50/70 to-green-100/60 shadow-2xs">
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
             <div className="flex items-center gap-2.5 sm:gap-4">
               <button
@@ -664,7 +664,7 @@ function TrackTokenContent() {
   // MAIN TOKEN TRACKING VIEW
   // ============================================================
   return (
-    <main className="min-h-screen bg-[#F7F9F5] text-[#111827]">
+    <main className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-[#F7F9F5] to-[#F7F9F5] text-[#111827]">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -712,7 +712,7 @@ function TrackTokenContent() {
         }}
       />
       {/* HEADER */}
-      <header className="border-b border-gray-200 bg-white print:hidden">
+      <header className="border-b border-emerald-200/80 bg-gradient-to-r from-emerald-100/80 via-emerald-50/70 to-green-100/60 shadow-2xs print:hidden">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
           <div className="flex items-center gap-2.5 sm:gap-4">
             <button
