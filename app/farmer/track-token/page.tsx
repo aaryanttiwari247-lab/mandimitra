@@ -443,6 +443,20 @@ function TrackTokenContent() {
     }
   };
 
+  const formatEnglishDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(`${dateString}T00:00:00`);
+      return date.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   const statusDescription = () => {
     switch (currentStatus) {
       case "CANCELLED":
@@ -1104,7 +1118,7 @@ function TrackTokenContent() {
                 className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-gray-700 shadow-xs hover:border-[#2E7D32] hover:text-[#2E7D32] transition"
               >
                 <Printer className="h-4 w-4 text-[#2E7D32]" />
-                {showSlipPreview ? "Hide J-Slip Voucher" : "View & Print Small J-Slip (विक्रय पर्ची)"}
+                {showSlipPreview ? "Hide J-Slip Voucher" : "View & Print Small J-Slip"}
               </button>
             </div>
           )}
@@ -1125,13 +1139,13 @@ function TrackTokenContent() {
                     <span>APMC Mandi Committee</span>
                   </div>
                   <h3 className="mt-0.5 text-base sm:text-lg font-black tracking-tight text-gray-950 uppercase">
-                    FORM &apos;J&apos; • विक्रय पर्ची
+                    FORM &apos;J&apos; • SALE VOUCHER
                   </h3>
                   <p className="text-[10px] font-bold text-gray-600 print:text-gray-800">
-                    [Rule 24(1) - Electronic Sale Voucher]
+                    [Rule 24(1) - Electronic Procurement & Sale Voucher]
                   </p>
                   <p className="mt-1 text-xs font-black text-gray-900">
-                    {localizeCentre(booking.centre)}
+                    {booking.centre || "APMC Procurement Centre"}
                   </p>
                 </div>
 
@@ -1144,34 +1158,34 @@ function TrackTokenContent() {
                     </strong>
                   </div>
                   <div className="rounded bg-gray-100 px-2 py-0.5 font-mono font-black text-gray-900 print:border print:border-black">
-                    #{String(booking.token || booking.tokenNumber || "101").replace(/^#/, "")}
+                    Token #{String(booking.token || booking.tokenNumber || "101").replace(/^#/, "")}
                   </div>
                 </div>
 
                 <div className="mb-2.5 flex items-center justify-between text-[11px] border-b border-dashed border-gray-400 pb-2">
                   <span className="text-gray-500 font-medium">Date & Time:</span>
                   <span className="font-bold text-gray-900">
-                    {formatDate(booking.date)} • {booking.time || "10:00 AM"}
+                    {formatEnglishDate(booking.date)} • {booking.time || "10:00 AM"}
                   </span>
                 </div>
 
                 {/* SECTION 1: FARMER PARTICULARS */}
                 <div className="space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
                   <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-                    Farmer Particulars / कृषक विवरण
+                    Farmer Particulars
                   </p>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Name / नाम:</span>
+                    <span className="text-gray-500">Name:</span>
                     <strong className="text-gray-950">
-                      {booking.farmerName ? booking.farmerName.replace(/\bFarmer\b/gi, t("common.farmer")) : t("common.farmer")}
+                      {booking.farmerName || "Farmer"}
                     </strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Mobile / दूरभाष:</span>
+                    <span className="text-gray-500">Mobile Number:</span>
                     <span className="font-semibold text-gray-800">{booking.farmerMobile || "---"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Farmer ID:</span>
+                    <span className="text-gray-500">Farmer Registration ID:</span>
                     <span className="font-mono font-bold text-gray-800">
                       {booking.farmerId || `FMR-${booking.farmerMobile?.slice(-4) || "8924"}`}
                     </span>
@@ -1181,7 +1195,7 @@ function TrackTokenContent() {
                 {/* SECTION 2: CROP DETAILS */}
                 <div className="my-2.5 text-xs border-b border-dashed border-gray-400 pb-2.5">
                   <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1.5">
-                    Crop Details / फसल विवरण
+                    Crop & Quality Details
                   </p>
                   {booking.crops && booking.crops.length > 1 ? (
                     <div className="overflow-x-auto">
@@ -1191,7 +1205,7 @@ function TrackTokenContent() {
                             <th className="py-1">Crop</th>
                             <th className="py-1 text-center">Grade</th>
                             <th className="py-1 text-right">Qty</th>
-                            <th className="py-1 text-right">Rate</th>
+                            <th className="py-1 text-right">MSP Rate</th>
                             <th className="py-1 text-right">Amount</th>
                           </tr>
                         </thead>
@@ -1202,8 +1216,8 @@ function TrackTokenContent() {
                             const cPayout = c.totalPayout ?? Math.round(cQty * cRate);
                             return (
                               <tr key={idx} className="font-medium text-gray-900">
-                                <td className="py-1 font-bold">{localizeCrop(c.crop)}</td>
-                                <td className="py-1 text-center text-[10px]">{c.cropGrade || "FAQ"}</td>
+                                <td className="py-1 font-bold">{c.crop}</td>
+                                <td className="py-1 text-center text-[10px]">{c.cropGrade || "Grade A"}</td>
                                 <td className="py-1 text-right">{cQty} Q</td>
                                 <td className="py-1 text-right">₹{cRate}</td>
                                 <td className="py-1 text-right font-black">₹{cPayout.toLocaleString("en-IN")}</td>
@@ -1216,19 +1230,19 @@ function TrackTokenContent() {
                   ) : (
                     <div className="space-y-1">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Produce / फसल:</span>
-                        <strong className="text-gray-950 text-sm">{localizeCrop(booking.crop)}</strong>
+                        <span className="text-gray-500">Produce / Crop:</span>
+                        <strong className="text-gray-950 text-sm">{booking.crop || "Produce"}</strong>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Quality Grade / गुणवत्ता:</span>
+                        <span className="text-gray-500">Quality Grade:</span>
                         <span className="font-bold text-gray-900">
-                          {booking.cropGrade || "Grade A (FAQ Approved)"}
+                          {booking.cropGrade || "Grade A (FAQ Standard)"}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">MSP Rate / समर्थन मूल्य:</span>
+                        <span className="text-gray-500">Statutory MSP Rate:</span>
                         <strong className="text-gray-950">
-                          ₹{effectiveRate.toLocaleString("en-IN")} / {t("common.quintals")}
+                          ₹{effectiveRate.toLocaleString("en-IN")} / Quintal
                         </strong>
                       </div>
                     </div>
@@ -1238,31 +1252,31 @@ function TrackTokenContent() {
                 {/* SECTION 3: QUANTITY DETAILS */}
                 <div className="my-2.5 space-y-1 text-xs border-b border-dashed border-gray-400 pb-2.5">
                   <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-                    Quantity / तौल विवरण
+                    Quantity & Weighment Details
                   </p>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Booked Quantity / दर्ज:</span>
-                    <span className="font-semibold text-gray-800">{booking.quantity || 0} {t("common.quintals")}</span>
+                    <span className="text-gray-500">Booked Quantity:</span>
+                    <span className="font-semibold text-gray-800">{booking.quantity || 0} Quintals</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Weighed Net Quantity / शुद्ध तौल:</span>
+                    <span className="text-gray-500">Net Weighed Quantity:</span>
                     <span className="font-black text-gray-950 text-sm">
-                      {effectiveQty} {t("common.quintals")}{" "}
+                      {effectiveQty} Quintals{" "}
                       <span className="text-[11px] font-semibold text-gray-600">
                         ({(effectiveQty * 100).toLocaleString("en-IN")} kg)
                       </span>
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] text-gray-500">
-                    <span>Weighbridge: Dharmkanta Verified</span>
-                    <span className="text-emerald-700 font-bold print:text-black">Tare & Net Certified</span>
+                    <span>Weighbridge: Electronic Dharmkanta</span>
+                    <span className="text-emerald-700 font-bold print:text-black">Certified Gross & Tare Verified</span>
                   </div>
                 </div>
 
                 {/* SECTION 4: AMOUNT SENT / DBT PAYOUT (HIGHLIGHT BOX) */}
                 <div className="my-3 rounded-xl border-2 border-[#2E7D32] bg-[#F1F8F2] p-3 text-center print:border-black print:bg-gray-50">
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#2E7D32] print:text-black">
-                    TOTAL AMOUNT SENT / कुल प्रेषित राशि
+                    TOTAL AMOUNT SENT (DBT PAYOUT)
                   </p>
                   <p className="mt-1 text-2xl font-black text-[#2E7D32] tracking-tight print:text-black">
                     {formatINR(effectiveTotalPayout)}
@@ -1273,13 +1287,13 @@ function TrackTokenContent() {
 
                   <div className="mt-2.5 border-t border-[#CDE8D0] pt-2 flex flex-col gap-1 text-[10px] text-left print:border-gray-300">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Payment Channel / माध्यम:</span>
+                      <span className="text-gray-600">Payment Channel:</span>
                       <strong className="text-gray-900">Direct Benefit Transfer (DBT)</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Payment Status / स्थिति:</span>
+                      <span className="text-gray-600">Payment Status:</span>
                       <span className="font-black text-[#2E7D32] uppercase print:text-black">
-                        PAID / TRANSFERRED (सफल अंतरण) ✅
+                        PAID / TRANSFERRED ✅
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -1289,9 +1303,9 @@ function TrackTokenContent() {
                       </strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Credit Account:</span>
+                      <span className="text-gray-600">Beneficiary Account:</span>
                       <span className="text-gray-800 font-medium">
-                        Aadhaar Linked A/c (•••• {booking.farmerMobile?.slice(-4) || "8924"})
+                        Aadhaar-Linked Bank Account (Ending in *{booking.farmerMobile?.slice(-4) || "8924"})
                       </span>
                     </div>
                   </div>
@@ -1300,7 +1314,7 @@ function TrackTokenContent() {
                 {/* SECTION 5: VERIFICATION & STAMP */}
                 <div className="mt-2.5 flex items-center justify-between text-[10px] text-gray-500 border-t border-dashed border-gray-400 pt-2">
                   <div>
-                    <p className="font-bold text-gray-800">Mandi In-Charge / तुलाई प्रभारी:</p>
+                    <p className="font-bold text-gray-800">Mandi Procurement Officer:</p>
                     <p>{booking.verifiedBy || "APMC Procurement Officer"}</p>
                     <p className="text-[9px] text-emerald-800 font-semibold mt-0.5 print:text-black">
                       Digitally Verified & Disbursed
@@ -1345,7 +1359,7 @@ function TrackTokenContent() {
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-[#256428] transition"
                   >
                     <Printer className="h-4 w-4" />
-                    Print Small J-Slip (छोटा जे-पर्ची प्रिंट करें)
+                    Print Small J-Slip
                   </button>
                 </div>
               </div>
