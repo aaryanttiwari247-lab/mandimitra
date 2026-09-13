@@ -248,6 +248,14 @@ export function MandimitraChatWidget() {
     }
   }, [language]);
 
+  // Automatically close and stop any playback if navigating to official portal or landing page
+  useEffect(() => {
+    if (pathname === "/" || pathname?.startsWith("/official")) {
+      stopSpeaking();
+      setIsOpen(false);
+    }
+  }, [pathname]);
+
   // Switch chat and application language with instant localized welcome message
   const handleLanguageChange = (newLang: SupportedLanguageCode) => {
     setChatLanguage(newLang);
@@ -660,8 +668,8 @@ export function MandimitraChatWidget() {
   // Quick Action Chips Configuration
   const quickActions = getLocalizedQuickActions(chatLanguage);
 
-  // Do not show widget on the landing / first page
-  if (pathname === "/") {
+  // Do not show widget on the landing page or on the official side of the site
+  if (pathname === "/" || pathname?.startsWith("/official")) {
     return null;
   }
 
