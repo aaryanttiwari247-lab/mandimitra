@@ -11,6 +11,7 @@ import {
   Bell,
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
   Clock3,
   Download,
   ExternalLink,
@@ -1505,105 +1506,270 @@ function TrackTokenContent() {
           )}
 
           {/* ====================================================
-              5-STAGE PROGRESSIVE STATUS TIMELINE
+              HORIZONTAL FILING FLOW CHART (5-STAGE MOVEMENT)
           ==================================================== */}
-          <div className="mt-7 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 print:hidden">
-            <h2 className="text-xl font-bold text-gray-900">
-              {t("tracker.journeyProgressTitle")}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              {t("tracker.journeyProgressSubtitle")}
-            </p>
-
-            <div className="mt-8">
-              <StatusTimelineItem
-                title={t("tracker.step1Title")}
-                description={t("tracker.step1Desc")}
-                active={isCurrentStep("WAITING")}
-                completed={isStepComplete("WAITING")}
-                last={false}
-                currentStageLabel={t("tracker.currentStage")}
-              />
-
-              <StatusTimelineItem
-                title={t("tracker.step2Title")}
-                description={
-                  booking.calledAt
-                    ? t("tracker.step2DescCalled", {
-                        time: new Date(booking.calledAt).toLocaleTimeString(
-                          language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN",
-                          { hour: "numeric", minute: "2-digit" }
-                        ),
-                      })
-                    : t("tracker.step2DescDefault")
-                }
-                active={isCurrentStep("CALLED")}
-                completed={isStepComplete("CALLED")}
-                last={false}
-                currentStageLabel={t("tracker.currentStage")}
-              />
-
-              <StatusTimelineItem
-                title={t("tracker.step3Title")}
-                description={
-                  booking.verifiedBy
-                    ? t("tracker.step3DescVerified", { officer: booking.verifiedBy })
-                    : t("tracker.step3DescDefault")
-                }
-                active={isCurrentStep("VERIFIED")}
-                completed={isStepComplete("VERIFIED")}
-                last={false}
-                currentStageLabel={t("tracker.currentStage")}
-              />
-
-              <StatusTimelineItem
-                title={t("tracker.step4Title")}
-                description={
-                  booking.cropGrade
-                    ? t("tracker.step4DescGraded", {
-                        grade: booking.cropGrade,
-                        qty: String(booking.actualQuantity || booking.quantity || 0),
-                        rate: String(booking.mspRate || cropMspInfo.standardMsp),
-                      })
-                    : t("tracker.step4DescDefault")
-                }
-                active={isCurrentStep("PROCESSING")}
-                completed={isStepComplete("PROCESSING")}
-                last={false}
-                currentStageLabel={t("tracker.currentStage")}
-              />
-
-              <StatusTimelineItem
-                title={t("tracker.step5Title")}
-                description={
+          {(() => {
+            const farmerFilingStages = [
+              {
+                id: "WAITING",
+                stepNumber: "01",
+                title: t("tracker.step1Title"),
+                description: t("tracker.step1Desc"),
+                icon: Clock3,
+                completed: isStepComplete("WAITING"),
+                active: isCurrentStep("WAITING"),
+              },
+              {
+                id: "CALLED",
+                stepNumber: "02",
+                title: t("tracker.step2Title"),
+                description: booking.calledAt
+                  ? t("tracker.step2DescCalled", {
+                      time: new Date(booking.calledAt).toLocaleTimeString(
+                        language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN",
+                        { hour: "numeric", minute: "2-digit" }
+                      ),
+                    })
+                  : t("tracker.step2DescDefault"),
+                icon: Truck,
+                completed: isStepComplete("CALLED"),
+                active: isCurrentStep("CALLED"),
+              },
+              {
+                id: "VERIFIED",
+                stepNumber: "03",
+                title: t("tracker.step3Title"),
+                description: booking.verifiedBy
+                  ? t("tracker.step3DescVerified", { officer: booking.verifiedBy })
+                  : t("tracker.step3DescDefault"),
+                icon: ShieldCheck,
+                completed: isStepComplete("VERIFIED"),
+                active: isCurrentStep("VERIFIED"),
+              },
+              {
+                id: "PROCESSING",
+                stepNumber: "04",
+                title: t("tracker.step4Title"),
+                description: booking.cropGrade
+                  ? t("tracker.step4DescGraded", {
+                      grade: booking.cropGrade,
+                      qty: String(booking.actualQuantity || booking.quantity || 0),
+                      rate: String(booking.mspRate || cropMspInfo.standardMsp),
+                    })
+                  : t("tracker.step4DescDefault"),
+                icon: Scale,
+                completed: isStepComplete("PROCESSING"),
+                active: isCurrentStep("PROCESSING"),
+              },
+              {
+                id: "COMPLETED",
+                stepNumber: "05",
+                title: t("tracker.step5Title"),
+                description:
                   currentStatus === "COMPLETED"
                     ? t("tracker.step5DescCompleted")
-                    : t("tracker.step5DescDefault")
-                }
-                active={isCurrentStep("COMPLETED")}
-                completed={isStepComplete("COMPLETED")}
-                last={true}
-                currentStageLabel={t("tracker.currentStage")}
-              />
+                    : t("tracker.step5DescDefault"),
+                icon: CheckCircle2,
+                completed: isStepComplete("COMPLETED"),
+                active: isCurrentStep("COMPLETED"),
+              },
+            ];
 
-              {currentStatus === "CANCELLED" && (
-                <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
-                    <AlertTriangle className="h-4 w-4" />
-                  </div>
+            return (
+              <div className="mt-7 rounded-3xl border border-gray-200 bg-white p-5 sm:p-7 shadow-sm print:hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
                   <div>
-                    <h4 className="font-bold text-red-950">{t("tracker.procurementCancelled")}</h4>
-                    <p className="mt-0.5 text-xs text-red-800">
-                      {t("tracker.cancellationReasonLabel")}: <strong>{booking.cancellationReason || t("tracker.statusCancelled")}</strong>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-black uppercase tracking-wider text-[#13491E]">
+                        Workflow Filing Chart
+                      </span>
+                      <span className="text-xs font-semibold text-gray-500">
+                        5 Procurement Desks
+                      </span>
+                    </div>
+                    <h2 className="mt-1 text-xl font-black text-gray-900">
+                      {t("tracker.journeyProgressTitle")}
+                    </h2>
+                    <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
+                      {t("tracker.journeyProgressSubtitle")}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {t("tracker.farmerCancelledGuidance")}
-                    </p>
+                  </div>
+
+                  {/* OVERALL PROGRESS INDICATOR */}
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 border border-gray-100 shrink-0">
+                    <div className="text-right">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                        File Progress
+                      </div>
+                      <div className="text-xs font-black text-[#13491E]">
+                        {currentStatus === "COMPLETED"
+                          ? "100% • Settled"
+                          : currentStatus === "PROCESSING"
+                          ? "Stage 4 of 5 (80%)"
+                          : currentStatus === "VERIFIED"
+                          ? "Stage 3 of 5 (60%)"
+                          : currentStatus === "CALLED"
+                          ? "Stage 2 of 5 (40%)"
+                          : currentStatus === "CANCELLED"
+                          ? "Cancelled"
+                          : "Stage 1 of 5 (20%)"}
+                      </div>
+                    </div>
+                    <div className="h-2 w-24 sm:w-32 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#13491E] to-[#2E7D32] transition-all duration-500"
+                        style={{
+                          width:
+                            currentStatus === "COMPLETED"
+                              ? "100%"
+                              : currentStatus === "PROCESSING"
+                              ? "80%"
+                              : currentStatus === "VERIFIED"
+                              ? "60%"
+                              : currentStatus === "CALLED"
+                              ? "40%"
+                              : currentStatus === "CANCELLED"
+                              ? "0%"
+                              : "20%",
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+
+                {/* HORIZONTAL FILING STAGES CONTAINER */}
+                <div className="mt-6 flex overflow-x-auto gap-3 pb-3 pt-1 lg:grid lg:grid-cols-5 no-scrollbar snap-x">
+                  {farmerFilingStages.map((stage, idx) => {
+                    const StageIcon = stage.icon;
+                    return (
+                      <div
+                        key={stage.id}
+                        className="min-w-[210px] lg:min-w-0 flex-1 snap-start flex flex-col"
+                      >
+                        {/* TOP FILING FOLDER TAB */}
+                        <div className="flex items-center justify-between">
+                          <div
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-t-xl text-[11px] font-black uppercase tracking-wider border-t border-x ${
+                              stage.completed
+                                ? "bg-emerald-100 text-[#13491E] border-emerald-300"
+                                : stage.active
+                                ? "bg-[#13491E] text-white border-[#13491E] shadow-xs"
+                                : "bg-gray-100 text-gray-500 border-gray-200"
+                            }`}
+                          >
+                            <span>File #{stage.stepNumber}</span>
+                          </div>
+                          {idx < 4 && (
+                            <div className="hidden lg:flex items-center text-gray-300 pr-2">
+                              <ChevronRight className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* MAIN FILING CARD BODY */}
+                        <div
+                          className={`flex-1 flex flex-col justify-between rounded-b-2xl rounded-tr-2xl p-4 transition-all ${
+                            stage.completed
+                              ? "border border-emerald-300 bg-gradient-to-b from-emerald-50/60 to-white shadow-xs"
+                              : stage.active
+                              ? "border-2 border-[#13491E] bg-gradient-to-b from-white to-[#F1F8F2] shadow-md ring-4 ring-[#13491E]/10"
+                              : "border border-gray-200 bg-gray-50/50 opacity-80"
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-2">
+                              <div
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-xs ${
+                                  stage.completed
+                                    ? "bg-[#13491E] text-white"
+                                    : stage.active
+                                    ? "bg-[#13491E] text-white animate-pulse"
+                                    : "bg-gray-200 text-gray-500"
+                                }`}
+                              >
+                                {stage.completed ? (
+                                  <CheckCircle2 className="h-4 w-4" />
+                                ) : (
+                                  <StageIcon className="h-4 w-4" />
+                                )}
+                              </div>
+
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                                  stage.completed
+                                    ? "bg-emerald-100 text-[#13491E]"
+                                    : stage.active
+                                    ? "bg-[#13491E] text-white"
+                                    : "bg-gray-100 text-gray-400"
+                                }`}
+                              >
+                                {stage.completed
+                                  ? "Completed"
+                                  : stage.active
+                                  ? "In Progress"
+                                  : "Upcoming"}
+                              </span>
+                            </div>
+
+                            <h4
+                              className={`mt-3 text-sm font-black tracking-tight ${
+                                stage.active
+                                  ? "text-[#13491E]"
+                                  : stage.completed
+                                  ? "text-gray-950"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {stage.title}
+                            </h4>
+
+                            <p className="mt-1.5 text-xs text-gray-600 leading-relaxed">
+                              {stage.description}
+                            </p>
+                          </div>
+
+                          {/* BOTTOM STATUS FOOTER */}
+                          <div className="mt-4 pt-2.5 border-t border-dashed border-gray-200 text-[10px] font-bold text-gray-500 flex items-center justify-between">
+                            <span>Desk #{stage.stepNumber}</span>
+                            {stage.completed && (
+                              <span className="text-[#13491E] font-black">Cleared ✓</span>
+                            )}
+                            {stage.active && (
+                              <span className="text-[#13491E] font-black flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#13491E] animate-ping" />
+                                Active Now
+                              </span>
+                            )}
+                            {!stage.completed && !stage.active && (
+                              <span className="text-gray-400">Queued</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* CANCELLED NOTICE IF ANY */}
+                {currentStatus === "CANCELLED" && (
+                  <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-red-950">{t("tracker.procurementCancelled")}</h4>
+                      <p className="mt-0.5 text-xs text-red-800">
+                        {t("tracker.cancellationReasonLabel")}: <strong>{booking.cancellationReason || t("tracker.statusCancelled")}</strong>
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t("tracker.farmerCancelledGuidance")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ====================================================
               BOOKING DETAILS CARDS
@@ -1746,77 +1912,7 @@ export default function FarmerTrackToken() {
   );
 }
 
-function StatusTimelineItem({
-  title,
-  description,
-  active,
-  completed,
-  last,
-  currentStageLabel,
-}: {
-  title: string;
-  description: string;
-  active: boolean;
-  completed: boolean;
-  last: boolean;
-  currentStageLabel?: string;
-}) {
-  return (
-    <div className="flex gap-4">
-      <div className="flex w-8 shrink-0 flex-col items-center">
-        <div
-          className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition ${
-            completed
-              ? "border-[#2E7D32] bg-[#2E7D32] text-white"
-              : active
-              ? "border-[#2E7D32] bg-white text-[#2E7D32] ring-4 ring-[#2E7D32]/20"
-              : "border-gray-300 bg-white text-gray-400"
-          }`}
-        >
-          {completed ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <Clock3 className="h-4 w-4" />
-          )}
-        </div>
 
-        {!last && (
-          <div
-            className={`mt-1 min-h-[55px] w-0.5 transition ${
-              completed ? "bg-[#2E7D32]" : "bg-gray-200"
-            }`}
-          />
-        )}
-      </div>
-
-      <div className="pb-7">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3
-            className={`font-bold ${
-              active
-                ? "text-[#2E7D32] text-base"
-                : completed
-                ? "text-gray-900"
-                : "text-gray-500"
-            }`}
-          >
-            {title}
-          </h3>
-
-          {active && (
-            <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-black text-[#2E7D32]">
-              {currentStageLabel || "Current Stage"}
-            </span>
-          )}
-        </div>
-
-        <p className="mt-1 text-sm leading-5 text-gray-600">
-          {description}
-        </p>
-      </div>
-    </div>
-  );
-}
 
 function DetailCard({
   icon,
