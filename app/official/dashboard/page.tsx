@@ -31,6 +31,7 @@ import {
 import { broadcastProcurementUpdate, subscribeProcurementUpdates } from "@/lib/cross-tab-sync";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { BrandLogo } from "@/components/BrandLogo";
 import { BookingCropItem } from "@/lib/types";
 
 type Booking = {
@@ -774,8 +775,7 @@ export default function OfficialDashboardPage() {
             }
             className="flex items-center gap-2 font-bold text-[#2E7D32]"
           >
-            <Sprout className="h-6 w-6" />
-
+            <BrandLogo size="xs" />
             {t("common.appName")}
           </button>
 

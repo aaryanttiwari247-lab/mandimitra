@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { BrandLogo } from "@/components/BrandLogo";
 
 import { loginOfficial } from "@/lib/official-auth";
 
@@ -103,12 +104,7 @@ export default function OfficialLoginPage() {
           {/* BRAND */}
 
           <div className="flex items-center gap-3">
-
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F5E9]">
-
-              <Sprout className="h-6 w-6 text-[#2E7D32]" />
-
-            </div>
+            <BrandLogo size="md" />
 
             <div>
 

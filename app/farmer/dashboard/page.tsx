@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { BrandLogo } from "@/components/BrandLogo";
 
 
 import {
@@ -461,9 +462,7 @@ export default function FarmerDashboard() {
             }
             className="flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F5E9]">
-              <Sprout className="h-6 w-6 text-[#2E7D32]" />
-            </div>
+            <BrandLogo size="md" />
 
             <div className="text-left">
               <p className="text-lg font-bold text-[#2E7D32]">

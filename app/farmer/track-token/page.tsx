@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -546,7 +547,7 @@ function TrackTokenContent() {
             <div className="flex items-center gap-3">
               <LanguageSelector />
               <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-                <Sprout className="h-5 w-5" />
+                <BrandLogo size="xs" />
                 {t("common.appName")}
               </div>
             </div>
@@ -703,7 +704,7 @@ function TrackTokenContent() {
           <div className="flex items-center gap-3">
             <LanguageSelector />
             <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-              <Sprout className="h-5 w-5" />
+              <BrandLogo size="xs" />
               {t("common.appName")}
             </div>
           </div>

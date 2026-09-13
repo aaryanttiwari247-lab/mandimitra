@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { BrandLogo } from "@/components/BrandLogo";
 import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
 
 type Booking = {
@@ -211,7 +212,7 @@ export default function BookingConfirmationPage() {
               <LanguageSelector />
 
               <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-                <Sprout className="h-5 w-5" />
+                <BrandLogo size="xs" />
                 {t("common.appName")}
               </div>
             </div>

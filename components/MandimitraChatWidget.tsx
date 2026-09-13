@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/language-context";
+import { BrandLogo } from "@/components/BrandLogo";
 import { getFarmerSession, FarmerUser } from "@/lib/farmer-auth";
 import {
   startSpeechRecognition,
@@ -684,7 +685,7 @@ export function MandimitraChatWidget() {
           </span>
 
           <div className="flex items-center gap-1.5 font-bold">
-            <Sprout className="h-4 w-4" />
+            <BrandLogo size="xs" rounded="full" className="ring-1 ring-white/40" />
             <span>MandiHelp</span>
           </div>
 
@@ -703,9 +704,7 @@ export function MandimitraChatWidget() {
             {/* HEADER */}
             <div className="flex items-center justify-between bg-[#2E7D32] px-3 py-2 text-white">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white shadow-xs">
-                  <Sprout className="h-4 w-4" />
-                </div>
+                <BrandLogo size="xs" rounded="full" className="ring-1 ring-white/40" />
                 <div>
                   <div className="flex items-center gap-1">
                     <h3 className="font-bold text-xs sm:text-sm leading-tight">

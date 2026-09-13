@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { BrandLogo } from "@/components/BrandLogo";
 
 import {
   saveFarmerSession,
@@ -156,9 +157,7 @@ export default function FarmerLogin() {
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F5E9]">
-                <Sprout className="h-6 w-6 text-[#2E7D32]" />
-              </div>
+              <BrandLogo size="md" />
 
               <div>
                 <p className="font-bold text-[#176B2B]">{t("common.appName")}</p>
@@ -256,8 +255,8 @@ export default function FarmerLogin() {
       <section className="flex min-h-[calc(100vh-73px)] items-center justify-center px-5 py-10">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E8F5E9]">
-              <Sprout className="h-8 w-8 text-[#2E7D32]" />
+            <div className="mx-auto flex justify-center">
+              <BrandLogo size="lg" rounded="full" className="ring-4 ring-[#E8F5E9]" />
             </div>
 
             <h1 className="mt-5 text-3xl font-bold text-[#1F2933]">

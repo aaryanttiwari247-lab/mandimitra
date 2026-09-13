@@ -28,6 +28,7 @@ import { broadcastProcurementUpdate } from "@/lib/cross-tab-sync";
 import { matchesBookingIdentifier } from "@/lib/procurement-store";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { BrandLogo } from "@/components/BrandLogo";
 import { CancellationModal } from "@/components/CancellationModal";
 import { BookingCropItem } from "@/lib/types";
 
@@ -781,7 +782,7 @@ function ProcurementContent() {
               <LanguageSelector />
 
               <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-                <Sprout className="h-5 w-5" />
+                <BrandLogo size="xs" />
                 {t("common.appName")}
               </div>
             </div>
@@ -861,7 +862,7 @@ function ProcurementContent() {
             <LanguageSelector />
 
             <div className="flex items-center gap-2 font-semibold text-[#2E7D32]">
-              <Sprout className="h-5 w-5" />
+              <BrandLogo size="xs" />
               {t("common.appName")}
             </div>
           </div>

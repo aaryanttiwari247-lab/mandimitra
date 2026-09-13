@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function Home() {
   const { t } = useLanguage();
@@ -23,9 +24,7 @@ export default function Home() {
         <div className="mx-auto flex h-[70px] max-w-[1320px] items-center justify-between px-6">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e8f5e9]">
-              <Sprout className="h-6 w-6 text-[#2e7d32]" />
-            </div>
+            <BrandLogo size="md" />
 
             <div>
               <h1 className="text-[19px] font-bold leading-tight text-[#176b2b]">

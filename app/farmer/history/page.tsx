@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
+import { BrandLogo } from "@/components/BrandLogo";
 
 import {
   getFarmerSession,
@@ -473,11 +474,8 @@ export default function FarmerHistoryPage() {
             }
             className="flex items-center gap-2 font-bold text-[#2E7D32]"
           >
-
-            <Sprout className="h-5 w-5" />
-
+            <BrandLogo size="xs" />
             {t("common.appName")}
-
           </button>
 
 
