@@ -34,7 +34,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { getFarmerSession, clearFarmerSession, FarmerUser } from "@/lib/farmer-auth";
 import { formatINR, getCropMspData } from "@/lib/msp-rates";
 import { subscribeProcurementUpdates, ProcurementSyncMessage } from "@/lib/cross-tab-sync";
@@ -1638,114 +1638,142 @@ function TrackTokenContent() {
                 </div>
 
                 {/* HORIZONTAL FILING STAGES CONTAINER */}
-                <div className="mt-6 flex overflow-x-auto gap-3 pb-3 pt-1 lg:grid lg:grid-cols-5 no-scrollbar snap-x">
+                <div className="mt-5 flex items-stretch overflow-x-auto gap-1 sm:gap-1.5 pb-2.5 pt-1 no-scrollbar snap-x">
                   {farmerFilingStages.map((stage, idx) => {
                     const StageIcon = stage.icon;
                     return (
-                      <div
-                        key={stage.id}
-                        className="min-w-[210px] lg:min-w-0 flex-1 snap-start flex flex-col"
-                      >
-                        {/* TOP FILING FOLDER TAB */}
-                        <div className="flex items-center justify-between">
-                          <div
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-t-xl text-[11px] font-black uppercase tracking-wider border-t border-x ${
-                              stage.completed
-                                ? "bg-emerald-100 text-[#13491E] border-emerald-300"
-                                : stage.active
-                                ? "bg-[#13491E] text-white border-[#13491E] shadow-xs"
-                                : "bg-gray-100 text-gray-500 border-gray-200"
-                            }`}
-                          >
-                            <span>File #{stage.stepNumber}</span>
-                          </div>
-                          {idx < 4 && (
-                            <div className="hidden lg:flex items-center text-gray-300 pr-2">
-                              <ChevronRight className="h-4 w-4" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* MAIN FILING CARD BODY */}
+                      <Fragment key={stage.id}>
                         <div
-                          className={`flex-1 flex flex-col justify-between rounded-b-2xl rounded-tr-2xl p-4 transition-all ${
-                            stage.completed
-                              ? "border border-emerald-300 bg-gradient-to-b from-emerald-50/60 to-white shadow-xs"
-                              : stage.active
-                              ? "border-2 border-[#13491E] bg-gradient-to-b from-white to-[#F1F8F2] shadow-md ring-4 ring-[#13491E]/10"
-                              : "border border-gray-200 bg-gray-50/50 opacity-80"
-                          }`}
+                          className="min-w-[160px] sm:min-w-[180px] lg:min-w-0 flex-1 snap-start flex flex-col"
                         >
-                          <div>
-                            <div className="flex items-center justify-between gap-2">
-                              <div
-                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-xs ${
-                                  stage.completed
-                                    ? "bg-[#13491E] text-white"
-                                    : stage.active
-                                    ? "bg-[#13491E] text-white animate-pulse"
-                                    : "bg-gray-200 text-gray-500"
-                                }`}
-                              >
-                                {stage.completed ? (
-                                  <CheckCircle2 className="h-4 w-4" />
-                                ) : (
-                                  <StageIcon className="h-4 w-4" />
-                                )}
-                              </div>
-
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                                  stage.completed
-                                    ? "bg-emerald-100 text-[#13491E]"
-                                    : stage.active
-                                    ? "bg-[#13491E] text-white"
-                                    : "bg-gray-100 text-gray-400"
-                                }`}
-                              >
-                                {stage.completed
-                                  ? "Completed"
+                          {/* TOP FILING FOLDER TAB */}
+                          <div className="flex items-center">
+                            <div
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-t-lg text-[9px] sm:text-[10px] font-black uppercase tracking-wider border-t border-x ${
+                                stage.completed
+                                  ? "bg-emerald-100 text-[#13491E] border-emerald-300"
                                   : stage.active
-                                  ? "In Progress"
-                                  : "Upcoming"}
-                              </span>
-                            </div>
-
-                            <h4
-                              className={`mt-3 text-sm font-black tracking-tight ${
-                                stage.active
-                                  ? "text-[#13491E]"
-                                  : stage.completed
-                                  ? "text-gray-950"
-                                  : "text-gray-500"
+                                  ? "bg-[#13491E] text-white border-[#13491E] shadow-xs"
+                                  : "bg-gray-100 text-gray-500 border-gray-200"
                               }`}
                             >
-                              {stage.title}
-                            </h4>
-
-                            <p className="mt-1.5 text-xs text-gray-600 leading-relaxed">
-                              {stage.description}
-                            </p>
+                              <span>File #{stage.stepNumber}</span>
+                            </div>
                           </div>
 
-                          {/* BOTTOM STATUS FOOTER */}
-                          <div className="mt-4 pt-2.5 border-t border-dashed border-gray-200 text-[10px] font-bold text-gray-500 flex items-center justify-between">
-                            <span>Desk #{stage.stepNumber}</span>
-                            {stage.completed && (
-                              <span className="text-[#13491E] font-black">Cleared ✓</span>
-                            )}
-                            {stage.active && (
-                              <span className="text-[#13491E] font-black flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#13491E] animate-ping" />
-                                Active Now
-                              </span>
-                            )}
-                            {!stage.completed && !stage.active && (
-                              <span className="text-gray-400">Queued</span>
-                            )}
+                          {/* MAIN FILING CARD BODY */}
+                          <div
+                            className={`flex-1 flex flex-col justify-between rounded-b-xl rounded-tr-xl p-2.5 sm:p-3 transition-all ${
+                              stage.completed
+                                ? "border border-emerald-300 bg-gradient-to-b from-emerald-50/60 to-white shadow-xs"
+                                : stage.active
+                                ? "border-2 border-[#13491E] bg-gradient-to-b from-white to-[#F1F8F2] shadow-md ring-2 ring-[#13491E]/15"
+                                : "border border-gray-200 bg-gray-50/50 opacity-80"
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-1.5">
+                                <div
+                                  className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-lg shadow-xs ${
+                                    stage.completed
+                                      ? "bg-[#13491E] text-white"
+                                      : stage.active
+                                      ? "bg-[#13491E] text-white animate-pulse"
+                                      : "bg-gray-200 text-gray-500"
+                                  }`}
+                                >
+                                  {stage.completed ? (
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <StageIcon className="h-3.5 w-3.5" />
+                                  )}
+                                </div>
+
+                                <span
+                                  className={`rounded-full px-1.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-wider ${
+                                    stage.completed
+                                      ? "bg-emerald-100 text-[#13491E]"
+                                      : stage.active
+                                      ? "bg-[#13491E] text-white"
+                                      : "bg-gray-100 text-gray-400"
+                                  }`}
+                                >
+                                  {stage.completed
+                                    ? "Completed"
+                                    : stage.active
+                                    ? "In Progress"
+                                    : "Upcoming"}
+                                </span>
+                              </div>
+
+                              <h4
+                                className={`mt-2 text-xs font-black tracking-tight leading-snug line-clamp-1 sm:line-clamp-none ${
+                                  stage.active
+                                    ? "text-[#13491E]"
+                                    : stage.completed
+                                    ? "text-gray-950"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                {stage.title}
+                              </h4>
+
+                              <p className="mt-1 text-[10px] sm:text-[11px] text-gray-500 leading-snug line-clamp-2 sm:line-clamp-3">
+                                {stage.description}
+                              </p>
+                            </div>
+
+                            {/* BOTTOM STATUS FOOTER */}
+                            <div className="mt-2.5 pt-2 border-t border-dashed border-gray-200 text-[9px] font-bold text-gray-400 flex items-center justify-between">
+                              <span>Desk #{stage.stepNumber}</span>
+                              {stage.completed && (
+                                <span className="text-[#13491E] font-black">Cleared ✓</span>
+                              )}
+                              {stage.active && (
+                                <span className="text-[#13491E] font-black flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#13491E] animate-ping" />
+                                  Active Now
+                                </span>
+                              )}
+                              {!stage.completed && !stage.active && (
+                                <span className="text-gray-400">Queued</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
+
+                        {/* FAT SLIDER ARROW CONNECTOR */}
+                        {idx < farmerFilingStages.length - 1 && (
+                          <div className="flex items-center justify-center shrink-0 self-center px-0.5 select-none">
+                            <div className="flex items-center">
+                              <div
+                                className={`h-2 w-1 sm:w-2 rounded-l-full transition-colors ${
+                                  stage.completed ? "bg-[#13491E]" : "bg-gray-200"
+                                }`}
+                              />
+                              <div
+                                className={`flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full border-2 transition-all shadow-xs ${
+                                  stage.completed
+                                    ? "bg-[#13491E] border-[#0E3616] text-white shadow-emerald-950/20"
+                                    : stage.active
+                                    ? "bg-[#13491E] border-[#13491E] text-white ring-2 ring-[#13491E]/20 animate-pulse"
+                                    : "bg-white border-gray-300 text-gray-400"
+                                }`}
+                                title="Next Step"
+                              >
+                                <ArrowRight className="h-3.5 w-3.5 stroke-[3.5]" />
+                              </div>
+                              <div
+                                className={`h-2 w-1 sm:w-2 rounded-r-full transition-colors ${
+                                  farmerFilingStages[idx + 1]?.completed || farmerFilingStages[idx + 1]?.active
+                                    ? "bg-[#13491E]"
+                                    : "bg-gray-200"
+                                }`}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </div>
