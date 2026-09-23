@@ -1174,7 +1174,7 @@ function ProcurementContent() {
                 description: "Final Mandi voucher sealed and electronic DBT payout disbursed to farmer bank account.",
                 icon: IndianRupee,
                 completed: currentStatus === "COMPLETED",
-                active: currentStatus === "COMPLETED",
+                active: false,
               },
             ];
 

@@ -1601,8 +1601,8 @@ function TrackTokenContent() {
                     ? t("tracker.step5DescCompleted")
                     : t("tracker.step5DescDefault"),
                 icon: IndianRupee,
-                completed: isStepComplete("COMPLETED"),
-                active: isCurrentStep("COMPLETED"),
+                completed: currentStatus === "COMPLETED",
+                active: false,
               },
             ];
 
