@@ -23,6 +23,7 @@ import {
   saveFarmerSession,
   saveOtp,
   getOtp,
+  isValidOtp,
   clearFarmerSession,
   FarmerUser,
   findFarmerByAadhaar,
@@ -92,6 +93,8 @@ export default function FarmerLogin() {
   const [smsDeliveryStatus, setSmsDeliveryStatus] = useState<string>("");
 
   const handleContinue = async () => {
+    if (sendingOtp) return;
+
     if (loginMethod === "mobile") {
       if (mobile.length !== 10) {
         setMessage(t("auth.invalidMobile") || "Please enter a valid 10-digit mobile number.");
@@ -154,16 +157,39 @@ export default function FarmerLogin() {
       return;
     }
 
-    const storedOtp = getOtp();
-
-    if (!storedOtp || otp !== storedOtp) {
-      setMessage(t("auth.invalidOtp") || "Incorrect OTP. Please try again.");
-      return;
-    }
-
     setVerifying(true);
+    setMessage("");
 
     const cleanAadhaar = loginMethod === "aadhaar" ? aadhaar.replace(/\D/g, "") : undefined;
+    const targetMobile = loginMethod === "mobile" ? mobile : undefined;
+
+    // Check client-side stored OTPs first (instant validation)
+    let isMatch = isValidOtp(otp);
+
+    // If client doesn't match directly, verify with server-side dispatched SMS OTPs
+    if (!isMatch) {
+      try {
+        const verifyRes = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mobile: targetMobile,
+            aadhaar: cleanAadhaar,
+            otp: otp.trim(),
+          }),
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyData.success) {
+          isMatch = true;
+        }
+      } catch {}
+    }
+
+    if (!isMatch) {
+      setVerifying(false);
+      setMessage(t("auth.invalidOtp") || "Incorrect OTP. Please enter the OTP received on your mobile.");
+      return;
+    }
 
     try {
       const res = await fetch("/api/farmers/auth", {
@@ -214,6 +240,7 @@ export default function FarmerLogin() {
 
   // {t("auth.resendOtp")}
   const handleResend = async () => {
+    if (sendingOtp) return;
     setSendingOtp(true);
     const targetMobile = loginMethod === "mobile" ? mobile : undefined;
     const cleanAadhaar = loginMethod === "aadhaar" ? aadhaar.replace(/\D/g, "") : undefined;
@@ -225,6 +252,7 @@ export default function FarmerLogin() {
         body: JSON.stringify({
           mobile: targetMobile,
           aadhaar: cleanAadhaar,
+          isResend: true,
         }),
       });
       const data = await res.json();
