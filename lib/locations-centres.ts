@@ -33,47 +33,49 @@ export interface LocationOption {
   name: string;
   state: string;
   centresCount: number;
+  latitude: number;
+  longitude: number;
 }
 
 export const LOCATIONS_DATA: LocationOption[] = [
   // Madhya Pradesh (18 major agricultural districts)
-  { id: "bhopal", name: "Bhopal", state: "Madhya Pradesh", centresCount: 4 },
-  { id: "sehore", name: "Sehore", state: "Madhya Pradesh", centresCount: 4 },
-  { id: "narmadapuram", name: "Narmadapuram", state: "Madhya Pradesh", centresCount: 4 },
-  { id: "raisen", name: "Raisen", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "vidisha", name: "Vidisha", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "khargone", name: "Khargone", state: "Madhya Pradesh", centresCount: 4 },
-  { id: "khandwa", name: "Khandwa", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "dhar", name: "Dhar", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "harda", name: "Harda", state: "Madhya Pradesh", centresCount: 2 },
-  { id: "chhindwara", name: "Chhindwara", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "indore", name: "Indore", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "ujjain", name: "Ujjain", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "dewas", name: "Dewas", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "sagar", name: "Sagar", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "jabalpur", name: "Jabalpur", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "gwalior", name: "Gwalior", state: "Madhya Pradesh", centresCount: 2 },
-  { id: "morena", name: "Morena", state: "Madhya Pradesh", centresCount: 3 },
-  { id: "ratlam", name: "Ratlam", state: "Madhya Pradesh", centresCount: 2 },
+  { id: "bhopal", name: "Bhopal", state: "Madhya Pradesh", centresCount: 4, latitude: 23.2599, longitude: 77.4126 },
+  { id: "sehore", name: "Sehore", state: "Madhya Pradesh", centresCount: 4, latitude: 23.2032, longitude: 77.0844 },
+  { id: "narmadapuram", name: "Narmadapuram", state: "Madhya Pradesh", centresCount: 4, latitude: 22.7519, longitude: 77.7289 },
+  { id: "raisen", name: "Raisen", state: "Madhya Pradesh", centresCount: 3, latitude: 23.3304, longitude: 77.7818 },
+  { id: "vidisha", name: "Vidisha", state: "Madhya Pradesh", centresCount: 3, latitude: 23.5251, longitude: 77.8081 },
+  { id: "khargone", name: "Khargone", state: "Madhya Pradesh", centresCount: 4, latitude: 21.8219, longitude: 75.6190 },
+  { id: "khandwa", name: "Khandwa", state: "Madhya Pradesh", centresCount: 3, latitude: 21.8314, longitude: 76.3498 },
+  { id: "dhar", name: "Dhar", state: "Madhya Pradesh", centresCount: 3, latitude: 22.5978, longitude: 75.2974 },
+  { id: "harda", name: "Harda", state: "Madhya Pradesh", centresCount: 2, latitude: 22.3444, longitude: 77.0935 },
+  { id: "chhindwara", name: "Chhindwara", state: "Madhya Pradesh", centresCount: 3, latitude: 22.0574, longitude: 78.9382 },
+  { id: "indore", name: "Indore", state: "Madhya Pradesh", centresCount: 3, latitude: 22.7196, longitude: 75.8577 },
+  { id: "ujjain", name: "Ujjain", state: "Madhya Pradesh", centresCount: 3, latitude: 23.1765, longitude: 75.7885 },
+  { id: "dewas", name: "Dewas", state: "Madhya Pradesh", centresCount: 3, latitude: 22.9676, longitude: 76.0534 },
+  { id: "sagar", name: "Sagar", state: "Madhya Pradesh", centresCount: 3, latitude: 23.8388, longitude: 78.7378 },
+  { id: "jabalpur", name: "Jabalpur", state: "Madhya Pradesh", centresCount: 3, latitude: 23.1815, longitude: 79.9864 },
+  { id: "gwalior", name: "Gwalior", state: "Madhya Pradesh", centresCount: 2, latitude: 26.2183, longitude: 78.1828 },
+  { id: "morena", name: "Morena", state: "Madhya Pradesh", centresCount: 3, latitude: 26.4948, longitude: 77.9940 },
+  { id: "ratlam", name: "Ratlam", state: "Madhya Pradesh", centresCount: 2, latitude: 23.3315, longitude: 75.0367 },
 
   // Rajasthan (3 major mandis)
-  { id: "kota", name: "Kota", state: "Rajasthan", centresCount: 3 },
-  { id: "ganganagar", name: "Sri Ganganagar", state: "Rajasthan", centresCount: 3 },
-  { id: "jaipur", name: "Jaipur", state: "Rajasthan", centresCount: 2 },
+  { id: "kota", name: "Kota", state: "Rajasthan", centresCount: 3, latitude: 25.2138, longitude: 75.8648 },
+  { id: "ganganagar", name: "Sri Ganganagar", state: "Rajasthan", centresCount: 3, latitude: 29.9038, longitude: 73.8772 },
+  { id: "jaipur", name: "Jaipur", state: "Rajasthan", centresCount: 2, latitude: 26.9124, longitude: 75.7873 },
 
   // Haryana (2 major mandis)
-  { id: "karnal", name: "Karnal", state: "Haryana", centresCount: 3 },
-  { id: "ambala", name: "Ambala", state: "Haryana", centresCount: 2 },
+  { id: "karnal", name: "Karnal", state: "Haryana", centresCount: 3, latitude: 29.6857, longitude: 76.9905 },
+  { id: "ambala", name: "Ambala", state: "Haryana", centresCount: 2, latitude: 30.3782, longitude: 76.7767 },
 
   // Punjab (1 major grain hub)
-  { id: "ludhiana", name: "Ludhiana", state: "Punjab", centresCount: 3 },
+  { id: "ludhiana", name: "Ludhiana", state: "Punjab", centresCount: 3, latitude: 30.9010, longitude: 75.8573 },
 
   // Maharashtra (2 major cotton & pulse hubs)
-  { id: "nagpur", name: "Nagpur", state: "Maharashtra", centresCount: 3 },
-  { id: "akola", name: "Akola", state: "Maharashtra", centresCount: 2 },
+  { id: "nagpur", name: "Nagpur", state: "Maharashtra", centresCount: 3, latitude: 21.1458, longitude: 79.0882 },
+  { id: "akola", name: "Akola", state: "Maharashtra", centresCount: 2, latitude: 20.7002, longitude: 77.0082 },
 
   // Uttar Pradesh (1 major hub)
-  { id: "meerut", name: "Meerut", state: "Uttar Pradesh", centresCount: 2 },
+  { id: "meerut", name: "Meerut", state: "Uttar Pradesh", centresCount: 2, latitude: 28.9845, longitude: 77.7064 },
 ];
 
 export const PROCUREMENT_CENTRES: ProcurementCentre[] = [
@@ -1488,3 +1490,167 @@ export function getCentreByName(centreName?: string): ProcurementCentre | undefi
       c.id.toLowerCase() === clean
   );
 }
+
+// =========================================================================
+// GEOSPATIAL DISTANCE & NEAREST CENTRE CALCULATIONS
+// =========================================================================
+
+/**
+ * Haversine formula to compute great-circle distance between two GPS coordinates in kilometers.
+ */
+export function calculateHaversineDistanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth's mean radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export function getLocationCoordinates(
+  locationName?: string
+): { latitude: number; longitude: number } | null {
+  if (!locationName) return null;
+  const clean = locationName.toLowerCase().trim();
+  const matched = LOCATIONS_DATA.find(
+    (l) => l.name.toLowerCase() === clean || clean.includes(l.name.toLowerCase()) || l.id === clean
+  );
+  if (matched) {
+    return { latitude: matched.latitude, longitude: matched.longitude };
+  }
+  return null;
+}
+
+export function getDistanceBetweenDistricts(
+  fromDistrict: string,
+  toDistrict: string
+): number {
+  if (!fromDistrict || !toDistrict) return 0;
+  if (fromDistrict.toLowerCase().trim() === toDistrict.toLowerCase().trim()) return 0;
+
+  const c1 = getLocationCoordinates(fromDistrict);
+  const c2 = getLocationCoordinates(toDistrict);
+  if (!c1 || !c2) return 50; // fallback estimated inter-district distance
+
+  const straightLine = calculateHaversineDistanceKm(
+    c1.latitude,
+    c1.longitude,
+    c2.latitude,
+    c2.longitude
+  );
+  // Realistic road winding factor (1.25)
+  return Math.round(straightLine * 1.25 * 10) / 10;
+}
+
+export function getEffectiveDistanceToCentre(
+  fromDistrict: string,
+  centre: ProcurementCentre
+): {
+  distanceKm: number;
+  distanceFormatted: string;
+  isCrossDistrict: boolean;
+} {
+  const localDist = parseFloat(centre.distance) || 4.5;
+  const isSameDistrict =
+    fromDistrict.toLowerCase().trim() === centre.location.toLowerCase().trim();
+
+  if (isSameDistrict) {
+    return {
+      distanceKm: localDist,
+      distanceFormatted: `${localDist.toFixed(1)} km away`,
+      isCrossDistrict: false,
+    };
+  }
+
+  const interDistrictRoadKm = getDistanceBetweenDistricts(fromDistrict, centre.location);
+  const totalKm = Math.round((interDistrictRoadKm + localDist) * 10) / 10;
+
+  return {
+    distanceKm: totalKm,
+    distanceFormatted: `${totalKm.toFixed(1)} km away (${centre.location})`,
+    isCrossDistrict: true,
+  };
+}
+
+export interface NearestCentreResult extends ProcurementCentre {
+  calculatedDistanceKm: number;
+  distanceFormatted: string;
+  isCrossDistrict: boolean;
+  compatibility: {
+    accepted: string[];
+    unaccepted: string[];
+    isFullyCompatible: boolean;
+    isPartiallyCompatible: boolean;
+    matchPercentage: number;
+  };
+}
+
+/**
+ * Returns procurement centres that ACTUALLY accept the specified crop(s),
+ * sorted ascending by distance from the specified district (nearest first).
+ */
+export function findNearestCentresForCrops(
+  crops: string[],
+  fromDistrict: string = "Bhopal",
+  limit: number = 6
+): NearestCentreResult[] {
+  const cleanCrops = (crops || []).filter(Boolean);
+
+  if (cleanCrops.length === 0) {
+    const local = getCentresByLocation(fromDistrict);
+    return local.map((c) => {
+      const eff = getEffectiveDistanceToCentre(fromDistrict, c);
+      return {
+        ...c,
+        calculatedDistanceKm: eff.distanceKm,
+        distanceFormatted: eff.distanceFormatted,
+        isCrossDistrict: eff.isCrossDistrict,
+        compatibility: {
+          accepted: [],
+          unaccepted: [],
+          isFullyCompatible: true,
+          isPartiallyCompatible: true,
+          matchPercentage: 100,
+        },
+      };
+    });
+  }
+
+  // Filter centres that accept AT LEAST ONE of the requested crops
+  const candidates: NearestCentreResult[] = [];
+
+  for (const centre of PROCUREMENT_CENTRES) {
+    const comp = centreCropCompatibility(centre, cleanCrops);
+    if (comp.accepted.length > 0) {
+      const eff = getEffectiveDistanceToCentre(fromDistrict, centre);
+      candidates.push({
+        ...centre,
+        calculatedDistanceKm: eff.distanceKm,
+        distanceFormatted: eff.distanceFormatted,
+        isCrossDistrict: eff.isCrossDistrict,
+        compatibility: comp,
+      });
+    }
+  }
+
+  // Sort: Fully compatible first (100%), then by calculated distance ascending
+  candidates.sort((a, b) => {
+    if (a.compatibility.isFullyCompatible !== b.compatibility.isFullyCompatible) {
+      return a.compatibility.isFullyCompatible ? -1 : 1;
+    }
+    return a.calculatedDistanceKm - b.calculatedDistanceKm;
+  });
+
+  return candidates.slice(0, limit);
+}
+

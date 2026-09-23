@@ -3,6 +3,8 @@ import { normalizeCropName } from "./msp-rates";
 export type CentreCongestion = {
   centreId: string;
   name: string;
+  location?: string;
+  isCrossDistrict?: boolean;
   distanceKm: number;
   activeQueueCount: number;
   estimatedWaitMinutes: number;
@@ -28,6 +30,11 @@ export type SmartRecommendationResult = {
     name: string;
     distance: string;
     distanceKm: number;
+    location?: string;
+    isCrossDistrict?: boolean;
+    isCompatible?: boolean;
+    isFullyCompatible?: boolean;
+    isNearest?: boolean;
     waitMinutes: number;
     estimatedWaitMinutes?: number;
     activeQueueCount: number;
@@ -42,6 +49,11 @@ export type SmartRecommendationResult = {
     name: string;
     distance: string;
     distanceKm: number;
+    location?: string;
+    isCrossDistrict?: boolean;
+    isCompatible?: boolean;
+    isFullyCompatible?: boolean;
+    isNearest?: boolean;
     waitMinutes: number;
     estimatedWaitMinutes: number;
     activeQueueCount: number;
@@ -107,11 +119,11 @@ export function calculateBestCentreAndSlot(
     throw new Error("No procurement centres available for recommendation");
   }
 
-  // Weightings
-  const W_DISTANCE = 0.30;
-  const W_WAIT = 0.40;
+  // Weightings: Distance is given top priority (40%) to ensure nearest centre is favored
+  const W_DISTANCE = 0.40;
+  const W_WAIT = 0.35;
   const W_QUEUE = 0.15;
-  const W_CROP = 0.15;
+  const W_CROP = 0.10;
 
   // Max values for normalization
   const maxDistance = Math.max(...centres.map((c) => c.distanceKm), 10);
@@ -140,9 +152,9 @@ export function calculateBestCentreAndSlot(
       if (cropMatchRate === 1.0) {
         cropPenalty = 0.0; // Perfect match
       } else if (cropMatchRate > 0) {
-        cropPenalty = 0.60; // Partial match
+        cropPenalty = 0.50; // Partial match
       } else {
-        cropPenalty = 3.0; // Incompatible centre heavily penalized
+        cropPenalty = 1000.0; // Incompatible centre heavily disqualified
       }
     }
 
@@ -161,9 +173,27 @@ export function calculateBestCentreAndSlot(
     };
   });
 
-  // Sort ascending (lowest score is best)
-  scoredCentres.sort((a, b) => a.score - b.score);
-  const bestCentre = scoredCentres[0];
+  // Group into fully compatible, partially compatible, and incompatible
+  const fullyCompatible = scoredCentres.filter((c) => c.cropMatchRate === 1.0);
+  const partiallyCompatible = scoredCentres.filter((c) => c.cropMatchRate > 0 && c.cropMatchRate < 1.0);
+
+  // Eligible pool: STRICTLY prioritize compatible centres over incompatible ones.
+  // An incompatible centre will NEVER be chosen if any compatible centre exists.
+  let eligiblePool = fullyCompatible;
+  if (eligiblePool.length === 0 && partiallyCompatible.length > 0) {
+    eligiblePool = partiallyCompatible;
+  }
+  if (eligiblePool.length === 0) {
+    eligiblePool = scoredCentres;
+  }
+
+  // Sort eligible candidates ascending by score
+  eligiblePool.sort((a, b) => a.score - b.score);
+  const bestCentre = eligiblePool[0];
+
+  const isCompatible = cleanRequestedCrops.length === 0 || bestCentre.cropMatchRate > 0;
+  const isFullyCompatible = cleanRequestedCrops.length === 0 || bestCentre.cropMatchRate === 1.0;
+  const isNearestAmongEligible = eligiblePool.every((c) => c.distanceKm >= bestCentre.distanceKm);
 
   // Evaluate optimal slot
   let optimalSlot = slots[0];
@@ -188,7 +218,7 @@ export function calculateBestCentreAndSlot(
   const travelMinutes = Math.max(10, Math.round((bestCentre.distanceKm / 25) * 60));
   const advice = `Travel time is approx ${travelMinutes} mins. Leave ${travelMinutes + 15} minutes before your slot to complete gate reporting on time.`;
 
-  const secondBest = scoredCentres[1];
+  const secondBest = eligiblePool[1] || scoredCentres.find((c) => c.centreId !== bestCentre.centreId);
   const timeSavedMinutes = secondBest
     ? Math.max(0, secondBest.estimatedWaitMinutes - bestCentre.estimatedWaitMinutes)
     : 0;
@@ -202,17 +232,28 @@ export function calculateBestCentreAndSlot(
     } else if (bestCentre.cropMatchRate > 0) {
       cropNote = `Partially accepts selected commodities. `;
     } else {
-      cropNote = `⚠️ Note: Selected crop is outside this centre's primary mandate. `;
+      cropNote = `⚠️ Note: No centre in this candidate list is mandated for ${cleanRequestedCrops.join(", ")}. `;
     }
   }
 
-  const reasoning = `${agencyLabel}Recommended ${bestCentre.name} — ${cropNote}Faster clearance (~${bestCentre.estimatedWaitMinutes}m wait vs ~${secondBest?.estimatedWaitMinutes ?? 90}m) with ${bestCentre.baysAvailable ?? 4} operational bays.`;
+  const crossDistrictNote = bestCentre.isCrossDistrict && bestCentre.location
+    ? ` (Nearest in ${bestCentre.location})`
+    : isNearestAmongEligible
+    ? " (Nearest authorized centre)"
+    : "";
+
+  const reasoning = `${agencyLabel}Recommended ${bestCentre.name}${crossDistrictNote} — ${cropNote}Shortest travel distance (${bestCentre.distanceKm.toFixed(1)} km) and fast clearance (~${bestCentre.estimatedWaitMinutes}m wait) with ${bestCentre.baysAvailable ?? 4} operational bays.`;
 
   const bestCentreObj = {
     centreId: bestCentre.centreId,
     name: bestCentre.name,
     distance: `${bestCentre.distanceKm.toFixed(1)} km away`,
     distanceKm: bestCentre.distanceKm,
+    location: bestCentre.location,
+    isCrossDistrict: Boolean(bestCentre.isCrossDistrict),
+    isCompatible,
+    isFullyCompatible,
+    isNearest: isNearestAmongEligible,
     waitMinutes: bestCentre.estimatedWaitMinutes,
     estimatedWaitMinutes: bestCentre.estimatedWaitMinutes,
     activeQueueCount: bestCentre.activeQueueCount,
@@ -220,7 +261,7 @@ export function calculateBestCentreAndSlot(
     score: bestCentre.score,
     acceptedCrops: bestCentre.acceptedCrops,
     agencyType: bestCentre.agencyType,
-    reason: `${agencyLabel}${cropNote}Fastest queue clearance with only ${bestCentre.estimatedWaitMinutes}m expected wait.`,
+    reason: `${agencyLabel}${cropNote}Shortest distance (${bestCentre.distanceKm.toFixed(1)} km) with ${bestCentre.estimatedWaitMinutes}m expected wait.`,
   };
 
   const slotCapacity = optimalSlot?.maxCapacity ?? 15;
@@ -246,13 +287,13 @@ export function calculateBestCentreAndSlot(
     reasoning,
     cropCompatibilitySummary: {
       requestedCrops: cleanRequestedCrops,
-      isFullyCompatible: bestCentre.cropMatchRate === 1.0,
+      isFullyCompatible,
       acceptedByBestCentre: (bestCentre.acceptedCrops || []).filter((ac) =>
         cleanRequestedCrops.some((rc) => normalizeCropName(rc) === normalizeCropName(ac))
       ),
     },
     departureAdvisor: {
-      suggestedDepartureTime: "15-20 min before slot",
+      suggestedDepartureTime: optimalSlot ? optimalSlot.shortTime : "10:00 AM",
       estimatedTravelMinutes: travelMinutes,
       advice,
     },

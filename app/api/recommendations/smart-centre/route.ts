@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { calculateBestCentreAndSlot, CentreCongestion, SlotCongestion } from "@/lib/recommendation-engine";
 import { getStoredQueue } from "@/lib/procurement-store";
-import { getCentresByLocation } from "@/lib/locations-centres";
+import {
+  getCentresByLocation,
+  findNearestCentresForCrops,
+  getEffectiveDistanceToCentre,
+  centreAcceptsCrop,
+  ProcurementCentre,
+} from "@/lib/locations-centres";
 import { getDynamicSlotsForCentre } from "@/lib/slot-service";
 
 export async function POST(req: Request) {
@@ -29,10 +35,45 @@ export async function POST(req: Request) {
     // Read current queue to calculate live congestion
     const liveQueue = getStoredQueue();
 
-    // Get centres allotted to the requested location
-    const allottedCentres = getCentresByLocation(location);
+    // Check centres allotted to the requested location
+    const localCentres = getCentresByLocation(location);
+    const localCompatibleCentres = localCentres.filter((c) =>
+      cleanRequestedCrops.length === 0 ||
+      cleanRequestedCrops.some((rc) => centreAcceptsCrop(c, rc))
+    );
 
-    const centresData: CentreCongestion[] = allottedCentres.map((c) => {
+    let candidateCentres: Array<ProcurementCentre & { distanceKm: number; isCrossDistrict: boolean }> = [];
+    const hasCompatibleLocalCentres = localCompatibleCentres.length > 0;
+
+    if (hasCompatibleLocalCentres || cleanRequestedCrops.length === 0) {
+      // Local centres can accept the crop
+      candidateCentres = localCentres.map((c) => {
+        const eff = getEffectiveDistanceToCentre(location, c);
+        return {
+          ...c,
+          distanceKm: eff.distanceKm,
+          isCrossDistrict: false,
+        };
+      });
+    } else {
+      // No local centre accepts the requested crop! Search nearest compatible centres across the network
+      const nearest = findNearestCentresForCrops(cleanRequestedCrops, location, 8);
+      candidateCentres = nearest.map((c) => ({
+        ...c,
+        distanceKm: c.calculatedDistanceKm,
+        isCrossDistrict: c.isCrossDistrict,
+      }));
+    }
+
+    if (candidateCentres.length === 0) {
+      candidateCentres = localCentres.map((c) => ({
+        ...c,
+        distanceKm: parseFloat(c.distance) || 5,
+        isCrossDistrict: false,
+      }));
+    }
+
+    const centresData: CentreCongestion[] = candidateCentres.map((c) => {
       const activeForCentre = liveQueue.filter(
         (b) =>
           (b.centreId === c.id || (b.centre && b.centre.toLowerCase() === c.name.toLowerCase())) &&
@@ -41,12 +82,13 @@ export async function POST(req: Request) {
       );
       const queueCount = activeForCentre.length;
       const dynamicWait = Math.max(c.baseWaitMinutes, queueCount * 4);
-      const numericDist = parseFloat(c.distance) || 4.5;
 
       return {
         centreId: c.id,
         name: c.name,
-        distanceKm: numericDist,
+        location: c.location,
+        isCrossDistrict: c.isCrossDistrict,
+        distanceKm: c.distanceKm,
         activeQueueCount: queueCount,
         estimatedWaitMinutes: dynamicWait,
         baysAvailable: c.bays,
@@ -57,7 +99,7 @@ export async function POST(req: Request) {
     });
 
     // Generate dynamic full-day slots for the target centre & date
-    const targetCentre = allottedCentres[0];
+    const targetCentre = candidateCentres[0] || localCentres[0];
     const targetDate = date || new Date().toISOString().split("T")[0];
     const dynamicSlots = getDynamicSlotsForCentre(targetCentre, targetDate, liveQueue);
 
@@ -84,6 +126,9 @@ export async function POST(req: Request) {
       requestedCrops: cleanRequestedCrops,
       quantity: Number(quantity),
       date: targetDate,
+      hasCompatibleLocalCentres,
+      isCrossDistrictRecommendation: !hasCompatibleLocalCentres,
+      homeDistrict: location,
       ...recommendation,
     });
   } catch (error: unknown) {

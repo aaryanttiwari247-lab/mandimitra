@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   CalendarDays,
@@ -37,6 +38,9 @@ import {
   getCentreByName,
   centreCropCompatibility,
   centreAcceptsCrop,
+  findNearestCentresForCrops,
+  getEffectiveDistanceToCentre,
+  NearestCentreResult,
   ProcurementCentre,
 } from "@/lib/locations-centres";
 import {
@@ -56,7 +60,13 @@ type SmartRecommendation = {
   bestCentre: {
     centreId: string;
     name: string;
+    distance?: string;
     distanceKm: number;
+    location?: string;
+    isCrossDistrict?: boolean;
+    isCompatible?: boolean;
+    isFullyCompatible?: boolean;
+    isNearest?: boolean;
     activeQueueCount: number;
     estimatedWaitMinutes: number;
     baysAvailable: number;
@@ -73,6 +83,9 @@ type SmartRecommendation = {
   };
   timeSavedMinutes: number;
   reasoning: string;
+  hasCompatibleLocalCentres?: boolean;
+  isCrossDistrictRecommendation?: boolean;
+  homeDistrict?: string;
 };
 
 export default function BookProcurementSlot() {
@@ -153,18 +166,40 @@ export default function BookProcurementSlot() {
     return () => window.removeEventListener("smartProcurementQueueUpdated", handleUpdate);
   }, []);
 
-  const availableCentres = useMemo(() => {
-    return getCentresByLocation(selectedLocation);
-  }, [selectedLocation]);
-
   const userCrops = useMemo(() => {
     return cropsList.map((c) => c.crop).filter(Boolean);
   }, [cropsList]);
 
+  const localCentres = useMemo(() => {
+    return getCentresByLocation(selectedLocation);
+  }, [selectedLocation]);
+
+  const nearestCentresOverall = useMemo(() => {
+    return findNearestCentresForCrops(userCrops, selectedLocation, 6);
+  }, [userCrops, selectedLocation]);
+
+  const nearestCompatibleCentre = nearestCentresOverall[0] || null;
+
+  const hasLocalCompatibleCentres = useMemo(() => {
+    if (userCrops.length === 0) return true;
+    return localCentres.some((c) => centreCropCompatibility(c, userCrops).isPartiallyCompatible);
+  }, [localCentres, userCrops]);
+
   const processedCentres = useMemo(() => {
-    const list = availableCentres.map((c) => {
+    // If local centres have compatible options, evaluate localCentres.
+    // If NO local centre is compatible (e.g. Cotton in Bhopal), seamlessly include nearestCentresOverall!
+    const baseList = hasLocalCompatibleCentres ? localCentres : nearestCentresOverall;
+
+    const list = baseList.map((c) => {
+      const eff = getEffectiveDistanceToCentre(selectedLocation, c);
       const compatibility = centreCropCompatibility(c, userCrops);
-      return { ...c, compatibility };
+      return {
+        ...c,
+        distanceFormatted: eff.distanceFormatted,
+        calculatedDistanceKm: eff.distanceKm,
+        isCrossDistrict: eff.isCrossDistrict,
+        compatibility,
+      };
     });
 
     if (onlyCompatibleCentres) {
@@ -172,10 +207,14 @@ export default function BookProcurementSlot() {
       if (fullyCompatible.length > 0) return fullyCompatible;
     }
 
-    return [...list].sort(
-      (a, b) => b.compatibility.matchPercentage - a.compatibility.matchPercentage
-    );
-  }, [availableCentres, userCrops, onlyCompatibleCentres]);
+    // Sort by compatibility first (full match first), then by distance ascending (nearest first)
+    return [...list].sort((a, b) => {
+      if (a.compatibility.isFullyCompatible !== b.compatibility.isFullyCompatible) {
+        return a.compatibility.isFullyCompatible ? -1 : 1;
+      }
+      return a.calculatedDistanceKm - b.calculatedDistanceKm;
+    });
+  }, [localCentres, nearestCentresOverall, hasLocalCompatibleCentres, selectedLocation, userCrops, onlyCompatibleCentres]);
 
   const [selectedCentre, setSelectedCentre] = useState(
     "Lakshmipur Procurement Centre"
@@ -183,26 +222,31 @@ export default function BookProcurementSlot() {
 
   const selectedCentreData = useMemo(() => {
     return (
+      nearestCentresOverall.find((centre) => centre.name === selectedCentre) ||
       processedCentres.find((centre) => centre.name === selectedCentre) ||
-      availableCentres.find((centre) => centre.name === selectedCentre) ||
+      localCentres.find((centre) => centre.name === selectedCentre) ||
       PROCUREMENT_CENTRES.find((centre) => centre.name === selectedCentre) ||
-      availableCentres[0]
+      processedCentres[0] ||
+      localCentres[0]
     );
-  }, [processedCentres, availableCentres, selectedCentre]);
+  }, [nearestCentresOverall, processedCentres, localCentres, selectedCentre]);
 
-  // When location or crop changes, auto-select recommended or first compatible centre in that location
+  // When location or crop changes, auto-select the nearest compatible centre
   useEffect(() => {
     if (processedCentres.length > 0) {
-      const match = processedCentres.some((c) => c.name === selectedCentre);
-      if (!match) {
-        const rec =
-          processedCentres.find((c) => c.recommended && c.compatibility.isFullyCompatible) ||
+      const currentSelectedObj = processedCentres.find((c) => c.name === selectedCentre);
+      // If current selected centre is incompatible with selected crops, auto-switch to nearest compatible!
+      if (!currentSelectedObj || !currentSelectedObj.compatibility.isFullyCompatible) {
+        const bestCompatible =
           processedCentres.find((c) => c.compatibility.isFullyCompatible) ||
+          nearestCompatibleCentre ||
           processedCentres[0];
-        setSelectedCentre(rec.name);
+        if (bestCompatible && bestCompatible.name !== selectedCentre) {
+          setSelectedCentre(bestCompatible.name);
+        }
       }
     }
-  }, [processedCentres, selectedCentre]);
+  }, [processedCentres, selectedCentre, nearestCompatibleCentre]);
 
   const [selectedSlot, setSelectedSlot] = useState("10:30 AM");
 
@@ -368,6 +412,13 @@ export default function BookProcurementSlot() {
 
     if (!selectedSlot) {
       alert("Please select a time slot.");
+      return;
+    }
+
+    // Verify crop compatibility before allowing confirmation
+    const compatibility = centreCropCompatibility(selectedCentreData, userCrops);
+    if (!compatibility.isFullyCompatible && compatibility.unaccepted.length > 0) {
+      alert(`⚠️ Cannot book at this centre: ${selectedCentreData.name} does not accept ${compatibility.unaccepted.join(", ")}. Please select a compatible centre.`);
       return;
     }
 
@@ -739,9 +790,21 @@ export default function BookProcurementSlot() {
                       <span className="text-xs font-bold uppercase tracking-wider text-[#2E7D32]">
                         {t("booking.aiRecommendation")}
                       </span>
-                      <h3 className="text-lg font-bold text-gray-900">
-                        {t("booking.recommendedTitle", { centre: smartRec.bestCentre.name })}
-                      </h3>
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                        <h3 className="text-lg font-bold text-gray-900">
+                          {t("booking.recommendedTitle", { centre: smartRec.bestCentre.name })}
+                        </h3>
+                        {smartRec.bestCentre.agencyType && (
+                          <span className="rounded-md bg-gray-800 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                            {smartRec.bestCentre.agencyType}
+                          </span>
+                        )}
+                        {smartRec.isCrossDistrictRecommendation && smartRec.bestCentre.location && (
+                          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-300">
+                            📍 Nearest in {smartRec.bestCentre.location}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -757,8 +820,13 @@ export default function BookProcurementSlot() {
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("booking.optimalCentre")}</p>
                     <p className="mt-1 font-bold text-gray-900">{smartRec.bestCentre.name}</p>
                     <p className="mt-0.5 text-xs text-gray-600">
-                      {smartRec.bestCentre.distanceKm} {t("booking.kmAway")} • {smartRec.bestCentre.baysAvailable} {t("booking.baysActive")}
+                      {smartRec.bestCentre.distance || `${smartRec.bestCentre.distanceKm} ${t("booking.kmAway")}`} • {smartRec.bestCentre.baysAvailable} {t("booking.baysActive")}
                     </p>
+                    {smartRec.bestCentre.location && (
+                      <p className="mt-0.5 text-[11px] font-semibold text-emerald-800">
+                        District: {smartRec.bestCentre.location}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("booking.suggestedSlot")}</p>
@@ -783,8 +851,11 @@ export default function BookProcurementSlot() {
                     onClick={() => {
                       setSelectedCentre(smartRec.bestCentre.name);
                       setSelectedSlot(smartRec.recommendedSlot.shortTime);
+                      if (smartRec.bestCentre.location && smartRec.bestCentre.location !== selectedLocation) {
+                        setSelectedLocation(smartRec.bestCentre.location);
+                      }
                     }}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#256428]"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#256428] cursor-pointer"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     {t("booking.applyRecommendation")}
@@ -1048,6 +1119,69 @@ export default function BookProcurementSlot() {
                   </span>
                 </div>
 
+                {/* CROSS-DISTRICT NOTICE IF LOCAL DISTRICT HAS ZERO COMPATIBLE CENTRES */}
+                {!hasLocalCompatibleCentres && userCrops.length > 0 && (
+                  <div className="mt-3 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-2xs">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-sm">
+                          {t("booking.noLocalCentresForCrop", { location: selectedLocation, crop: userCrops.join(", ") }) ||
+                            `No procurement centre in ${selectedLocation} is authorized for ${userCrops.join(", ")}.`}
+                        </p>
+                        <p className="mt-1 text-xs text-amber-800">
+                          {t("booking.nearestCrossDistrictNotice", { crop: userCrops.join(", ") }) ||
+                            `Showing nearest authorized centres in nearby districts accepting ${userCrops.join(", ")}:`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* DEDICATED NEAREST CENTRE FOR SELECTED CROP CARD */}
+                {nearestCompatibleCentre && userCrops.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-emerald-50/50 p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2E7D32] text-white shrink-0">
+                        <MapPin className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#2E7D32]">
+                          📍 {t("booking.nearestCentreBadge", { crop: userCrops.join(", ") }) || `Nearest Centre for ${userCrops.join(", ")}`}
+                        </span>
+                        <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                          <p className="text-sm font-bold text-gray-900">
+                            {nearestCompatibleCentre.name}
+                          </p>
+                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                            {nearestCompatibleCentre.distanceFormatted}
+                          </span>
+                          {nearestCompatibleCentre.agencyType && (
+                            <span className="rounded-md bg-gray-800 px-1.5 py-0.5 text-[10px] font-bold text-white uppercase">
+                              {nearestCompatibleCentre.agencyType}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {selectedCentre !== nearestCompatibleCentre.name && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCentre(nearestCompatibleCentre.name);
+                          if (nearestCompatibleCentre.location && nearestCompatibleCentre.location !== selectedLocation) {
+                            setSelectedLocation(nearestCompatibleCentre.location);
+                          }
+                        }}
+                        className="rounded-xl bg-[#2E7D32] px-3.5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#256428] transition active:scale-95 cursor-pointer"
+                      >
+                        {t("booking.nearestCentreAction") || "Select Nearest Centre"}
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Compatibility filter toggle */}
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-gray-50 p-2.5 border border-gray-200/80">
                   <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer">
@@ -1108,18 +1242,18 @@ export default function BookProcurementSlot() {
                                 )}
                                 {comp?.isFullyCompatible ? (
                                   <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                                    {t("booking.cropCompatible") || "✓ Accepts crops"}
+                                    ✓ {t("booking.cropCompatible") || "Accepts crops"}
                                   </span>
                                 ) : comp?.unaccepted && comp.unaccepted.length > 0 ? (
-                                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
-                                    ⚠️ {t("booking.cropIncompatible", { crops: comp.unaccepted.join(", ") }) || `Does not accept ${comp.unaccepted.join(", ")}`}
+                                  <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-800 border border-red-200">
+                                    ❌ {t("booking.cropIncompatible", { crops: comp.unaccepted.join(", ") }) || `Does not accept ${comp.unaccepted.join(", ")}`}
                                   </span>
                                 ) : null}
                               </div>
                             </div>
 
                             <p className="mt-1 text-xs text-gray-500">
-                              {centre.distance} • {centre.location}, {centre.state}
+                              {centre.distanceFormatted || centre.distance} • {centre.location}, {centre.state}
                             </p>
 
                             {/* Accepted Commodities list */}
@@ -1127,6 +1261,14 @@ export default function BookProcurementSlot() {
                               <span className="font-semibold text-gray-700">{t("booking.acceptedCropsLabel") || "Accepted Commodities"}:</span>{" "}
                               {centre.acceptedCrops.join(", ")}
                             </p>
+
+                            {/* Incompatible Alert within Card */}
+                            {selected && !comp?.isFullyCompatible && comp?.unaccepted && comp.unaccepted.length > 0 && (
+                              <div className="mt-2.5 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs font-semibold text-red-700">
+                                {t("booking.cannotAcceptWarning", { crop: comp.unaccepted.join(", ") }) ||
+                                  `⚠️ This centre does not accept ${comp.unaccepted.join(", ")}. Please select an authorized centre.`}
+                              </div>
+                            )}
 
                             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
                               <span className="rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700">
