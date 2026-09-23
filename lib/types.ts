@@ -48,6 +48,11 @@ export type BookingCropItem = {
   cropGrade?: "Grade A" | "Grade B" | "Grade C" | "Grade D" | string;
   mspRate?: number;
   totalPayout?: number;
+  minMspRate?: number;
+  maxMspRate?: number;
+  minPayout?: number;
+  maxPayout?: number;
+  estimatedPayoutRange?: string;
   moisture?: number;
 };
 
@@ -84,6 +89,9 @@ export type Booking = {
   cropGrade?: "Grade A" | "Grade B" | "Grade C" | "Grade D";
   mspRate?: number; // In Rs./quintal
   totalPayout?: number; // quantity * mspRate
+  minTotalPayout?: number;
+  maxTotalPayout?: number;
+  estimatedPayoutRange?: string;
   actualQuantity?: number; // Weighed quantity in quintals
   paymentStatus?: "PENDING" | "CALCULATED" | "APPROVED" | "PAID";
 

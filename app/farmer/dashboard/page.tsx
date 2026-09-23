@@ -82,11 +82,15 @@ type Booking = {
     cropGrade?: string;
     mspRate?: number;
     totalPayout?: number;
+    estimatedPayoutRange?: string;
   }>;
 
   cropGrade?: "Grade A" | "Grade B" | "Grade C" | "Grade D";
   mspRate?: number;
   totalPayout?: number;
+  minTotalPayout?: number;
+  maxTotalPayout?: number;
+  estimatedPayoutRange?: string;
   actualQuantity?: number;
   paymentStatus?: string;
 
@@ -1318,7 +1322,9 @@ export default function FarmerDashboard() {
                         {booking.status === "COMPLETED" ? t("dashboard.finalSettledPayout") : t("dashboard.estimatedDirectPayout")}
                       </p>
                       <p className="mt-1 text-2xl font-black text-[#2E7D32]">
-                        {formatINR(booking.totalPayout ?? 0)}
+                        {booking.status === "COMPLETED"
+                          ? formatINR(booking.totalPayout ?? 0)
+                          : (booking.estimatedPayoutRange || formatINR(booking.totalPayout ?? 0))}
                       </p>
                     </div>
                   </div>

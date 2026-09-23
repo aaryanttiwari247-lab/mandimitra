@@ -23,7 +23,13 @@ import { BrandLogo } from "@/components/BrandLogo";
 
 import { getFarmerSession, clearFarmerSession } from "@/lib/farmer-auth";
 import { Booking, BookingCropItem } from "@/lib/types";
-import { CROP_MSP_RATES, getCropMspData, formatINR } from "@/lib/msp-rates";
+import {
+  CROP_MSP_RATES,
+  getCropMspData,
+  getCropPriceRange,
+  calculatePayoutRange,
+  formatINR,
+} from "@/lib/msp-rates";
 import {
   LOCATIONS_DATA,
   PROCUREMENT_CENTRES,
@@ -114,6 +120,24 @@ export default function BookProcurementSlot() {
       const mspData = getCropMspData(item.crop);
       return sum + q * mspData.standardMsp;
     }, 0);
+  }, [cropsList]);
+
+  const totalEstimatedPayoutRange = useMemo(() => {
+    let minTotal = 0;
+    let maxTotal = 0;
+    cropsList.forEach((item) => {
+      const q = Number(item.quantity) || 0;
+      if (q > 0) {
+        const range = calculatePayoutRange(item.crop, q);
+        minTotal += range.minPayout;
+        maxTotal += range.maxPayout;
+      }
+    });
+    return {
+      minTotal,
+      maxTotal,
+      formattedRange: `${formatINR(minTotal)} – ${formatINR(maxTotal)}`,
+    };
   }, [cropsList]);
 
   const handleAddCrop = () => {
@@ -308,11 +332,17 @@ export default function BookProcurementSlot() {
     const cropsPayload: BookingCropItem[] = validCrops.map((c) => {
       const mspData = getCropMspData(c.crop);
       const qty = Number(c.quantity);
+      const range = calculatePayoutRange(c.crop, qty);
       return {
         crop: c.crop,
         quantity: qty,
         mspRate: mspData.standardMsp,
         totalPayout: qty * mspData.standardMsp,
+        minMspRate: range.minRate,
+        maxMspRate: range.maxRate,
+        minPayout: range.minPayout,
+        maxPayout: range.maxPayout,
+        estimatedPayoutRange: range.formattedPayoutRange,
       };
     });
 
@@ -372,6 +402,12 @@ export default function BookProcurementSlot() {
       quantity: totalQty,
 
       crops: cropsPayload,
+
+      minTotalPayout: totalEstimatedPayoutRange.minTotal,
+
+      maxTotalPayout: totalEstimatedPayoutRange.maxTotal,
+
+      estimatedPayoutRange: totalEstimatedPayoutRange.formattedRange,
 
       date,
 
@@ -731,8 +767,9 @@ export default function BookProcurementSlot() {
               <div className="mt-5 space-y-5">
                 {cropsList.map((item, index) => {
                   const mspInfo = getCropMspData(item.crop);
+                  const cropPriceRange = getCropPriceRange(item.crop);
                   const itemQty = Number(item.quantity) || 0;
-                  const itemPayout = itemQty * mspInfo.standardMsp;
+                  const payoutRange = calculatePayoutRange(item.crop, itemQty);
 
                   return (
                     <div
@@ -768,7 +805,7 @@ export default function BookProcurementSlot() {
                             {t("booking.cropLabel")}
                           </label>
                           <span className="text-xs font-bold text-[#2E7D32]">
-                            {t("booking.baseMspLabel", { msp: mspInfo.standardMsp.toLocaleString("en-IN") })}
+                            {cropPriceRange.formattedRange} / quintal
                           </span>
                         </div>
 
@@ -779,13 +816,40 @@ export default function BookProcurementSlot() {
                             onChange={(e) => handleUpdateCrop(item.id, "crop", e.target.value)}
                             className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-3 pl-10 text-sm font-bold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                           >
-                            {CROP_MSP_RATES.map((c) => (
-                              <option key={c.id} value={c.name}>
-                                {c.name} ({c.nameHi}) — ₹{c.standardMsp.toLocaleString("en-IN")} / quintal
-                              </option>
-                            ))}
+                            {CROP_MSP_RATES.map((c) => {
+                              const cRange = getCropPriceRange(c.name);
+                              return (
+                                <option key={c.id} value={c.name}>
+                                  {c.name} ({c.nameHi}) — {cRange.formattedRange} / quintal
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
+                      </div>
+
+                      {/* ESTIMATED COST / RATE RANGE (DISPLAYED AS SOON AS CROP IS SELECTED) */}
+                      <div className="mt-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-1">
+                          <span className="text-xs font-semibold text-emerald-900">
+                            {t("booking.estimatedCostRange") || "Estimated Cost Range"}:
+                          </span>
+                          <span className="text-sm font-black text-[#2E7D32]">
+                            {cropPriceRange.formattedRange} <span className="text-xs font-semibold text-gray-600">/ {t("common.quintals")}</span>
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[11px] text-gray-600 border-t border-emerald-100/90 pt-1.5">
+                          <span>
+                            {t("booking.minRate") || "Min Rate"}: <strong>₹{cropPriceRange.minPrice.toLocaleString("en-IN")}</strong> ({cropPriceRange.minGrade})
+                          </span>
+                          <span className="text-emerald-300">•</span>
+                          <span>
+                            {t("booking.maxRate") || "Max Rate"}: <strong>₹{cropPriceRange.maxPrice.toLocaleString("en-IN")}</strong> ({cropPriceRange.maxGrade})
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[10px] text-emerald-700/80">
+                          {t("booking.gradingRangeNote") || "* Final payout determined by quality inspection & moisture content at Mandi."}
+                        </p>
                       </div>
 
                       {/* QUANTITY INPUT */}
@@ -808,13 +872,21 @@ export default function BookProcurementSlot() {
                         </div>
                       </div>
 
-                      {/* INDIVIDUAL CROP PAYOUT PREVIEW */}
+                      {/* INDIVIDUAL CROP PAYOUT PREVIEW (MIN TO MAX RANGE) */}
                       {itemQty > 0 && (
-                        <div className="mt-2.5 flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs border border-gray-200/80">
-                          <span className="text-gray-600">{item.crop} Payout:</span>
-                          <span className="font-extrabold text-[#2E7D32]">
-                            {itemQty} qtl × ₹{mspInfo.standardMsp.toLocaleString("en-IN")} = {formatINR(itemPayout)}
-                          </span>
+                        <div className="mt-2.5 rounded-xl bg-white p-3 text-xs border border-gray-200/90 shadow-2xs">
+                          <div className="flex items-center justify-between font-bold text-gray-800">
+                            <span>{item.crop} {t("booking.estimatedPayoutTitle") || "Estimated Payout"}:</span>
+                            <span className="text-sm font-black text-[#2E7D32]">
+                              {payoutRange.formattedPayoutRange}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1 text-[11px] text-gray-500 border-t border-gray-100 pt-1.5">
+                            <span>{itemQty} quintals × ({payoutRange.formattedRateRange} / qtl)</span>
+                            <span className="text-[#2E7D32] font-semibold">
+                              Min: {formatINR(payoutRange.minPayout)} — Max: {formatINR(payoutRange.maxPayout)}
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -842,8 +914,18 @@ export default function BookProcurementSlot() {
                 </div>
                 <div className="flex items-center justify-between pt-2">
                   <span className="font-bold text-gray-800">{t("booking.totalEstimatedPayout") || "Total Combined Payout"}:</span>
-                  <span className="text-lg font-black text-[#2E7D32]">{formatINR(totalEstimatedPayout)}</span>
+                  <span className="text-lg font-black text-[#2E7D32]">
+                    {totalQuantity > 0 ? totalEstimatedPayoutRange.formattedRange : "₹0"}
+                  </span>
                 </div>
+                {totalQuantity > 0 && (
+                  <div className="mt-1.5 flex items-center justify-between text-[11px] text-emerald-800 border-t border-emerald-200/60 pt-1.5">
+                    <span>{t("booking.estimatedCostRange") || "Min to Max Estimated Range"}:</span>
+                    <span className="font-bold">
+                      {formatINR(totalEstimatedPayoutRange.minTotal)} (Min) – {formatINR(totalEstimatedPayoutRange.maxTotal)} (Max)
+                    </span>
+                  </div>
+                )}
                 <p className="mt-2 text-[11px] text-gray-600">
                   {cropsList.map((c) => `${c.crop} (${c.quantity || 0} qtl)`).join(" + ")}
                 </p>

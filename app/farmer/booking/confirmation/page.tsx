@@ -39,7 +39,13 @@ type Booking = {
     quantity: number;
     mspRate?: number;
     totalPayout?: number;
+    minPayout?: number;
+    maxPayout?: number;
+    estimatedPayoutRange?: string;
   }>;
+  minTotalPayout?: number;
+  maxTotalPayout?: number;
+  estimatedPayoutRange?: string;
 
   date?: string;
   centre?: string;
@@ -531,7 +537,12 @@ export default function BookingConfirmationPage() {
                     <div className="space-y-2">
                       {booking.crops.map((c, idx) => (
                         <div key={idx} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
-                          <span className="font-bold text-gray-800">{getCropDisplayName(getCropMspData(c.crop), language)}</span>
+                          <div>
+                            <span className="font-bold text-gray-800">{getCropDisplayName(getCropMspData(c.crop), language)}</span>
+                            {c.estimatedPayoutRange && (
+                              <p className="text-[10px] text-[#2E7D32] font-semibold">{c.estimatedPayoutRange}</p>
+                            )}
+                          </div>
                           <span className="font-extrabold text-[#2E7D32]">{c.quantity} {t("common.quintals")}</span>
                         </div>
                       ))}
@@ -562,6 +573,17 @@ export default function BookingConfirmationPage() {
                   </span>
 
                 </div>
+
+                {booking.estimatedPayoutRange && (
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <span className="text-sm text-gray-500">
+                      {t("booking.estimatedCostRange") || "Estimated Payout Range"}
+                    </span>
+                    <span className="font-black text-[#2E7D32]">
+                      {booking.estimatedPayoutRange}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between border-b border-gray-100 pb-4">
 

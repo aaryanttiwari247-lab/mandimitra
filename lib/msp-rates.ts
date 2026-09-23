@@ -546,3 +546,73 @@ export function formatINR(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+export function getCropPriceRange(cropStr?: string): {
+  minPrice: number;
+  maxPrice: number;
+  formattedRange: string;
+  minGrade: CropGrade;
+  maxGrade: CropGrade;
+} {
+  const data = getCropMspData(cropStr);
+  const gradesList = Object.entries(data.grades) as [CropGrade, GradeDetail][];
+  let minPrice = Infinity;
+  let maxPrice = -Infinity;
+  let minGrade: CropGrade = "Grade D";
+  let maxGrade: CropGrade = "Grade A";
+
+  gradesList.forEach(([grade, detail]) => {
+    if (detail.price < minPrice) {
+      minPrice = detail.price;
+      minGrade = grade;
+    }
+    if (detail.price > maxPrice) {
+      maxPrice = detail.price;
+      maxGrade = grade;
+    }
+  });
+
+  if (minPrice === Infinity) {
+    minPrice = data.standardMsp;
+    maxPrice = data.standardMsp;
+  }
+
+  return {
+    minPrice,
+    maxPrice,
+    formattedRange: `₹${minPrice.toLocaleString("en-IN")} – ₹${maxPrice.toLocaleString("en-IN")}`,
+    minGrade,
+    maxGrade,
+  };
+}
+
+export function calculatePayoutRange(
+  cropStr: string | undefined,
+  quantityInQuintals: number = 0
+): {
+  minRate: number;
+  maxRate: number;
+  quantityQuintals: number;
+  minPayout: number;
+  maxPayout: number;
+  formattedRateRange: string;
+  formattedPayoutRange: string;
+  cropName: string;
+} {
+  const range = getCropPriceRange(cropStr);
+  const safeQty = Math.max(0, Number(quantityInQuintals) || 0);
+  const minPayout = Math.round(safeQty * range.minPrice);
+  const maxPayout = Math.round(safeQty * range.maxPrice);
+
+  return {
+    minRate: range.minPrice,
+    maxRate: range.maxPrice,
+    quantityQuintals: safeQty,
+    minPayout,
+    maxPayout,
+    formattedRateRange: range.formattedRange,
+    formattedPayoutRange: `${formatINR(minPayout)} – ${formatINR(maxPayout)}`,
+    cropName: getCropMspData(cropStr).name,
+  };
+}
+
