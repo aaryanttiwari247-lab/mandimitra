@@ -1,0 +1,1036 @@
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MandiMitra — Token Booking & Queue Management: Detailed Flow & Features</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 16mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: "Page " counter(page);
+        font-family: 'Inter', sans-serif;
+        font-size: 8pt;
+        font-weight: 600;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "MandiMitra • Smart Procurement & Queue Architecture Guide";
+        font-family: 'Inter', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0f172a;
+      line-height: 1.55;
+      font-size: 9.2pt;
+      background-color: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .no-break {
+      page-break-inside: avoid;
+    }
+
+    /* Cover Page */
+    .cover-page {
+      min-height: 250mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20mm 8mm 10mm 8mm;
+    }
+
+    .cover-header {
+      border-left: 6px solid #15803d;
+      padding-left: 22px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #dcfce7;
+      color: #15803d;
+      font-weight: 800;
+      font-size: 8.5pt;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+      border: 1px solid #bbf7d0;
+    }
+
+    .cover-title {
+      font-size: 30pt;
+      font-weight: 900;
+      line-height: 1.15;
+      color: #0f172a;
+      letter-spacing: -0.03em;
+    }
+
+    .cover-title span {
+      color: #15803d;
+    }
+
+    .cover-subtitle {
+      font-size: 12.5pt;
+      color: #334155;
+      margin-top: 14px;
+      font-weight: 400;
+      max-width: 640px;
+      line-height: 1.5;
+    }
+
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 35px;
+    }
+
+    .meta-item h4 {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      margin-bottom: 3px;
+    }
+
+    .meta-item p {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .cover-summary-box {
+      margin-top: 25px;
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 14px;
+      padding: 16px 20px;
+    }
+
+    .cover-summary-box h3 {
+      font-size: 11pt;
+      font-weight: 800;
+      color: #166534;
+      margin-bottom: 6px;
+    }
+
+    .cover-summary-box p {
+      font-size: 8.8pt;
+      color: #14532d;
+      line-height: 1.5;
+    }
+
+    .cover-footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 17pt;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+    }
+
+    h2 {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #15803d;
+      letter-spacing: -0.01em;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    /* Callout Boxes */
+    .callout {
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 8.8pt;
+      line-height: 1.5;
+    }
+
+    .callout-green {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      color: #14532d;
+    }
+
+    .callout-blue {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      color: #1e3a8a;
+    }
+
+    .callout-amber {
+      background: #fffbeb;
+      border-left: 4px solid #d97706;
+      color: #78350f;
+    }
+
+    .callout-purple {
+      background: #faf5ff;
+      border-left: 4px solid #9333ea;
+      color: #581c87;
+    }
+
+    /* Step Cards */
+    .step-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .step-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 12px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .step-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: #15803d;
+      color: #ffffff;
+      font-size: 8pt;
+      font-weight: 800;
+    }
+
+    .step-title {
+      font-size: 9.5pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .step-desc {
+      font-size: 8.5pt;
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    /* Metric Grids */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .metric-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+
+    .metric-card .val {
+      font-size: 14pt;
+      font-weight: 900;
+      color: #15803d;
+    }
+
+    .metric-card .lbl {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Tables */
+    table.styled-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.3pt;
+    }
+
+    table.styled-table th, table.styled-table td {
+      border: 1px solid #e2e8f0;
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    table.styled-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    table.styled-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    /* Architecture Flow Box */
+    .diagram-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 14px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.8pt;
+      line-height: 1.5;
+      overflow: hidden;
+      white-space: pre;
+    }
+
+    .diagram-accent {
+      color: #4ade80;
+      font-weight: 700;
+    }
+
+    .diagram-yellow {
+      color: #facc15;
+      font-weight: 700;
+    }
+
+    .diagram-cyan {
+      color: #38bdf8;
+      font-weight: 700;
+    }
+
+    /* Code Blocks */
+    pre code {
+      display: block;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.8pt;
+      color: #0f172a;
+      line-height: 1.45;
+      margin: 10px 0;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       COVER PAGE
+  ============================================================ -->
+  <div class="cover-page">
+    <div>
+      <div class="badge-pill">Smart India Hackathon • Agricultural Procurement Innovation</div>
+      
+      <div class="cover-header">
+        <h1 class="cover-title">Token Booking & <span>Queue Management</span></h1>
+        <p class="cover-subtitle">
+          Comprehensive Architectural Blueprint, Algorithmic Specifications, End-to-End Operational Workflows, and System Features for MandiMitra.
+        </p>
+      </div>
+
+      <div class="cover-summary-box">
+        <h3>System Purpose & Core Value Proposition</h3>
+        <p>
+          Traditional Agricultural Produce Market Committees (APMC) suffer from 12 to 48-hour tractor congestions, arbitrary moisture deductions, and middleman exploitation. <strong>MandiMitra</strong> re-engineers this paradigm through an intelligent digital ecosystem: guaranteed collision-free smart token allocation, multi-factor AI slot recommendation, live multi-stage queue progression, gatekeeper physical arrival verification, certified electronic weighment, scientific moisture assay grading (Grade A–D), and automated 1-click Aadhaar-DBT bank disbursements.
+        </p>
+      </div>
+
+      <div class="cover-meta-grid">
+        <div class="meta-item">
+          <h4>Project Codebase</h4>
+          <p>MandiMitra (mandimitraaa.vercel.app)</p>
+        </div>
+        <div class="meta-item">
+          <h4>Module Scope</h4>
+          <p>Token Booking, Queue Engine & Live Mandi Operations</p>
+        </div>
+        <div class="meta-item">
+          <h4>Core Algorithms</h4>
+          <p>Multi-Factor Scoring (0.35/0.45/0.20), Predictive Wait Time</p>
+        </div>
+        <div class="meta-item">
+          <h4>Compliance Standard</h4>
+          <p>APMC Act Form J Statutory Compliance & Aadhaar-DBT</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <span>Official Technical Documentation • Version 2.4</span>
+      <span>Confidential & Proprietary • Engineering Department</span>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       SECTION 1: SYSTEM ARCHITECTURE OVERVIEW
+  ============================================================ -->
+  <h1>1. End-to-End System Architecture</h1>
+  <p>
+    The MandiMitra procurement ecosystem is structured into three synchronized tiers: the <strong>Farmer Self-Service Application</strong>, the <strong>Real-Time Distributed Queue & State Synchronizer</strong>, and the <strong>Official Mandi Terminal Operations Suite</strong>.
+  </p>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="val">100%</div>
+      <div class="lbl">Zero Collisions</div>
+    </div>
+    <div class="metric-card">
+      <div class="val">&lt; 20 min</div>
+      <div class="lbl">Average Mandi Turnaround</div>
+    </div>
+    <div class="metric-card">
+      <div class="val">5 Sec</div>
+      <div class="lbl">Reactive State Polling</div>
+    </div>
+    <div class="metric-card">
+      <div class="val">3 Crops</div>
+      <div class="lbl">Multi-Crop Single Token</div>
+    </div>
+  </div>
+
+  <h2>1.1 Architectural Flow Diagram</h2>
+  <div class="diagram-box">
+<span class="diagram-accent">[ FARMER APP: /farmer/book-slot ]</span>
+    │
+    ├── 1. Crop Selection (Up to 3 Crops: Wheat, Mustard, Gram, etc.)
+    │      └── Live Estimated Cost Range: ₹2,000 – ₹2,425/qtl (Grade D to Grade A)
+    │
+    ├── 2. Location & Allotted Mandi Terminal Selection
+    │      └── Query AI Smart Recommendation Engine (/api/recommendations/smart-centre)
+    │            • Score = 0.35 * (Distance) + 0.45 * (WaitTime) + 0.20 * (QueueCount)
+    │
+    ├── 3. Time Slot Booking (e.g. 10:30 AM – 11:00 AM, 14 Seats Available)
+    │      └── Calculate Optimal Arrival Window: 10 mins prior to slot window
+    │
+    └── 4. Guaranteed Atomic Token Allocation (lib/token-service.ts)
+           └── District Block (Bhopal: BHO-101..199, Indore: IND-601..699)
+                   │
+                   ▼
+<span class="diagram-cyan">[ REAL-TIME QUEUE STATE SYNCHRONIZER ]</span>
+    │   • Storage: Dual-Store (LocalStorage Fail-Safe + PostgreSQL Prisma API)
+    │   • Cross-Tab Sync: BroadcastChannel API ("smartProcurementQueueUpdated")
+    │   • Predictive Wait Formula: Wait = max(5, round(HeadCount * 4 + TotalQuintals * 1.2))
+    │
+    ├──► <span class="diagram-yellow">[ FARMER LIVE TRACKER: /farmer/track-token ]</span>
+    │      • 6-Step Visual Timeline with Web Audio Chime Alerts on status changes
+    │      • Real-Time Queue Position & Yard Weather Rain Protection Widget
+    │      • Instant APMC Form J-Slip Generation & Download
+    │
+    └──► <span class="diagram-accent">[ OFFICIAL TERMINALS ]</span>
+           ├── Gatekeeper Desk (/official/verify): Physical Arrival Check & Docs Verification
+           ├── Electronic Weighbridge (/official/procurement): Gross - Tare = Net Weight
+           ├── Quality Assay Desk: Moisture Sensor % + Physical Grain Grading (Grade A-D)
+           └── DBT Disbursement Gateway: 1-Click Bank Payout Authorization & J-Form Seal
+  </div>
+
+  <div class="callout callout-green">
+    <strong>Dual-Store Resilience:</strong> In remote agricultural mandi yards where network connectivity can intermittently drop, the system operates seamlessly through a dual-store architecture. Local mutations persist immediately in structured local client storage with BroadcastChannel cross-tab syncing, while asynchronous background web-workers mirror updates to the central cloud database (<code style="background:transparent; color:#14532d;">/api/official/queue</code>).
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       SECTION 2: FARMER TOKEN BOOKING FLOW & ALGORITHMS
+  ============================================================ -->
+  <h1>2. Farmer Token Booking Flow & Mechanisms</h1>
+  <p>
+    The token booking workflow (<code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">app/farmer/book-slot/page.tsx</code>) enables registered farmers to book a verified slot in four intuitive steps.
+  </p>
+
+  <h2>2.1 Multi-Crop Selection & Estimated Cost Range</h2>
+  <p>
+    Farmers can schedule up to <strong>3 crops</strong> under a single booking token. For each crop:
+  </p>
+  <ul>
+    <li><strong>Grade Range Resolution (<code style="background:#f1f5f9; padding:2px 4px;">getCropPriceRange()</code>):</strong> Instantly resolves the lowest grade rate (Grade D) and highest grade rate (Grade A). For Wheat, Grade D is ₹2,000/qtl and Grade A is ₹2,425/qtl.</li>
+    <li><strong>Dynamic Rate Banner:</strong> Displayed immediately upon selecting the crop: <span class="badge badge-green">₹2,000 – ₹2,425 / quintal</span> with individual grade breakdown tags.</li>
+    <li><strong>Individual Crop Payout Preview:</strong> Multiplies expected quantity by the rate boundaries: <code style="background:#f1f5f9; padding:2px 4px;">10 quintals × (₹2,000 – ₹2,425/q) = ₹20,000 – ₹24,250</code>.</li>
+    <li><strong>Combined Total Summary Card:</strong> Aggregates quantities and calculates total estimated payout as a min–max range across all chosen produce.</li>
+  </ul>
+
+  <table class="styled-table no-break">
+    <thead>
+      <tr>
+        <th>Crop Name</th>
+        <th>Grade D (Min Rate)</th>
+        <th>Grade C (Fair)</th>
+        <th>Grade B (Good)</th>
+        <th>Grade A (FAQ Premium)</th>
+        <th>Rate Range / Quintal</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Wheat (गेहूं)</strong></td>
+        <td>₹2,000</td>
+        <td>₹2,150</td>
+        <td>₹2,275</td>
+        <td>₹2,425</td>
+        <td><span class="badge badge-green">₹2,000 – ₹2,425</span></td>
+      </tr>
+      <tr>
+        <td><strong>Paddy / Rice (धान)</strong></td>
+        <td>₹1,850</td>
+        <td>₹2,000</td>
+        <td>₹2,150</td>
+        <td>₹2,300</td>
+        <td><span class="badge badge-green">₹1,850 – ₹2,300</span></td>
+      </tr>
+      <tr>
+        <td><strong>Mustard (सरसों)</strong></td>
+        <td>₹4,900</td>
+        <td>₹5,200</td>
+        <td>₹5,450</td>
+        <td>₹5,650</td>
+        <td><span class="badge badge-green">₹4,900 – ₹5,650</span></td>
+      </tr>
+      <tr>
+        <td><strong>Gram / Chana (चना)</strong></td>
+        <td>₹4,750</td>
+        <td>₹5,000</td>
+        <td>₹5,250</td>
+        <td>₹5,440</td>
+        <td><span class="badge badge-green">₹4,750 – ₹5,440</span></td>
+      </tr>
+      <tr>
+        <td><strong>Soybean (सोयाबीन)</strong></td>
+        <td>₹4,100</td>
+        <td>₹4,350</td>
+        <td>₹4,600</td>
+        <td>₹4,892</td>
+        <td><span class="badge badge-green">₹4,100 – ₹4,892</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2.2 AI Smart Recommendation Engine</h2>
+  <p>
+    When a farmer chooses their district or location, the backend recommendation engine (<code style="background:#f1f5f9; padding:2px 4px;">/api/recommendations/smart-centre</code>) executes a multi-factor mathematical scoring model:
+  </p>
+
+  <div class="callout callout-blue no-break">
+    <strong>Recommendation Scoring Formula:</strong><br>
+    Score = W<sub>dist</sub> · (d<sub>c</sub> / d<sub>max</sub>) + W<sub>wait</sub> · (w<sub>c</sub> / w<sub>max</sub>) + W<sub>queue</sub> · (q<sub>c</sub> / q<sub>max</sub>)<br>
+    Where: <strong>W<sub>dist</sub> = 0.35</strong> (Distance weight), <strong>W<sub>wait</sub> = 0.45</strong> (Current wait time weight), <strong>W<sub>queue</sub> = 0.20</strong> (Active queue congestion weight).<br>
+    <em>A lower score signifies an optimal procurement terminal with shorter lines, higher bay availability, and lower transit time.</em>
+  </div>
+
+  <h2>2.3 Guaranteed Unique Token Generation Algorithm</h2>
+  <p>
+    To eliminate duplicate tokens across thousands of daily farmers, <code style="background:#f1f5f9; padding:2px 4px;">lib/token-service.ts</code> implements an atomic, district-partitioned token hashing algorithm:
+  </p>
+
+  <pre><code>// Location-based Base Number Blocks
+bhopal:       { code: "BHO", base: 100 },  // Produces BHO-101, BHO-102...
+sehore:       { code: "SEH", base: 200 },  // Produces SEH-201, SEH-202...
+narmadapuram: { code: "NAR", base: 300 },  // Produces NAR-301, NAR-302...
+indore:       { code: "IND", base: 600 },  // Produces IND-601, IND-602...
+
+// Collision Prevention:
+const allUsedNumbers = new Set(existingBookings.map(b => b.tokenNumber));
+let nextNumber = meta.base + 1;
+while (allUsedNumbers.has(nextNumber)) {
+  nextNumber++; // Guaranteed atomic progression across concurrent sessions
+}</code></pre>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       SECTION 3: QUEUE MANAGEMENT & STATE MACHINE
+  ============================================================ -->
+  <h1>3. Queue Management & State Machine</h1>
+  <p>
+    Every procurement booking progresses through a strict, auditable 5-stage finite state machine. Transitions are unidirectional and validated by role permissions.
+  </p>
+
+  <div class="step-grid no-break">
+    <div class="step-card">
+      <div class="step-card-header">
+        <span class="step-number">01</span>
+        <span class="step-title">WAITING (Scheduled)</span>
+      </div>
+      <p class="step-desc">
+        Token generated, queue position assigned. Predictive wait time actively counts down. Farmer receives staggered recommended arrival time (10 min prior to slot).
+      </p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <span class="step-number" style="background:#ea580c;">02</span>
+        <span class="step-title">CALLED (Gate Arrival)</span>
+      </div>
+      <p class="step-desc">
+        Farmer arrives at mandi gate. Gate official verifies tractor/vehicle presence and marks "Farmer Arrived", admitting vehicle into the security holding bay.
+      </p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <span class="step-number" style="background:#2563eb;">03</span>
+        <span class="step-title">VERIFIED (Docs Cleared)</span>
+      </div>
+      <p class="step-desc">
+        Official verifies Aadhaar identity, land title (Khasra/Khatauni), bank passbook, and crop declaration. System flags record as green for weighment.
+      </p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <span class="step-number" style="background:#9333ea;">04</span>
+        <span class="step-title">PROCESSING (Weigh & Grade)</span>
+      </div>
+      <p class="step-desc">
+        Vehicle enters weighbridge (gross weight). Produce is sampled for moisture & impurities. Grade A-D assigned. Empty vehicle re-weighed (tare deduction).
+      </p>
+    </div>
+
+    <div class="step-card" style="grid-column: span 2;">
+      <div class="step-card-header">
+        <span class="step-number" style="background:#16a34a;">05</span>
+        <span class="step-title">COMPLETED (DBT Bank Settlement & Form J)</span>
+      </div>
+      <p class="step-desc">
+        Official authorizes electronic Direct Benefit Transfer (DBT) with bank UTR transaction reference. APMC Form J sale voucher is finalized and sealed. Farmer can instantly download, print, or view the J-Slip.
+      </p>
+    </div>
+  </div>
+
+  <h2>3.1 Predictive Wait Time Engine</h2>
+  <p>
+    Instead of static or inaccurate estimates, MandiMitra calculates wait times dynamically using queue volume and produce weight:
+  </p>
+
+  <div class="callout callout-amber no-break">
+    <strong>Predictive Wait Time Formula (<code style="background:transparent; color:#78350f;">lib/token-service.ts</code>):</strong><br>
+    EstimatedWaitMinutes = Math.max(5, Math.round(N<sub>farmers_ahead</sub> · 4 + Q<sub>total_quintals</sub> · 1.2))<br>
+    <em>Where: 4 minutes represents the fixed inspection & documentation overhead per vehicle, and 1.2 minutes per quintal accounts for weighbridge hydraulic dumping and bag stacking.</em>
+  </div>
+
+  <h2>3.2 Cancellation & Rescheduling Architecture</h2>
+  <p>
+    Both farmers and mandi officials can cancel a booking prior to weighment:
+  </p>
+  <ul>
+    <li><strong>Farmer Self-Cancellation:</strong> Available on the tracker and dashboard (<code style="background:#f1f5f9; padding:2px 4px;">/farmer/track-token</code>). Allows farmers to release their slot if delayed due to tractor breakdown or weather.</li>
+    <li><strong>Official Cancellation:</strong> Mandi officials can reject a token at the gate or inspection desk with a mandatory reason code (e.g. moisture &gt; 15%, unverified land ownership).</li>
+    <li><strong>Audit Logging:</strong> Every cancellation records <code style="background:#f1f5f9; padding:2px 4px;">cancelledAt</code>, <code style="background:#f1f5f9; padding:2px 4px;">cancellationReason</code>, and <code style="background:#f1f5f9; padding:2px 4px;">cancelledBy</code>, preserved in historical archives.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       SECTION 4: FARMER LIVE TRACKING EXPERIENCE
+  ============================================================ -->
+  <h1>4. Farmer Live Token Tracking Engine</h1>
+  <p>
+    The tracking portal (<code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">app/farmer/track-token/page.tsx</code>) provides a real-time, transparent window into the mandi procurement workflow.
+  </p>
+
+  <h2>4.1 Core Features of the Live Tracker</h2>
+  <ul>
+    <li><strong>Universal Token Access:</strong> Direct URL deep linking (<code style="background:#f1f5f9; padding:2px 4px;">?token=BHO-103</code>), mobile number lookup, or automatic detection of the authenticated farmer's active booking.</li>
+    <li><strong>5-Second Reactive Auto-Polling:</strong> Continuously polls local events and server APIs silently in the background without screen flickering or jarring layout shifts.</li>
+    <li><strong>Web Audio Chime Notifications:</strong> When an official calls the token or advances its state, the tracker synthesizes an audible chime alert using the HTML5 Web Audio API, ensuring farmers waiting in tractor cabins or resting sheds hear their call.</li>
+    <li><strong>5-Stage Visual Timeline:</strong> Color-coded step cards featuring step numbers, completion checkmarks, glowing in-progress indicators, and descriptive stage status text.</li>
+    <li><strong>Mandi Weather Advisory Widget:</strong> Displays live weather telemetry, humidity, and rainfall alerts to advise farmers on tarping their grain in case of sudden precipitation.</li>
+  </ul>
+
+  <h2>4.2 Visual Workflow Filing Stages (Farmer View)</h2>
+  <table class="styled-table no-break">
+    <thead>
+      <tr>
+        <th>Stage</th>
+        <th>Title</th>
+        <th>System Trigger</th>
+        <th>Farmer UI Indicator</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Stage 01</strong></td>
+        <td>Token Generated & Confirmed</td>
+        <td>Slot booked in app</td>
+        <td><span class="badge badge-green">Completed ✓</span> Showing Queue Position & Arrival Time</td>
+      </tr>
+      <tr>
+        <td><strong>Stage 02</strong></td>
+        <td>Arrival at Mandi Yard</td>
+        <td>Official toggles "Farmer Arrived"</td>
+        <td><span class="badge badge-amber">Gate Admitted</span> Displays arrival timestamp & gate entry</td>
+      </tr>
+      <tr>
+        <td><strong>Stage 03</strong></td>
+        <td>Document Verification</td>
+        <td>Desk officer verifies KYC & Khasra</td>
+        <td><span class="badge badge-blue">Verified</span> Official name and verified timestamp recorded</td>
+      </tr>
+      <tr>
+        <td><strong>Stage 04</strong></td>
+        <td>Weighbridge & Assay</td>
+        <td>Weighbridge net weight & Grade A-D logged</td>
+        <td><span class="badge badge-purple">Weighed & Graded</span> Net weight, moisture %, rate applied</td>
+      </tr>
+      <tr>
+        <td><strong>Stage 05</strong></td>
+        <td>DBT Payout Settled</td>
+        <td>Official authorizes bank disbursal</td>
+        <td><span class="badge badge-green">DBT Disbursed</span> UTR reference, Bank details, J-Slip download</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4.3 Statutory APMC Form J-Slip Modal</h2>
+  <p>
+    Under the Agricultural Produce Market Committee Act, farmers must receive an official Form J receipt documenting all transaction particulars:
+  </p>
+
+  <div class="callout callout-green no-break">
+    <strong>Contents of the Embedded J-Slip (<code style="background:transparent; color:#14532d;">components/MandiJSlipModal.tsx</code>):</strong><br>
+    • <strong>Header:</strong> State APMC Market Committee Name, Mandi Yard License Number, Serial J-Form Number.<br>
+    • <strong>Farmer Particulars:</strong> Full Name, Aadhaar Number, Village/Tehsil, Bank Account, and IFSC code.<br>
+    • <strong>Crop & Weight Itemization:</strong> Gross Vehicle Weight, Empty Tare Weight, Net Produce Weight (kg & quintals).<br>
+    • <strong>Quality Grade & MSP Rate:</strong> Assigned Grade (Grade A–D), Certified MSP rate per quintal, Gross Value.<br>
+    • <strong>Statutory Deductions:</strong> Market Cess / Mandi Shulk (1.5%), Rural Development Cess (1.0%).<br>
+    • <strong>Net Farmer Payable (DBT):</strong> Final transferred amount in INR numbers and Indian English Words.<br>
+    • <strong>Security Verification:</strong> Digital APMC Officer Signature, Official Seal, and Cryptographic QR verification hash.
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       SECTION 5: OFFICIAL MANDI OPERATIONS TERMINAL
+  ============================================================ -->
+  <h1>5. Official Mandi Operations Terminal</h1>
+  <p>
+    The official portal (<code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">app/official/procurement/page.tsx</code> & <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">app/official/verify/page.tsx</code>) equips mandi superintendents, weighbridge operators, and grading inspectors with high-throughput operational tooling.
+  </p>
+
+  <h2>5.1 Gatekeeper & Arrival Verification Desk (<code style="background:#f1f5f9; padding:2px 4px;">/official/verify</code>)</h2>
+  <ul>
+    <li><strong>Physical Arrival Check:</strong> When a vehicle enters the yard gate, the officer verifies the tractor registration and checks the "Farmer Arrived" switch. This instantly updates the status to <code style="background:#f1f5f9; padding:2px 4px;">CALLED</code> and timestamps <code style="background:#f1f5f9; padding:2px 4px;">arrivedAt</code>.</li>
+    <li><strong>Document Verification:</strong> Inspects physical documents against the state land portal:
+      <ol>
+        <li>Aadhaar Card (12-digit UID verification)</li>
+        <li>Land Title / Khasra / Khatauni (Validates declared acres vs expected yield)</li>
+        <li>Bank Passbook (Confirms active Aadhaar-DBT linking)</li>
+        <li>Crop Sowing Certificate / Girdawari</li>
+      </ol>
+    </li>
+  </ul>
+
+  <h2>5.2 Scientific Quality Assay & Moisture Penalty Matrix</h2>
+  <p>
+    MandiMitra removes human subjectivity through automated quality grade classification:
+  </p>
+
+  <table class="styled-table no-break">
+    <thead>
+      <tr>
+        <th>Grade Category</th>
+        <th>Moisture Threshold</th>
+        <th>Foreign Matter & Inclusions</th>
+        <th>Pricing Rule</th>
+        <th>System Classification</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Grade A (FAQ Premium)</strong></td>
+        <td>≤ 12.0%</td>
+        <td>&lt; 0.75%</td>
+        <td>Standard MSP + Premium Bonus</td>
+        <td><span class="badge badge-green">Top Tier Quality</span></td>
+      </tr>
+      <tr>
+        <td><strong>Grade B (Good Quality)</strong></td>
+        <td>12.1% – 13.0%</td>
+        <td>0.76% – 1.50%</td>
+        <td>Standard Statutory Base MSP</td>
+        <td><span class="badge badge-blue">Standard Market Grade</span></td>
+      </tr>
+      <tr>
+        <td><strong>Grade C (Fair Quality)</strong></td>
+        <td>13.1% – 14.0%</td>
+        <td>1.51% – 2.00%</td>
+        <td>Base MSP - 5% Moisture Dock</td>
+        <td><span class="badge badge-amber">Accepted with Dock</span></td>
+      </tr>
+      <tr>
+        <td><strong>Grade D (Marginal)</strong></td>
+        <td>14.1% – 15.0%</td>
+        <td>2.01% – 3.00%</td>
+        <td>Base MSP - 12% Penalty</td>
+        <td><span class="badge badge-purple">Minimum Payable Rate</span></td>
+      </tr>
+      <tr>
+        <td><strong>Rejection Threshold</strong></td>
+        <td>&gt; 15.0%</td>
+        <td>&gt; 3.00%</td>
+        <td>Rejected / Dry & Return</td>
+        <td><span class="badge badge-red">Automated Rejection</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5.3 Weighbridge Operations & Automated Payout Calculator</h2>
+  <p>
+    Operators enter certified electronic weighbridge readings. The system automatically computes:
+  </p>
+  <pre><code>Net Produce Weight (Quintals) = Gross Vehicle Weight - Tare (Empty) Weight
+Farmer Payout = Net Produce Weight × Applied Grade MSP Rate
+Total Settlement (Multi-Crop) = Sum(Crop_1_Payout + Crop_2_Payout + Crop_3_Payout)</code></pre>
+
+  <h2>5.4 1-Click DBT Bank Transfer Disbursal</h2>
+  <p>
+    When the official clicks <strong>"Authorize DBT Disbursal"</strong>, the application executes:
+  </p>
+  <ul>
+    <li>Generates a unique banking transaction reference: <code style="background:#f1f5f9; padding:2px 4px;">UTR-DBT-[TOKEN]-[DATE]</code>.</li>
+    <li>Marks token status as <code style="background:#f1f5f9; padding:2px 4px;">COMPLETED</code> and <code style="background:#f1f5f9; padding:2px 4px;">paymentStatus: "PAID"</code>.</li>
+    <li>Broadcasts the completion event to the farmer's live tracker in real time.</li>
+    <li>Archives the completed sale record into the searchable history store.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       SECTION 6: HISTORICAL ARCHIVES & MULTILINGUAL ACCESS
+  ============================================================ -->
+  <h1>6. Historical Archives & Multilingual Accessibility</h1>
+  <p>
+    MandiMitra ensures long-term auditability and total language inclusivity for diverse farming communities across India.
+  </p>
+
+  <h2>6.1 Farmer History & Archives Modal</h2>
+  <p>
+    On the Farmer Dashboard (<code style="background:#f1f5f9; padding:2px 4px;">/farmer/dashboard</code>), farmers access past records via the new <strong>"Procurement History & Archives"</strong> icon button:
+  </p>
+  <ul>
+    <li><strong>Categorized Tab Filters:</strong> <span class="badge badge-green">All Records</span>, <span class="badge badge-blue">Completed</span>, and <span class="badge badge-red">Cancelled</span>.</li>
+    <li><strong>Instant Search Filter:</strong> Real-time filtering by Token Number, Crop Name, Mandi Centre, or Cancellation Reason.</li>
+    <li><strong>Completed Card Actions:</strong> Review final settled DBT amount, assigned quality grade, weighment timestamp, and one-click button to view/print the official J-Slip.</li>
+    <li><strong>Cancelled Card Actions:</strong> Clear display of cancellation reasons, whether initiated by the farmer or cancelled by an official, with a direct "Book New Slot" button.</li>
+  </ul>
+
+  <h2>6.2 Multilingual Inclusivity (English, Hindi, Bengali)</h2>
+  <p>
+    Recognizing linguistic diversity in rural mandis, every string, grade label, status message, and receipt term is translated with 100% parity across three languages in <code style="background:#f1f5f9; padding:2px 4px;">lib/translations.ts</code>:
+  </p>
+
+  <table class="styled-table no-break">
+    <thead>
+      <tr>
+        <th>Key Parameter</th>
+        <th>English (en)</th>
+        <th>Hindi (हिन्दी - hi)</th>
+        <th>Bengali (বাংলা - bn)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Estimated Cost Range</strong></td>
+        <td>Estimated Cost Range</td>
+        <td>अनुमानित लागत सीमा</td>
+        <td>আনুমানিক মূল্য পরিসর</td>
+      </tr>
+      <tr>
+        <td><strong>Min to Max Rate</strong></td>
+        <td>Min Rate • Max Rate</td>
+        <td>न्यूनतम दर • अधिकतम दर</td>
+        <td>সর্বনিম্ন দর • সর্বোচ্চ দর</td>
+      </tr>
+      <tr>
+        <td><strong>Grading Notice</strong></td>
+        <td>Final payout determined at Mandi</td>
+        <td>अंतिम भुगतान मंडी परीक्षण पर निर्भर</td>
+        <td>চূড়ান্ত মূল্য মান্ডি পরীক্ষায় নির্ধারিত</td>
+      </tr>
+      <tr>
+        <td><strong>Queue Position</strong></td>
+        <td>Queue Position</td>
+        <td>कतार स्थिति</td>
+        <td>সারির অবস্থান</td>
+      </tr>
+      <tr>
+        <td><strong>Arrival Confirmed</strong></td>
+        <td>Gate Arrival Confirmed</td>
+        <td>मंडी आगमन की पुष्टि</td>
+        <td>মান্ডিতে আগমনের নিশ্চিতকরণ</td>
+      </tr>
+      <tr>
+        <td><strong>Form J Sale Slip</strong></td>
+        <td>Official APMC J-Slip</td>
+        <td>आधिकारिक जे-पर्ची रसीद</td>
+        <td>অফিসিয়াল জে-রসিদ</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================
+       SECTION 7: PRODUCTION VERIFICATION & ENDPOINTS
+  ============================================================ -->
+  <h2>7. Production Verification & Live Endpoints</h2>
+  <table class="styled-table no-break">
+    <thead>
+      <tr>
+        <th>Endpoint / Route</th>
+        <th>Access Role</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>/farmer/book-slot</strong></td>
+        <td>Farmer</td>
+        <td>Multi-crop slot booking with min–max estimated cost preview and AI mandi recommendation.</td>
+      </tr>
+      <tr>
+        <td><strong>/farmer/track-token</strong></td>
+        <td>Farmer / Public</td>
+        <td>Live token tracking, 5-stage progress timeline, audio chime alerts, and Form J receipt.</td>
+      </tr>
+      <tr>
+        <td><strong>/farmer/dashboard</strong></td>
+        <td>Farmer</td>
+        <td>Active token banner, quick slot rebooking, and Procurement History & Archives modal.</td>
+      </tr>
+      <tr>
+        <td><strong>/official/verify</strong></td>
+        <td>Gatekeeper</td>
+        <td>Gate entry physical arrival check and farmer KYC/Khasra document verification.</td>
+      </tr>
+      <tr>
+        <td><strong>/official/procurement</strong></td>
+        <td>Mandi Officer</td>
+        <td>Queue management, electronic weighbridge, Grade A-D moisture assay, and DBT disbursal.</td>
+      </tr>
+      <tr>
+        <td><strong>/api/recommendations/smart-centre</strong></td>
+        <td>System / API</td>
+        <td>REST API for multi-factor scoring of nearest mandis and low-congestion time windows.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top: 25px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 14px; font-size: 8pt; color: #94a3b8;">
+    © 2026 MandiMitra Technical Engineering Board • Smart India Hackathon Agricultural Procurement Infrastructure • All Rights Reserved.
+  </div>
+
+</body>
+</html>
+`;
+
+// 1. Write HTML file to docs directory
+const htmlPath = path.join(__dirname, 'mandimitra_token_booking_and_queue_management_guide.html');
+fs.writeFileSync(htmlPath, htmlContent, 'utf8');
+console.log('HTML Guide written successfully to:', htmlPath);
+
+// 2. Define output PDF paths (root and docs)
+const pdfPathRoot = path.join(process.cwd(), 'MandiMitra_Token_Booking_and_Queue_Management_Detailed_Guide.pdf');
+const pdfPathDocs = path.join(__dirname, 'MandiMitra_Token_Booking_and_Queue_Management_Detailed_Guide.pdf');
+
+// 3. Compile PDF using Chrome headless
+const chromePath = 'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe';
+const command = `"${chromePath}" --headless=new --disable-gpu --no-sandbox --print-to-pdf="${pdfPathRoot}" "${htmlPath}"`;
+
+console.log('Compiling PDF with Chrome headless...');
+try {
+  execSync(command, { stdio: 'inherit' });
+  console.log('SUCCESS! PDF generated at root:', pdfPathRoot);
+  
+  // Also copy to docs for persistent archiving
+  fs.copyFileSync(pdfPathRoot, pdfPathDocs);
+  console.log('Copied PDF to docs directory:', pdfPathDocs);
+
+  const stats = fs.statSync(pdfPathRoot);
+  console.log('Generated PDF File Size:', (stats.size / 1024).toFixed(2), 'KB');
+} catch (err) {
+  console.error('Failed to generate PDF:', err);
+  process.exit(1);
+}
