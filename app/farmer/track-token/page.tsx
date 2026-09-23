@@ -15,6 +15,7 @@ import {
   Clock3,
   Download,
   ExternalLink,
+  FileText,
   IndianRupee,
   LogOut,
   MapPin,
@@ -27,6 +28,7 @@ import {
   Sparkles,
   Sprout,
   Ticket,
+  TrendingUp,
   Truck,
   Users,
   Wheat,
@@ -1540,7 +1542,7 @@ function TrackTokenContent() {
                 stepNumber: "01",
                 title: t("tracker.step1Title"),
                 description: t("tracker.step1Desc"),
-                icon: Clock3,
+                icon: FileText,
                 completed: isStepComplete("WAITING"),
                 active: isCurrentStep("WAITING"),
               },
@@ -1567,7 +1569,7 @@ function TrackTokenContent() {
                 description: booking.verifiedBy
                   ? t("tracker.step3DescVerified", { officer: booking.verifiedBy })
                   : t("tracker.step3DescDefault"),
-                icon: ShieldCheck,
+                icon: FileText,
                 completed: isStepComplete("VERIFIED"),
                 active: isCurrentStep("VERIFIED"),
               },
@@ -1594,7 +1596,7 @@ function TrackTokenContent() {
                   currentStatus === "COMPLETED"
                     ? t("tracker.step5DescCompleted")
                     : t("tracker.step5DescDefault"),
-                icon: CheckCircle2,
+                icon: IndianRupee,
                 completed: isStepComplete("COMPLETED"),
                 active: isCurrentStep("COMPLETED"),
               },
@@ -1605,17 +1607,18 @@ function TrackTokenContent() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-black uppercase tracking-wider text-[#13491E]">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-[#13491E]">
+                        <TrendingUp className="h-3.5 w-3.5 text-[#13491E]" />
                         {t("tracker.workflowFilingChart")}
                       </span>
                       <span className="text-xs font-semibold text-gray-500">
                         {t("tracker.procurementDesks")}
                       </span>
                     </div>
-                    <h2 className="mt-1 text-xl font-black text-gray-900">
+                    <h2 className="mt-2 text-xl sm:text-2xl font-black text-gray-950">
                       {t("tracker.journeyProgressTitle")}
                     </h2>
-                    <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
+                    <p className="mt-1 text-xs sm:text-sm text-gray-500">
                       {t("tracker.journeyProgressSubtitle")}
                     </p>
                   </div>
@@ -1623,10 +1626,10 @@ function TrackTokenContent() {
                   {/* OVERALL PROGRESS INDICATOR */}
                   <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 border border-gray-100 shrink-0">
                     <div className="text-right">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                         {t("tracker.fileProgress")}
                       </div>
-                      <div className="text-xs font-black text-[#13491E]">
+                      <div className="text-xs sm:text-sm font-extrabold text-[#13491E]">
                         {currentStatus === "COMPLETED"
                           ? t("tracker.progressSettled")
                           : currentStatus === "PROCESSING"
@@ -1640,9 +1643,9 @@ function TrackTokenContent() {
                           : t("tracker.progressStage1")}
                       </div>
                     </div>
-                    <div className="h-2 w-24 sm:w-32 rounded-full bg-gray-200 overflow-hidden">
+                    <div className="h-3 w-28 sm:w-36 rounded-full bg-gray-200 overflow-hidden p-0.5">
                       <div
-                        className="h-full bg-gradient-to-r from-[#13491E] to-[#2E7D32] transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-[#13491E] to-[#2E7D32] rounded-full transition-all duration-500"
                         style={{
                           width:
                             currentStatus === "COMPLETED"
@@ -1662,143 +1665,115 @@ function TrackTokenContent() {
                   </div>
                 </div>
 
-                {/* HORIZONTAL FILING STAGES CONTAINER */}
-                <div className="mt-5 flex items-stretch overflow-x-auto gap-1 sm:gap-1.5 pb-2.5 pt-1 no-scrollbar snap-x">
-                  {farmerFilingStages.map((stage, idx) => {
+                {/* 5 CARDS IN A RESPONSIVE ROW (MATCHING IMAGE 2 EXACTLY) */}
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                  {farmerFilingStages.map((stage) => {
                     const StageIcon = stage.icon;
+                    const cleanTitle = stage.title.replace(/^\d+[\.\)]\s*/, "");
+                    const isActive = stage.active;
+                    const isCompleted = stage.completed;
+
                     return (
-                      <Fragment key={stage.id}>
-                        <div
-                          className="min-w-[160px] sm:min-w-[180px] lg:min-w-0 flex-1 snap-start flex flex-col"
-                        >
-                          {/* TOP FILING FOLDER TAB */}
-                          <div className="flex items-center">
+                      <div
+                        key={stage.id}
+                        className={`rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all ${
+                          isActive
+                            ? "border-2 border-emerald-400 bg-white shadow-xs"
+                            : isCompleted
+                            ? "border border-emerald-200 bg-emerald-50/20 shadow-2xs"
+                            : "border border-gray-200 bg-white"
+                        }`}
+                      >
+                        {/* TOP CONTENT: NUMBER, BADGE, ICON, TITLE, DESC */}
+                        <div>
+                          {/* TOP ROW: NUMBER & STATUS BADGE */}
+                          <div className="flex items-center justify-between">
+                            {/* STEP NUMBER */}
+                            {isActive || isCompleted ? (
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#13491E] text-white text-xs font-black shadow-xs">
+                                {stage.stepNumber}
+                              </div>
+                            ) : (
+                              <div className="flex h-6 px-2.5 items-center justify-center rounded-lg bg-gray-100 text-gray-500 text-xs font-bold">
+                                {stage.stepNumber}
+                              </div>
+                            )}
+
+                            {/* STATUS BADGE */}
+                            {isCompleted ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-emerald-800 border border-emerald-200/80">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                {t("tracker.stageCompleted")}
+                              </span>
+                            ) : isActive ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-emerald-800 border border-emerald-200/80 animate-pulse">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
+                                {t("tracker.stageInProgress")}
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold tracking-wide uppercase text-gray-400">
+                                {t("tracker.stageUpcoming")}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* SECOND ROW: ICON BOX */}
+                          <div className="mt-4">
                             <div
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-t-lg text-[9px] sm:text-[10px] font-black uppercase tracking-wider border-t border-x ${
-                                stage.completed
-                                  ? "bg-emerald-100 text-[#13491E] border-emerald-300"
-                                  : stage.active
-                                  ? "bg-[#13491E] text-white border-[#13491E] shadow-xs"
-                                  : "bg-gray-100 text-gray-500 border-gray-200"
+                              className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                                isActive || isCompleted
+                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                  : "bg-gray-100 text-gray-500"
                               }`}
                             >
-                              <span>{t("tracker.fileNumber", { num: stage.stepNumber })}</span>
+                              <StageIcon
+                                className={`h-5 w-5 ${
+                                  isActive || isCompleted ? "text-emerald-700" : "text-gray-400"
+                                }`}
+                              />
                             </div>
                           </div>
 
-                          {/* MAIN FILING CARD BODY */}
-                          <div
-                            className={`flex-1 flex flex-col justify-between rounded-b-xl rounded-tr-xl p-2.5 sm:p-3 transition-all ${
-                              stage.completed
-                                ? "border border-emerald-300 bg-gradient-to-b from-emerald-50/60 to-white shadow-xs"
-                                : stage.active
-                                ? "border-2 border-[#13491E] bg-gradient-to-b from-white to-[#F1F8F2] shadow-md ring-2 ring-[#13491E]/15"
-                                : "border border-gray-200 bg-gray-50/50 opacity-80"
-                            }`}
-                          >
-                            <div>
-                              <div className="flex items-center justify-between gap-1.5">
-                                <div
-                                  className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-lg shadow-xs ${
-                                    stage.completed
-                                      ? "bg-[#13491E] text-white"
-                                      : stage.active
-                                      ? "bg-[#13491E] text-white animate-pulse"
-                                      : "bg-gray-200 text-gray-500"
-                                  }`}
-                                >
-                                  {stage.completed ? (
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <StageIcon className="h-3.5 w-3.5" />
-                                  )}
-                                </div>
+                          {/* THIRD ROW: TITLE & DESCRIPTION */}
+                          <div className="mt-3.5">
+                            <h3
+                              className={`text-sm font-extrabold leading-snug ${
+                                isActive
+                                  ? "text-gray-950"
+                                  : isCompleted
+                                  ? "text-gray-900"
+                                  : "text-gray-800"
+                              }`}
+                            >
+                              {cleanTitle}
+                            </h3>
 
-                                <span
-                                  className={`rounded-full px-1.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-wider ${
-                                    stage.completed
-                                      ? "bg-emerald-100 text-[#13491E]"
-                                      : stage.active
-                                      ? "bg-[#13491E] text-white"
-                                      : "bg-gray-100 text-gray-400"
-                                  }`}
-                                >
-                                  {stage.completed
-                                    ? t("tracker.stageCompleted")
-                                    : stage.active
-                                    ? t("tracker.stageInProgress")
-                                    : t("tracker.stageUpcoming")}
-                                </span>
-                              </div>
-
-                              <h4
-                                className={`mt-2 text-xs font-black tracking-tight leading-snug line-clamp-1 sm:line-clamp-none ${
-                                  stage.active
-                                    ? "text-[#13491E]"
-                                    : stage.completed
-                                    ? "text-gray-950"
-                                    : "text-gray-500"
-                                }`}
-                              >
-                                {stage.title}
-                              </h4>
-
-                              <p className="mt-1 text-[10px] sm:text-[11px] text-gray-500 leading-snug line-clamp-2 sm:line-clamp-3">
-                                {stage.description}
-                              </p>
-                            </div>
-
-                            {/* BOTTOM STATUS FOOTER */}
-                            <div className="mt-2.5 pt-2 border-t border-dashed border-gray-200 text-[9px] font-bold text-gray-400 flex items-center justify-between">
-                              <span>{t("tracker.deskNumber", { num: stage.stepNumber })}</span>
-                              {stage.completed && (
-                                <span className="text-[#13491E] font-black">{t("tracker.clearedCheck")}</span>
-                              )}
-                              {stage.active && (
-                                <span className="text-[#13491E] font-black flex items-center gap-1">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-[#13491E] animate-ping" />
-                                  {t("tracker.activeNow")}
-                                </span>
-                              )}
-                              {!stage.completed && !stage.active && (
-                                <span className="text-gray-400">{t("tracker.queued")}</span>
-                              )}
-                            </div>
+                            <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">
+                              {stage.description}
+                            </p>
                           </div>
                         </div>
 
-                        {/* FAT SLIDER ARROW CONNECTOR */}
-                        {idx < farmerFilingStages.length - 1 && (
-                          <div className="flex items-center justify-center shrink-0 self-center px-0.5 select-none">
-                            <div className="flex items-center">
-                              <div
-                                className={`h-2 w-1 sm:w-2 rounded-l-full transition-colors ${
-                                  stage.completed ? "bg-[#13491E]" : "bg-gray-200"
-                                }`}
-                              />
-                              <div
-                                className={`flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full border-2 transition-all shadow-xs ${
-                                  stage.completed
-                                    ? "bg-[#13491E] border-[#0E3616] text-white shadow-emerald-950/20"
-                                    : stage.active
-                                    ? "bg-[#13491E] border-[#13491E] text-white ring-2 ring-[#13491E]/20 animate-pulse"
-                                    : "bg-white border-gray-300 text-gray-400"
-                                }`}
-                                title={t("tracker.nextStep")}
-                              >
-                                <ArrowRight className="h-3.5 w-3.5 stroke-[3.5]" />
-                              </div>
-                              <div
-                                className={`h-2 w-1 sm:w-2 rounded-r-full transition-colors ${
-                                  farmerFilingStages[idx + 1]?.completed || farmerFilingStages[idx + 1]?.active
-                                    ? "bg-[#13491E]"
-                                    : "bg-gray-200"
-                                }`}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </Fragment>
+                        {/* FOURTH ROW: BOTTOM STATUS INDICATOR */}
+                        <div className="mt-5 pt-3 border-t border-gray-100 flex items-center gap-2 text-xs">
+                          {isActive ? (
+                            <>
+                              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-100" />
+                              <span className="font-extrabold text-gray-900">{t("tracker.activeNow")}</span>
+                            </>
+                          ) : isCompleted ? (
+                            <>
+                              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                              <span className="font-bold text-emerald-800">{t("tracker.clearedCheck")}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="h-2.5 w-2.5 rounded-full bg-gray-300" />
+                              <span className="font-medium text-gray-400">{t("tracker.queued")}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
