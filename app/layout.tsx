@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { LanguageProvider } from "@/context/language-context";
 import { MandimitraChatWidget } from "@/components/MandimitraChatWidget";
+import { LiveSmsNotifier } from "@/components/LiveSmsNotifier";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           {children}
           <MandimitraChatWidget />
+          <LiveSmsNotifier />
         </LanguageProvider>
       </body>
     </html>

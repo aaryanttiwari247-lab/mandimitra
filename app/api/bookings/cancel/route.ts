@@ -1,6 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { updateBookingInAllStores } from "@/lib/procurement-store";
 import { Booking } from "@/lib/types";
+import { sendBookingCancelledSms } from "@/lib/sms-service";
 
 export async function POST(req: Request) {
   try {
@@ -39,6 +40,13 @@ export async function POST(req: Request) {
         { success: false, message: "Booking not found or already cancelled" },
         { status: 404 }
       );
+    }
+
+    // Dispatch Cancellation SMS to farmer's mobile
+    if (updated.farmerMobile) {
+      sendBookingCancelledSms(updated, updates.cancellationReason || undefined).catch(err => {
+        console.warn("Could not dispatch cancellation SMS:", err);
+      });
     }
 
     return NextResponse.json({
