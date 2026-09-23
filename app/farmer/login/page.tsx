@@ -7,8 +7,10 @@ import {
   Phone,
   RefreshCw,
   CreditCard,
+  MapPin,
   ShieldCheck,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -282,8 +284,9 @@ export default function FarmerLogin() {
               {farmerProfile?.district && (
                 <div className="sm:col-span-2 pt-2 border-t border-gray-200">
                   <p className="text-xs font-semibold text-gray-500 uppercase">{t("auth.locationAndLand")}</p>
-                  <p className="mt-1 text-sm font-medium text-gray-800">
-                    📍 {farmerProfile.village ? `${farmerProfile.village}, ` : ""}${farmerProfile.district} • {farmerProfile.landAcres || 0} Acres ({farmerProfile.primaryCrop || "Cotton"})
+                  <p className="mt-1 text-sm font-medium text-gray-800 flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+                    <span>{farmerProfile.village ? `${farmerProfile.village}, ` : ""}${farmerProfile.district} • {farmerProfile.landAcres || 0} Acres ({farmerProfile.primaryCrop || "Cotton"})</span>
                   </p>
                 </div>
               )}
@@ -531,7 +534,8 @@ export default function FarmerLogin() {
                     onClick={() => handleAutoFillOtp()}
                     className="inline-flex items-center gap-1 text-xs font-bold text-[#2E7D32] hover:underline cursor-pointer"
                   >
-                    ⚡ {t("auth.autoFillOtp")}
+                    <Zap className="h-3 w-3 fill-current" />
+                    <span>{t("auth.autoFillOtp")}</span>
                   </button>
                 </div>
 

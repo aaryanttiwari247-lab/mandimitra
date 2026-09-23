@@ -232,7 +232,7 @@ export function calculateBestCentreAndSlot(
     } else if (bestCentre.cropMatchRate > 0) {
       cropNote = `Partially accepts selected commodities. `;
     } else {
-      cropNote = `⚠️ Note: No centre in this candidate list is mandated for ${cleanRequestedCrops.join(", ")}. `;
+      cropNote = `Note: No centre in this candidate list is mandated for ${cleanRequestedCrops.join(", ")}. `;
     }
   }
 

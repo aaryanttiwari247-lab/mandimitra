@@ -929,7 +929,7 @@ function TrackTokenContent() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-md bg-[#2E7D32] px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
-                      {t("official.farmerArrivedBadge") || "Arrived & Present ✓"}
+                      {t("official.farmerArrivedBadge") || "Arrived & Present"}
                     </span>
                     <span className="text-xs font-bold text-emerald-800">
                       {booking.arrivedAt || booking.calledAt
@@ -938,7 +938,7 @@ function TrackTokenContent() {
                     </span>
                   </div>
                   <h2 className="mt-1 text-xl sm:text-2xl font-black text-emerald-950">
-                    🔔 Token #{String(booking.token || booking.tokenNumber || "").replace(/^#/, "")} — Proceed to Document Verification Desk
+                    Token #{String(booking.token || booking.tokenNumber || "").replace(/^#/, "")} — Proceed to Document Verification Desk
                   </h2>
                   <p className="mt-1 text-sm text-emerald-900 leading-relaxed">
                     Farmer arrival has been registered at <strong>{booking.centre}</strong>. Please present your Aadhaar card, land records, and booking token at the document verification counter.
@@ -1050,8 +1050,9 @@ function TrackTokenContent() {
                   {booking.crops && booking.crops.length > 1 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {booking.crops.map((c, idx) => (
-                        <span key={idx} className="rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
-                          🌾 {localizeCrop(c.crop)}: {c.actualQuantity ?? c.quantity} {t("common.quintals")} {c.cropGrade ? `(${c.cropGrade})` : ""}
+                        <span key={idx} className="inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
+                          <Wheat className="h-3 w-3 shrink-0" />
+                          <span>{localizeCrop(c.crop)}: {c.actualQuantity ?? c.quantity} {t("common.quintals")} {c.cropGrade ? `(${c.cropGrade})` : ""}</span>
                         </span>
                       ))}
                     </div>

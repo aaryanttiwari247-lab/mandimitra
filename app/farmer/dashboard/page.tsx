@@ -782,8 +782,9 @@ export default function FarmerDashboard() {
                 <p className="mt-0.5 text-base font-bold text-[#2E7D32]">{farmer.farmerCode || farmer.farmerId || `FMR${farmer.mobile?.slice(-4)}`}</p>
                 <p className="text-xs text-gray-600 font-medium">+91 {farmer.mobile}</p>
                 {farmer.district && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    📍 {farmer.village ? `${farmer.village}, ` : ""}{farmer.district}
+                  <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-gray-400 shrink-0" />
+                    <span>{farmer.village ? `${farmer.village}, ` : ""}{farmer.district}</span>
                   </p>
                 )}
               </div>
@@ -995,14 +996,16 @@ export default function FarmerDashboard() {
                   {booking.crops && booking.crops.length > 1 ? (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {booking.crops.map((c, idx) => (
-                        <span key={idx} className="rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
-                          🌾 {c.crop}: {c.quantity} qtl
+                        <span key={idx} className="inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
+                          <Wheat className="h-3.5 w-3.5 shrink-0" />
+                          <span>{c.crop}: {c.quantity} qtl</span>
                         </span>
                       ))}
                     </div>
                   ) : booking.crop ? (
-                    <p className="mt-2 text-xs font-bold text-white/90">
-                      🌾 {booking.crop} • {booking.quantity || 0} Quintals
+                    <p className="mt-2 text-xs font-bold text-white/90 flex items-center gap-1.5">
+                      <Wheat className="h-3.5 w-3.5 shrink-0" />
+                      <span>{booking.crop} • {booking.quantity || 0} Quintals</span>
                     </p>
                   ) : null}
 
@@ -1818,10 +1821,11 @@ export default function FarmerDashboard() {
 
                           {/* Crop & Quantity */}
                           <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <span className="font-extrabold text-gray-900">
-                              🌾 {item.crops && item.crops.length > 1
+                            <span className="inline-flex items-center gap-1 font-extrabold text-gray-900">
+                              <Wheat className="h-4 w-4 text-[#2E7D32] shrink-0" />
+                              <span>{item.crops && item.crops.length > 1
                                 ? item.crops.map((c) => `${c.crop} (${c.actualQuantity ?? c.quantity}q)`).join(", ")
-                                : `${item.crop || "Produce"} • ${itemQty} Quintals`}
+                                : `${item.crop || "Produce"} • ${itemQty} Quintals`}</span>
                             </span>
                             {isItemCompleted && (
                               <>
@@ -1837,7 +1841,10 @@ export default function FarmerDashboard() {
 
                           {/* Location / Centre */}
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
-                            <span>📍 Centre: <strong className="text-gray-800">{item.centre || "Mandi Yard"}</strong></span>
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-gray-400 shrink-0" />
+                              <span>Centre: <strong className="text-gray-800">{item.centre || "Mandi Yard"}</strong></span>
+                            </span>
                             {item.bookingId && (
                               <span className="font-mono text-gray-400">ID: {item.bookingId}</span>
                             )}

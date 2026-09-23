@@ -10,11 +10,13 @@ import {
   Coins,
   LogOut,
   MapPin,
+  Phone,
   Plus,
   Sparkles,
   Sprout,
   Trash2,
   Wheat,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -418,7 +420,7 @@ export default function BookProcurementSlot() {
     // Verify crop compatibility before allowing confirmation
     const compatibility = centreCropCompatibility(selectedCentreData, userCrops);
     if (!compatibility.isFullyCompatible && compatibility.unaccepted.length > 0) {
-      alert(`⚠️ Cannot book at this centre: ${selectedCentreData.name} does not accept ${compatibility.unaccepted.join(", ")}. Please select a compatible centre.`);
+      alert(`Cannot book at this centre: ${selectedCentreData.name} does not accept ${compatibility.unaccepted.join(", ")}. Please select a compatible centre.`);
       return;
     }
 
@@ -801,7 +803,7 @@ export default function BookProcurementSlot() {
                         )}
                         {smartRec.isCrossDistrictRecommendation && smartRec.bestCentre.location && (
                           <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-300">
-                            📍 Nearest in {smartRec.bestCentre.location}
+                            Nearest in {smartRec.bestCentre.location}
                           </span>
                         )}
                       </div>
@@ -810,7 +812,8 @@ export default function BookProcurementSlot() {
 
                   {smartRec.timeSavedMinutes > 0 && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2E7D32] px-3.5 py-1 text-xs font-bold text-white shadow-xs">
-                      ⚡ {t("booking.timeSaved", { mins: smartRec.timeSavedMinutes })}
+                      <Zap className="h-3.5 w-3.5 fill-current" />
+                      {t("booking.timeSaved", { mins: smartRec.timeSavedMinutes })}
                     </span>
                   )}
                 </div>
@@ -844,7 +847,7 @@ export default function BookProcurementSlot() {
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
                   <p className="text-xs text-gray-600 italic">
-                    💡 {smartRec.reasoning}
+                    {smartRec.reasoning}
                   </p>
                   <button
                     type="button"
@@ -1147,7 +1150,7 @@ export default function BookProcurementSlot() {
                       </div>
                       <div>
                         <span className="text-[11px] font-bold uppercase tracking-wider text-[#2E7D32]">
-                          📍 {t("booking.nearestCentreBadge", { crop: userCrops.join(", ") }) || `Nearest Centre for ${userCrops.join(", ")}`}
+                          {t("booking.nearestCentreBadge", { crop: userCrops.join(", ") }) || `Nearest Centre for ${userCrops.join(", ")}`}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap mt-0.5">
                           <p className="text-sm font-bold text-gray-900">
@@ -1241,12 +1244,13 @@ export default function BookProcurementSlot() {
                                   </span>
                                 )}
                                 {comp?.isFullyCompatible ? (
-                                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                                    ✓ {t("booking.cropCompatible") || "Accepts crops"}
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    <span>{t("booking.cropCompatible") || "Accepts crops"}</span>
                                   </span>
                                 ) : comp?.unaccepted && comp.unaccepted.length > 0 ? (
                                   <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-800 border border-red-200">
-                                    ❌ {t("booking.cropIncompatible", { crops: comp.unaccepted.join(", ") }) || `Does not accept ${comp.unaccepted.join(", ")}`}
+                                    {t("booking.cropIncompatible", { crops: comp.unaccepted.join(", ") }) || `Does not accept ${comp.unaccepted.join(", ")}`}
                                   </span>
                                 ) : null}
                               </div>
@@ -1266,7 +1270,7 @@ export default function BookProcurementSlot() {
                             {selected && !comp?.isFullyCompatible && comp?.unaccepted && comp.unaccepted.length > 0 && (
                               <div className="mt-2.5 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs font-semibold text-red-700">
                                 {t("booking.cannotAcceptWarning", { crop: comp.unaccepted.join(", ") }) ||
-                                  `⚠️ This centre does not accept ${comp.unaccepted.join(", ")}. Please select an authorized centre.`}
+                                  `This centre does not accept ${comp.unaccepted.join(", ")}. Please select an authorized centre.`}
                               </div>
                             )}
 
@@ -1280,14 +1284,16 @@ export default function BookProcurementSlot() {
                               </span>
 
                               {centre.operatingHours && (
-                                <span className="text-gray-500">
-                                  🕒 {centre.operatingHours}
+                                <span className="inline-flex items-center gap-1 text-gray-500">
+                                  <Clock3 className="h-3 w-3 text-gray-400" />
+                                  {centre.operatingHours}
                                 </span>
                               )}
 
                               {centre.contactNumber && (
-                                <span className="text-gray-500">
-                                  📞 {centre.contactNumber}
+                                <span className="inline-flex items-center gap-1 text-gray-500">
+                                  <Phone className="h-3 w-3 text-gray-400" />
+                                  {centre.contactNumber}
                                 </span>
                               )}
                             </div>
@@ -1386,7 +1392,7 @@ export default function BookProcurementSlot() {
                           ? t("booking.slotFull") || "Full"
                           : isFillingFast
                           ? `${t("booking.fillingFast") || "Filling Fast"} (${slot.available})`
-                          : `${slot.available} ${t("booking.slotsAvailable", { count: slot.available })}`}
+                          : t("booking.slotsAvailable", { count: slot.available })}
                       </span>
                     </div>
 
@@ -1395,7 +1401,7 @@ export default function BookProcurementSlot() {
                     </p>
 
                     <div className="mt-3 flex items-center justify-between text-[11px] text-gray-400">
-                      <span>{slot.session === "MORNING" ? "🌅 Morning" : "☀️ Afternoon"}</span>
+                      <span>{slot.session === "MORNING" ? "Morning" : "Afternoon"}</span>
                       <span>Max {slot.maxCapacity}</span>
                     </div>
                   </button>
