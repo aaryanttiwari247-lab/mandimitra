@@ -1,6 +1,6 @@
 import { Booking, BookingStatus } from "./types";
 import { LOCATIONS_DATA, PROCUREMENT_CENTRES, getCentresByLocation } from "./locations-centres";
-import { CROP_MSP_RATES } from "./msp-rates";
+import { CROP_MSP_RATES, getCropMspData } from "./msp-rates";
 import { getLocationTokenMeta } from "./token-service";
 
 const FIRST_NAMES = [
@@ -105,7 +105,12 @@ export function generateSeedBookings(): Booking[] {
       const mobileDigits = (9820000000 + locIndex * 100000 + i * 789).toString().padEnd(10, "5");
       const farmerMobile = mobileDigits.slice(0, 10);
 
-      const cropItem = CROP_MSP_RATES[(locIndex * 2 + i) % CROP_MSP_RATES.length];
+      // Pick crop from centre's accepted crops if available
+      const acceptedList = (centre.acceptedCrops && centre.acceptedCrops.length > 0)
+        ? centre.acceptedCrops
+        : ["Wheat"];
+      const selectedCropName = acceptedList[i % acceptedList.length];
+      const cropItem = getCropMspData(selectedCropName);
       const cropGrade = GRADES[(i + locIndex) % GRADES.length];
       const quantity = 15 + ((locIndex * 13 + i * 7) % 85);
 

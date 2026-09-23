@@ -2,19 +2,29 @@ import { NextResponse } from "next/server";
 import { calculateBestCentreAndSlot, CentreCongestion, SlotCongestion } from "@/lib/recommendation-engine";
 import { getStoredQueue } from "@/lib/procurement-store";
 import { getCentresByLocation } from "@/lib/locations-centres";
-
-const DEFAULT_SLOTS = [
-  { slotId: "s1", timeWindow: "10:00 AM – 10:30 AM", shortTime: "10:00 AM", maxCapacity: 15, bookedCount: 15 },
-  { slotId: "s2", timeWindow: "10:30 AM – 11:00 AM", shortTime: "10:30 AM", maxCapacity: 15, bookedCount: 1 },
-  { slotId: "s3", timeWindow: "11:00 AM – 11:30 AM", shortTime: "11:00 AM", maxCapacity: 15, bookedCount: 7 },
-  { slotId: "s4", timeWindow: "11:30 AM – 12:00 PM", shortTime: "11:30 AM", maxCapacity: 15, bookedCount: 12 },
-  { slotId: "s5", timeWindow: "12:00 PM – 12:30 PM", shortTime: "12:00 PM", maxCapacity: 15, bookedCount: 15 },
-];
+import { getDynamicSlotsForCentre } from "@/lib/slot-service";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { crop = "Wheat", quantity = 30, preferredSlot = "10:30 AM", location = "Bhopal" } = body;
+    const {
+      crop = "Wheat",
+      crops,
+      cropsList,
+      quantity = 30,
+      preferredSlot = "10:30 AM",
+      location = "Bhopal",
+      date,
+    } = body;
+
+    // Collect requested crops list
+    const requestedCrops: string[] = Array.isArray(crops) && crops.length > 0
+      ? crops
+      : Array.isArray(cropsList) && cropsList.length > 0
+      ? cropsList.map((item: { crop?: string } | string) => (typeof item === "string" ? item : item.crop || ""))
+      : [crop];
+
+    const cleanRequestedCrops = requestedCrops.filter(Boolean);
 
     // Read current queue to calculate live congestion
     const liveQueue = getStoredQueue();
@@ -41,24 +51,39 @@ export async function POST(req: Request) {
         estimatedWaitMinutes: dynamicWait,
         baysAvailable: c.bays,
         processingSpeedPerQtlMin: 1.4,
+        acceptedCrops: c.acceptedCrops,
+        agencyType: c.agencyType,
       };
     });
 
-    const slotsData: SlotCongestion[] = DEFAULT_SLOTS.map((s) => ({
+    // Generate dynamic full-day slots for the target centre & date
+    const targetCentre = allottedCentres[0];
+    const targetDate = date || new Date().toISOString().split("T")[0];
+    const dynamicSlots = getDynamicSlotsForCentre(targetCentre, targetDate, liveQueue);
+
+    const slotsData: SlotCongestion[] = dynamicSlots.map((s) => ({
       slotId: s.slotId,
-      timeWindow: s.timeWindow,
+      timeWindow: s.time,
       shortTime: s.shortTime,
       bookedCount: s.bookedCount,
       maxCapacity: s.maxCapacity,
-      utilizationRate: s.bookedCount / s.maxCapacity,
+      utilizationRate: s.utilizationRate,
+      availableSeats: s.available,
     }));
 
-    const recommendation = calculateBestCentreAndSlot(centresData, slotsData, preferredSlot);
+    const recommendation = calculateBestCentreAndSlot(
+      centresData,
+      slotsData,
+      preferredSlot,
+      cleanRequestedCrops
+    );
 
     return NextResponse.json({
       success: true,
-      crop,
+      crop: cleanRequestedCrops[0] || crop,
+      requestedCrops: cleanRequestedCrops,
       quantity: Number(quantity),
+      date: targetDate,
       ...recommendation,
     });
   } catch (error: unknown) {

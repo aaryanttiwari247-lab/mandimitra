@@ -18,6 +18,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { BrandLogo } from "@/components/BrandLogo";
 import { registerFarmerProfile } from "@/lib/farmer-auth";
 import { CROP_MSP_RATES, getCropDisplayName } from "@/lib/msp-rates";
+import { LOCATIONS_DATA } from "@/lib/locations-centres";
 
 export default function FarmerRegister() {
   const router = useRouter();
@@ -265,15 +266,19 @@ export default function FarmerRegister() {
                   {t("register.district")}
                 </label>
                 <div className="relative mt-2 flex items-center">
-                  <MapPin className="absolute left-3.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
+                  <MapPin className="pointer-events-none absolute left-3.5 h-4 w-4 text-gray-400" />
+                  <select
                     required
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    placeholder={t("register.districtPlaceholder")}
-                    className="w-full rounded-xl border border-gray-300 bg-white py-3.5 pl-10 pr-3 text-sm font-medium text-black outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
-                  />
+                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white py-3.5 pl-10 pr-3 text-sm font-medium text-black outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                  >
+                    {LOCATIONS_DATA.map((loc) => (
+                      <option key={loc.id} value={loc.name}>
+                        {loc.name} ({loc.state})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

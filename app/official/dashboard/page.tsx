@@ -1130,7 +1130,7 @@ export default function OfficialDashboardPage() {
                     </option>
                     {availableCentresForLocation.map((c) => (
                       <option key={c.id} value={c.name}>
-                        {c.name} ({c.location})
+                        {c.agencyType ? `[${c.agencyType}] ` : ""}{c.name} ({c.location}){c.acceptedCrops && c.acceptedCrops.length > 0 ? ` • ${c.acceptedCrops.slice(0, 3).join(", ")}${c.acceptedCrops.length > 3 ? ` +${c.acceptedCrops.length - 3}` : ""}` : ""}
                       </option>
                     ))}
                   </select>
@@ -1242,6 +1242,11 @@ export default function OfficialDashboardPage() {
                               <h3 className="text-xl font-bold text-gray-900">
                                 {group.centre.name}
                               </h3>
+                              {group.centre.agencyType && (
+                                <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-800">
+                                  {group.centre.agencyType}
+                                </span>
+                              )}
                               <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-bold text-[#2E7D32]">
                                 {group.centre.location}, {group.centre.state}
                               </span>
@@ -1249,6 +1254,16 @@ export default function OfficialDashboardPage() {
                             <p className="mt-1 text-xs text-gray-500">
                               {group.centre.distance} • {group.centre.bays} Bays Capacity • Est. Wait ~{group.centre.baseWaitMinutes} min • 📞 {group.centre.contactNumber}
                             </p>
+                            {group.centre.acceptedCrops && group.centre.acceptedCrops.length > 0 && (
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                <span className="text-[11px] font-semibold text-gray-500">Accepted Commodities:</span>
+                                {group.centre.acceptedCrops.map((c) => (
+                                  <span key={c} className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
+                                    {c}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
 

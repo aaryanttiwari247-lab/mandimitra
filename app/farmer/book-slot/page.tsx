@@ -34,8 +34,16 @@ import {
   LOCATIONS_DATA,
   PROCUREMENT_CENTRES,
   getCentresByLocation,
+  getCentreByName,
+  centreCropCompatibility,
+  centreAcceptsCrop,
   ProcurementCentre,
 } from "@/lib/locations-centres";
+import {
+  getDynamicSlotsForCentre,
+  DynamicSlot,
+  SessionType,
+} from "@/lib/slot-service";
 import { generateUniqueToken } from "@/lib/token-service";
 import {
   getStoredQueue,
@@ -53,6 +61,8 @@ type SmartRecommendation = {
     estimatedWaitMinutes: number;
     baysAvailable: number;
     score: number;
+    acceptedCrops?: string[];
+    agencyType?: string;
   };
   recommendedSlot: {
     slotId: string;
@@ -64,35 +74,6 @@ type SmartRecommendation = {
   timeSavedMinutes: number;
   reasoning: string;
 };
-
-
-const slots = [
-  {
-    time: "10:00 AM – 10:30 AM",
-    shortTime: "10:00 AM",
-    available: 0,
-  },
-  {
-    time: "10:30 AM – 11:00 AM",
-    shortTime: "10:30 AM",
-    available: 14,
-  },
-  {
-    time: "11:00 AM – 11:30 AM",
-    shortTime: "11:00 AM",
-    available: 8,
-  },
-  {
-    time: "11:30 AM – 12:00 PM",
-    shortTime: "11:30 AM",
-    available: 3,
-  },
-  {
-    time: "12:00 PM – 12:30 PM",
-    shortTime: "12:00 PM",
-    available: 0,
-  },
-];
 
 export default function BookProcurementSlot() {
   const router = useRouter();
@@ -161,27 +142,95 @@ export default function BookProcurementSlot() {
     );
   };
 
+  const [slotSessionFilter, setSlotSessionFilter] = useState<SessionType>("ALL");
+  const [onlyCompatibleCentres, setOnlyCompatibleCentres] = useState<boolean>(true);
+  const [liveQueue, setLiveQueue] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    setLiveQueue(getStoredQueue());
+    const handleUpdate = () => setLiveQueue(getStoredQueue());
+    window.addEventListener("smartProcurementQueueUpdated", handleUpdate);
+    return () => window.removeEventListener("smartProcurementQueueUpdated", handleUpdate);
+  }, []);
+
   const availableCentres = useMemo(() => {
     return getCentresByLocation(selectedLocation);
   }, [selectedLocation]);
+
+  const userCrops = useMemo(() => {
+    return cropsList.map((c) => c.crop).filter(Boolean);
+  }, [cropsList]);
+
+  const processedCentres = useMemo(() => {
+    const list = availableCentres.map((c) => {
+      const compatibility = centreCropCompatibility(c, userCrops);
+      return { ...c, compatibility };
+    });
+
+    if (onlyCompatibleCentres) {
+      const fullyCompatible = list.filter((c) => c.compatibility.isFullyCompatible);
+      if (fullyCompatible.length > 0) return fullyCompatible;
+    }
+
+    return [...list].sort(
+      (a, b) => b.compatibility.matchPercentage - a.compatibility.matchPercentage
+    );
+  }, [availableCentres, userCrops, onlyCompatibleCentres]);
 
   const [selectedCentre, setSelectedCentre] = useState(
     "Lakshmipur Procurement Centre"
   );
 
-  // When location changes, auto-select recommended or first centre in that location
+  const selectedCentreData = useMemo(() => {
+    return (
+      processedCentres.find((centre) => centre.name === selectedCentre) ||
+      availableCentres.find((centre) => centre.name === selectedCentre) ||
+      PROCUREMENT_CENTRES.find((centre) => centre.name === selectedCentre) ||
+      availableCentres[0]
+    );
+  }, [processedCentres, availableCentres, selectedCentre]);
+
+  // When location or crop changes, auto-select recommended or first compatible centre in that location
   useEffect(() => {
-    const allotted = getCentresByLocation(selectedLocation);
-    if (allotted.length > 0) {
-      const match = allotted.some((c) => c.name === selectedCentre);
+    if (processedCentres.length > 0) {
+      const match = processedCentres.some((c) => c.name === selectedCentre);
       if (!match) {
-        const rec = allotted.find((c) => c.recommended) || allotted[0];
+        const rec =
+          processedCentres.find((c) => c.recommended && c.compatibility.isFullyCompatible) ||
+          processedCentres.find((c) => c.compatibility.isFullyCompatible) ||
+          processedCentres[0];
         setSelectedCentre(rec.name);
       }
     }
-  }, [selectedLocation, selectedCentre]);
+  }, [processedCentres, selectedCentre]);
 
   const [selectedSlot, setSelectedSlot] = useState("10:30 AM");
+
+  // Dynamic slots calculation for the currently selected centre, date, and live queue
+  const dynamicSlots = useMemo(() => {
+    return getDynamicSlotsForCentre(selectedCentreData, date, liveQueue);
+  }, [selectedCentreData, date, liveQueue]);
+
+  const displayedSlots = useMemo(() => {
+    if (slotSessionFilter === "MORNING") {
+      return dynamicSlots.filter((s) => s.session === "MORNING");
+    }
+    if (slotSessionFilter === "AFTERNOON") {
+      return dynamicSlots.filter((s) => s.session === "AFTERNOON");
+    }
+    return dynamicSlots;
+  }, [dynamicSlots, slotSessionFilter]);
+
+  // If currently selected slot is full or invalid in dynamic slots, auto-select first available
+  useEffect(() => {
+    if (dynamicSlots.length > 0) {
+      const currentSlotObj = dynamicSlots.find((s) => s.shortTime === selectedSlot);
+      if (!currentSlotObj || currentSlotObj.available === 0) {
+        const firstAvailable = dynamicSlots.find((s) => s.available > 0) || dynamicSlots[0];
+        setSelectedSlot(firstAvailable.shortTime);
+      }
+    }
+  }, [dynamicSlots, selectedSlot]);
 
   const [loading, setLoading] = useState(false);
   const [smartRec, setSmartRec] = useState<SmartRecommendation | null>(null);
@@ -196,9 +245,12 @@ export default function BookProcurementSlot() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             crop: cropsList[0]?.crop || "Wheat",
+            crops: userCrops,
+            cropsList,
             quantity: totalQuantity || 30,
             preferredSlot: selectedSlot,
             location: selectedLocation,
+            date: date || getTomorrowDate(),
           }),
         });
         const data = await res.json();
@@ -215,10 +267,10 @@ export default function BookProcurementSlot() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [cropsList, totalQuantity, selectedSlot, selectedLocation]);
+  }, [cropsList, userCrops, totalQuantity, selectedSlot, selectedLocation, date]);
 
   // ============================================================
-  // AUTHENTICATION
+  // AUTHENTICATION & INITIAL DEFAULTS
   // ============================================================
 
   useEffect(() => {
@@ -238,20 +290,16 @@ export default function BookProcurementSlot() {
       }
     }
 
+    if (!date) {
+      setDate(getTomorrowDate());
+    }
+
     const timer = setTimeout(() => {
       setCheckingAuth(false);
     }, 0);
 
     return () => clearTimeout(timer);
   }, [router]);
-
-  const selectedCentreData = useMemo(() => {
-    return (
-      availableCentres.find((centre) => centre.name === selectedCentre) ||
-      PROCUREMENT_CENTRES.find((centre) => centre.name === selectedCentre) ||
-      availableCentres[0]
-    );
-  }, [availableCentres, selectedCentre]);
 
   // ============================================================
   // TOMORROW DATE
@@ -364,7 +412,7 @@ export default function BookProcurementSlot() {
     // SELECTED SLOT DATA
     // ==========================================================
 
-    const selectedSlotData = slots.find(
+    const selectedSlotData = dynamicSlots.find(
       (slot) => slot.shortTime === selectedSlot
     );
 
@@ -991,18 +1039,35 @@ export default function BookProcurementSlot() {
 
               {/* ALLOTTED CENTRES */}
               <div className="mt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    {t("booking.allottedCentresFor", { location: selectedLocation, count: availableCentres.length })}
+                    {t("booking.allottedCentresFor", { location: selectedLocation, count: processedCentres.length })}
                   </label>
                   <span className="text-xs text-gray-500">
                     {t("booking.showingTerminals")}
                   </span>
                 </div>
 
+                {/* Compatibility filter toggle */}
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-gray-50 p-2.5 border border-gray-200/80">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={onlyCompatibleCentres}
+                      onChange={(e) => setOnlyCompatibleCentres(e.target.checked)}
+                      className="h-4 w-4 rounded accent-[#2E7D32]"
+                    />
+                    <span>{t("booking.filterCompatibleCentres") || "Only show centres accepting my selected crop(s)"}</span>
+                  </label>
+                  <span className="text-[11px] font-bold text-[#2E7D32]">
+                    {processedCentres.length} {t("booking.centresAllotted", { count: processedCentres.length })}
+                  </span>
+                </div>
+
                 <div className="mt-3 space-y-3">
-                  {availableCentres.map((centre) => {
+                  {processedCentres.map((centre) => {
                     const selected = selectedCentre === centre.name;
+                    const comp = centre.compatibility;
 
                     return (
                       <button
@@ -1024,19 +1089,43 @@ export default function BookProcurementSlot() {
 
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-start justify-between gap-2">
-                              <p className="font-bold text-gray-900">
-                                {centre.name}
-                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {centre.agencyType && (
+                                  <span className="rounded-md bg-gray-800 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                                    {centre.agencyType}
+                                  </span>
+                                )}
+                                <p className="font-bold text-gray-900">
+                                  {centre.name}
+                                </p>
+                              </div>
 
-                              {centre.recommended && (
-                                <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-bold text-[#2E7D32]">
-                                  {t("booking.recommendedBadge")}
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {centre.recommended && (
+                                  <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-xs font-bold text-[#2E7D32]">
+                                    {t("booking.recommendedBadge")}
+                                  </span>
+                                )}
+                                {comp?.isFullyCompatible ? (
+                                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                                    {t("booking.cropCompatible") || "✓ Accepts crops"}
+                                  </span>
+                                ) : comp?.unaccepted && comp.unaccepted.length > 0 ? (
+                                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                                    ⚠️ {t("booking.cropIncompatible", { crops: comp.unaccepted.join(", ") }) || `Does not accept ${comp.unaccepted.join(", ")}`}
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
 
                             <p className="mt-1 text-xs text-gray-500">
                               {centre.distance} • {centre.location}, {centre.state}
+                            </p>
+
+                            {/* Accepted Commodities list */}
+                            <p className="mt-2 text-xs text-gray-600">
+                              <span className="font-semibold text-gray-700">{t("booking.acceptedCropsLabel") || "Accepted Commodities"}:</span>{" "}
+                              {centre.acceptedCrops.join(", ")}
                             </p>
 
                             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
@@ -1047,6 +1136,12 @@ export default function BookProcurementSlot() {
                               <span className="rounded-md bg-emerald-50 px-2 py-1 font-medium text-emerald-800">
                                 {t("booking.estWait")}: <strong className="text-emerald-900">~{centre.baseWaitMinutes} {t("common.minutes")}</strong>
                               </span>
+
+                              {centre.operatingHours && (
+                                <span className="text-gray-500">
+                                  🕒 {centre.operatingHours}
+                                </span>
+                              )}
 
                               {centre.contactNumber && (
                                 <span className="text-gray-500">
@@ -1064,66 +1159,103 @@ export default function BookProcurementSlot() {
             </div>
           </div>
 
-          {/* TIME SLOTS */}
+          {/* TIME SLOTS (DYNAMIC FULL-DAY CAPACITY) */}
 
           <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-7">
-            <div className="flex items-center gap-3">
-              <Clock3 className="h-5 w-5 text-[#2E7D32]" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Clock3 className="h-5 w-5 text-[#2E7D32]" />
+                <div>
+                  <h2 className="text-xl font-bold">
+                    {t("booking.step3Title")}
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {t("booking.step3Subtitle")} • {date || "Tomorrow"}
+                  </p>
+                </div>
+              </div>
 
-              <div>
-                <h2 className="text-xl font-bold">
-                  {t("booking.step3Title")}
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  {t("booking.step3Subtitle")}
-                </p>
+              {/* Session Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(["ALL", "MORNING", "AFTERNOON"] as const).map((sess) => {
+                  const isSel = slotSessionFilter === sess;
+                  const count =
+                    sess === "ALL"
+                      ? dynamicSlots.length
+                      : dynamicSlots.filter((s) => s.session === sess).length;
+                  return (
+                    <button
+                      key={sess}
+                      type="button"
+                      onClick={() => setSlotSessionFilter(sess)}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                        isSel
+                          ? "bg-[#2E7D32] text-white shadow-xs"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {sess === "ALL"
+                        ? t("booking.allSlotsTab") || "All Slots"
+                        : sess === "MORNING"
+                        ? t("booking.morningSession") || "Morning"
+                        : t("booking.afternoonSession") || "Afternoon"}{" "}
+                      ({count})
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {slots.map((slot) => {
-                const full = slot.available === 0;
-
-                const selected =
-                  selectedSlot === slot.shortTime;
+            {/* Dynamic Slots Grid */}
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {displayedSlots.map((slot) => {
+                const full = slot.status === "FULL" || slot.available === 0;
+                const isFillingFast = slot.status === "FILLING_FAST";
+                const selected = selectedSlot === slot.shortTime;
 
                 return (
                   <button
-                    key={slot.time}
+                    key={slot.slotId}
                     disabled={full}
-                    onClick={() =>
-                      setSelectedSlot(slot.shortTime)
-                    }
-                    className={`min-h-[105px] rounded-2xl border p-4 text-left transition ${
+                    type="button"
+                    onClick={() => setSelectedSlot(slot.shortTime)}
+                    className={`rounded-2xl border p-4 text-left transition ${
                       full
-                        ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400"
+                        ? "cursor-not-allowed border-gray-200 bg-gray-50/70 text-gray-400 opacity-60"
                         : selected
-                        ? "border-[#2E7D32] bg-[#E8F5E9]"
+                        ? "border-[#2E7D32] bg-[#E8F5E9] shadow-sm ring-2 ring-[#2E7D32]"
                         : "border-gray-200 bg-white hover:border-[#9CCC9F]"
                     }`}
                   >
-                    <p
-                      className={`text-sm font-bold ${
-                        full
-                          ? "text-gray-500"
-                          : "text-gray-900"
-                      }`}
-                    >
+                    <div className="flex items-center justify-between">
+                      <p className="text-base font-black text-gray-900">
+                        {slot.shortTime}
+                      </p>
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                          full
+                            ? "bg-red-100 text-red-700"
+                            : isFillingFast
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}
+                      >
+                        {full
+                          ? t("booking.slotFull") || "Full"
+                          : isFillingFast
+                          ? `${t("booking.fillingFast") || "Filling Fast"} (${slot.available})`
+                          : `${slot.available} ${t("booking.slotsAvailable", { count: slot.available })}`}
+                      </span>
+                    </div>
+
+                    <p className="mt-1 text-xs text-gray-500 font-medium">
                       {slot.time}
                     </p>
 
-                    <p
-                      className={`mt-4 text-sm ${
-                        full
-                          ? "text-gray-400"
-                          : "text-[#2E7D32]"
-                      }`}
-                    >
-                      {full
-                        ? t("booking.noSlots")
-                        : t("booking.slotsAvailable", { count: slot.available })}
-                    </p>
+                    <div className="mt-3 flex items-center justify-between text-[11px] text-gray-400">
+                      <span>{slot.session === "MORNING" ? "🌅 Morning" : "☀️ Afternoon"}</span>
+                      <span>Max {slot.maxCapacity}</span>
+                    </div>
                   </button>
                 );
               })}
