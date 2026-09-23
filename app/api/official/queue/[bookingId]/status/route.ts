@@ -40,7 +40,12 @@ export async function PATCH(
   if (paymentStatus) updates.paymentStatus = paymentStatus;
 
   const now = new Date().toISOString();
-  if (status === "CALLED") updates.calledAt = now;
+  if (body.farmerArrived !== undefined) updates.farmerArrived = Boolean(body.farmerArrived);
+  if (status === "CALLED" || body.farmerArrived) {
+    updates.calledAt = updates.calledAt || now;
+    updates.arrivedAt = updates.arrivedAt || now;
+    updates.farmerArrived = true;
+  }
   if (status === "VERIFIED") {
     updates.verifiedBy = verifiedBy || officialId || "Procurement Officer";
   }

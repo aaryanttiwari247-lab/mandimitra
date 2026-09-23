@@ -52,6 +52,8 @@ type Booking = {
   procurementStatus?: string;
 
   calledAt?: string | null;
+  farmerArrived?: boolean;
+  arrivedAt?: string | null;
   processingStartedAt?: string | null;
   completedAt?: string | null;
   verifiedBy?: string | null;
@@ -75,6 +77,9 @@ function VerifyContent() {
 
   const [booking, setBooking] =
     useState<Booking | null>(null);
+
+  const [farmerArrived, setFarmerArrived] =
+    useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -165,6 +170,21 @@ function VerifyContent() {
     return () => clearTimeout(timer);
   }, [loadBooking]);
 
+  useEffect(() => {
+    if (booking) {
+      const s = String(booking.status ?? booking.queueStatus ?? "").toUpperCase();
+      if (
+        booking.farmerArrived ||
+        s === "CALLED" ||
+        s === "VERIFIED" ||
+        s === "PROCESSING" ||
+        s === "COMPLETED"
+      ) {
+        setFarmerArrived(true);
+      }
+    }
+  }, [booking]);
+
   // ============================================================
   // FORMAT DATE
   // ============================================================
@@ -216,6 +236,116 @@ function VerifyContent() {
   const currentStatus = booking
     ? getStatus(booking)
     : "WAITING";
+
+  const isFarmerPresent = Boolean(
+    farmerArrived ||
+    booking?.farmerArrived ||
+    currentStatus === "CALLED" ||
+    currentStatus === "VERIFIED" ||
+    currentStatus === "PROCESSING" ||
+    currentStatus === "COMPLETED"
+  );
+
+  // ============================================================
+  // TOGGLE / MARK FARMER ARRIVED
+  // ============================================================
+
+  const handleToggleFarmerArrived = (checked: boolean) => {
+    if (!booking) return;
+    setFarmerArrived(checked);
+
+    if (checked) {
+      const now = new Date().toISOString();
+      const newStatus = currentStatus === "WAITING" ? "CALLED" : currentStatus;
+
+      try {
+        const queueData = localStorage.getItem("smartProcurementQueue");
+        if (queueData) {
+          const queue: Booking[] = JSON.parse(queueData);
+          if (Array.isArray(queue)) {
+            const updatedQueue = queue.map((item) => {
+              const sameBooking =
+                booking.bookingId && item.bookingId === booking.bookingId;
+              const sameToken =
+                item.token &&
+                booking.token &&
+                item.token.toUpperCase() === booking.token.toUpperCase();
+
+              if (!sameBooking && !sameToken) return item;
+
+              return {
+                ...item,
+                status: newStatus,
+                queueStatus: newStatus,
+                procurementStatus: newStatus,
+                farmerArrived: true,
+                arrivedAt: item.arrivedAt || now,
+                calledAt: item.calledAt || now,
+                updatedAt: now,
+              };
+            });
+            localStorage.setItem("smartProcurementQueue", JSON.stringify(updatedQueue));
+          }
+        }
+      } catch {}
+
+      const updatedBooking: Booking = {
+        ...booking,
+        status: newStatus,
+        queueStatus: newStatus,
+        procurementStatus: newStatus,
+        farmerArrived: true,
+        arrivedAt: booking.arrivedAt || now,
+        calledAt: booking.calledAt || now,
+        updatedAt: now,
+      };
+      setBooking(updatedBooking);
+
+      try {
+        const currentBookingData = localStorage.getItem("smartProcurementBooking");
+        if (currentBookingData) {
+          const currentBooking: Booking = JSON.parse(currentBookingData);
+          const sameBooking =
+            booking.bookingId && currentBooking.bookingId === booking.bookingId;
+          const sameToken =
+            booking.token &&
+            currentBooking.token &&
+            booking.token.toUpperCase().replace(/^#/, "") ===
+              currentBooking.token.toUpperCase().replace(/^#/, "");
+
+          if (sameBooking || sameToken) {
+            localStorage.setItem(
+              "smartProcurementBooking",
+              JSON.stringify(updatedBooking)
+            );
+          }
+        }
+      } catch {}
+
+      window.dispatchEvent(new Event("smartProcurementQueueUpdated"));
+      window.dispatchEvent(new Event("smartProcurementBookingUpdated"));
+
+      broadcastProcurementUpdate({
+        type: "STATUS_UPDATED",
+        token: booking.token,
+        bookingId: booking.bookingId,
+        status: newStatus,
+        booking: updatedBooking as any,
+      });
+
+      const identifier = booking.bookingId || booking.token || "";
+      if (identifier) {
+        fetch(`/api/official/queue/${encodeURIComponent(identifier)}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: newStatus,
+            farmerArrived: true,
+          }),
+        }).catch(() => {});
+      }
+    }
+  };
 
   // ============================================================
   // VERIFY FARMER
@@ -323,6 +453,10 @@ function VerifyContent() {
             procurementStatus:
               "VERIFIED",
 
+            farmerArrived: true,
+
+            arrivedAt: item.arrivedAt || now,
+
             verifiedBy:
               "Procurement Officer",
 
@@ -353,6 +487,10 @@ function VerifyContent() {
         procurementStatus:
           "VERIFIED",
 
+        farmerArrived: true,
+
+        arrivedAt: booking.arrivedAt || now,
+
         verifiedBy:
           "Procurement Officer",
 
@@ -360,6 +498,7 @@ function VerifyContent() {
       };
 
       setBooking(updatedBooking);
+      setFarmerArrived(true);
 
       // ----------------------------------------------------------
       // ALSO UPDATE CURRENT FARMER BOOKING
@@ -439,6 +578,7 @@ function VerifyContent() {
           body: JSON.stringify({
             status: "VERIFIED",
             verifiedBy: "Procurement Officer",
+            farmerArrived: true,
           }),
         }).catch((err) => console.warn("Failed to sync verify status:", err));
       }
@@ -829,6 +969,64 @@ function VerifyContent() {
           </div>
 
           {/* ==================================================
+              STAGE 02: MANDI GATE ARRIVAL STATUS & CHECK
+              ================================================== */}
+
+          <div className="mt-7 rounded-3xl border-2 border-emerald-500 bg-emerald-50/60 p-6 sm:p-8 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#2E7D32] text-white shadow-xs">
+                  <Truck className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-[#2E7D32] px-2.5 py-0.5 text-xs font-black uppercase tracking-wider text-white">
+                      {t("official.gateEntryStage")}
+                    </span>
+                    {isFarmerPresent ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900 border border-emerald-300">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                        {t("official.farmerArrivedBadge")}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
+                        <Clock3 className="h-3.5 w-3.5 text-amber-700" />
+                        {t("official.awaitingArrival")}
+                      </span>
+                    )}
+                    {booking?.arrivedAt && (
+                      <span className="text-xs font-semibold text-gray-500">
+                        ({new Date(booking.arrivedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })})
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="mt-2 text-xl font-bold text-gray-900">
+                    {t("official.farmerArrivedCheck")}
+                  </h2>
+                  <p className="mt-1 text-xs sm:text-sm text-gray-600 max-w-2xl leading-relaxed">
+                    {t("official.farmerArrivedCheckSubtitle")}
+                  </p>
+                </div>
+              </div>
+
+              {/* INTERACTIVE ARRIVAL CHECKBOX */}
+              <div className="shrink-0 pt-1">
+                <label className="flex items-center gap-3 cursor-pointer select-none rounded-2xl border-2 border-emerald-600 bg-white px-5 py-3 shadow-xs hover:bg-emerald-50 transition active:scale-95">
+                  <input
+                    type="checkbox"
+                    checked={isFarmerPresent}
+                    onChange={(e) => handleToggleFarmerArrived(e.target.checked)}
+                    className="h-5 w-5 rounded-md text-[#2E7D32] focus:ring-[#2E7D32] cursor-pointer"
+                  />
+                  <span className="text-sm font-extrabold text-gray-900">
+                    {isFarmerPresent ? t("official.farmerArrivedBadge") : t("official.markFarmerArrivedBtn")}
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* ==================================================
               VERIFICATION CHECKLIST
               ================================================== */}
 
@@ -874,7 +1072,7 @@ function VerifyContent() {
 
           <div className="mt-7 rounded-3xl border border-[#CDE8D0] bg-[#F1F8F2] p-6 sm:p-8">
 
-            {currentStatus === "WAITING" && (
+            {(currentStatus === "WAITING" || currentStatus === "CALLED") && (
               <div>
 
                 <div className="flex items-start gap-4">
@@ -888,11 +1086,13 @@ function VerifyContent() {
                   <div>
 
                     <h2 className="text-lg font-bold text-gray-900">
-                      {t("official.readyForVerification")}
+                      {isFarmerPresent ? t("official.readyForVerification") : t("official.farmerArrived")}
                     </h2>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600">
-                      {t("official.readyForVerificationDesc")}
+                      {isFarmerPresent
+                        ? t("official.readyForVerificationDesc")
+                        : t("official.farmerArrivedCheckSubtitle")}
                     </p>
 
                   </div>
@@ -903,18 +1103,20 @@ function VerifyContent() {
                   <button
                     onClick={handleVerify}
                     disabled={verifying}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#256428] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto cursor-pointer"
                   >
                     <CheckCircle2 className="h-5 w-5" />
                     {verifying
                       ? t("official.verifyingFarmer")
+                      : isFarmerPresent
+                      ? (t("official.verifyDocumentsBtn") || t("official.verifyFarmerBtn"))
                       : t("official.verifyFarmerBtn")}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setIsCancelModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-4 text-sm font-bold text-rose-600 transition hover:bg-rose-50 hover:border-rose-300 sm:w-auto"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-4 text-sm font-bold text-rose-600 transition hover:bg-rose-50 hover:border-rose-300 sm:w-auto cursor-pointer"
                   >
                     <AlertTriangle className="h-5 w-5 text-rose-600" />
                     {t("official.cancelProcurement")}

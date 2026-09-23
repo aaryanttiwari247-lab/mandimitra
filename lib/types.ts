@@ -88,6 +88,8 @@ export type Booking = {
   paymentStatus?: "PENDING" | "CALCULATED" | "APPROVED" | "PAID";
 
   calledAt?: string | null;
+  farmerArrived?: boolean;
+  arrivedAt?: string | null;
   processingStartedAt?: string | null;
   completedAt?: string | null;
   verifiedBy?: string | null;

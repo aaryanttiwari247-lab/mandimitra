@@ -528,7 +528,7 @@ function TrackTokenContent() {
           ? t("tracker.statusDescSelfCancelled")
           : t("tracker.statusDescOfficialCancelled");
       case "CALLED":
-        return t("tracker.statusDescCalled");
+        return "Farmer arrival confirmed at Mandi gate. Your documents and produce are currently being verified at the document verification counter.";
       case "VERIFIED":
         return t("tracker.statusDescVerified");
       case "PROCESSING":
@@ -919,27 +919,29 @@ function TrackTokenContent() {
             </div>
           )}
 
-          {/* 1. CALLED ALERT */}
+          {/* 1. CALLED / FARMER ARRIVED ALERT */}
           {currentStatus === "CALLED" && (
-            <div className="mb-6 animate-pulse rounded-3xl border-2 border-orange-500 bg-orange-50 p-6 shadow-md print:hidden">
+            <div className="mb-6 rounded-3xl border-2 border-emerald-500 bg-emerald-50/80 p-6 shadow-md print:hidden">
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-sm">
-                  <Bell className="h-6 w-6" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#2E7D32] text-white shadow-sm">
+                  <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-md bg-orange-600 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
-                      {t("tracker.actionRequired")}
+                    <span className="rounded-md bg-[#2E7D32] px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white">
+                      {t("official.farmerArrivedBadge") || "Arrived & Present ✓"}
                     </span>
-                    <span className="text-xs font-bold text-orange-800">
-                      Called at {booking.calledAt ? new Date(booking.calledAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }) : "Just now"}
+                    <span className="text-xs font-bold text-emerald-800">
+                      {booking.arrivedAt || booking.calledAt
+                        ? `Arrival recorded at ${new Date(booking.arrivedAt || booking.calledAt!).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`
+                        : "Arrival Confirmed"}
                     </span>
                   </div>
-                  <h2 className="mt-1 text-xl sm:text-2xl font-black text-orange-950">
-                    {t("tracker.tokenCalledBanner", { token: String(booking.token || booking.tokenNumber || "") })}
+                  <h2 className="mt-1 text-xl sm:text-2xl font-black text-emerald-950">
+                    🔔 Token #{String(booking.token || booking.tokenNumber || "").replace(/^#/, "")} — Proceed to Document Verification Desk
                   </h2>
-                  <p className="mt-1 text-sm text-orange-900">
-                    The Procurement Officer is ready at <strong>{booking.centre}</strong>. Please drive your loaded vehicle to the inspection bay and present your token card.
+                  <p className="mt-1 text-sm text-emerald-900 leading-relaxed">
+                    Farmer arrival has been registered at <strong>{booking.centre}</strong>. Please present your Aadhaar card, land records, and booking token at the document verification counter.
                   </p>
                 </div>
               </div>
@@ -1543,35 +1545,35 @@ function TrackTokenContent() {
                 title: t("tracker.step1Title"),
                 description: t("tracker.step1Desc"),
                 icon: FileText,
-                completed: isStepComplete("WAITING"),
+                completed: statusRank(currentStatus) >= 2,
                 active: isCurrentStep("WAITING"),
               },
               {
                 id: "CALLED",
                 stepNumber: "02",
                 title: t("tracker.step2Title"),
-                description: booking.calledAt
-                  ? t("tracker.step2DescCalled", {
-                      time: new Date(booking.calledAt).toLocaleTimeString(
-                        language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN",
-                        { hour: "numeric", minute: "2-digit" }
-                      ),
-                    })
+                description: booking.arrivedAt || booking.calledAt
+                  ? `Arrival confirmed at ${new Date(booking.arrivedAt || booking.calledAt!).toLocaleTimeString(
+                      language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN",
+                      { hour: "numeric", minute: "2-digit" }
+                    )}. Gate entry admitted.`
                   : t("tracker.step2DescDefault"),
                 icon: Truck,
-                completed: isStepComplete("CALLED"),
-                active: isCurrentStep("CALLED"),
+                completed: statusRank(currentStatus) >= 2,
+                active: false,
               },
               {
                 id: "VERIFIED",
                 stepNumber: "03",
                 title: t("tracker.step3Title"),
-                description: booking.verifiedBy
+                description: currentStatus === "CALLED"
+                  ? "Farmer arrival confirmed at Mandi gate. Official is now verifying farmer identity, land records, and produce declaration."
+                  : booking.verifiedBy
                   ? t("tracker.step3DescVerified", { officer: booking.verifiedBy })
                   : t("tracker.step3DescDefault"),
                 icon: FileText,
-                completed: isStepComplete("VERIFIED"),
-                active: isCurrentStep("VERIFIED"),
+                completed: statusRank(currentStatus) >= 3,
+                active: isCurrentStep("CALLED"),
               },
               {
                 id: "PROCESSING",
@@ -1583,10 +1585,12 @@ function TrackTokenContent() {
                       qty: String(booking.actualQuantity || booking.quantity || 0),
                       rate: String(booking.mspRate || cropMspInfo.standardMsp),
                     })
+                  : currentStatus === "VERIFIED"
+                  ? "Documents verified. Please drive vehicle to weighbridge and moisture assay bay."
                   : t("tracker.step4DescDefault"),
                 icon: Scale,
-                completed: isStepComplete("PROCESSING"),
-                active: isCurrentStep("PROCESSING"),
+                completed: statusRank(currentStatus) >= 5 || (statusRank(currentStatus) >= 4 && Boolean(booking.cropGrade && booking.actualQuantity)),
+                active: isCurrentStep("VERIFIED") || isCurrentStep("PROCESSING"),
               },
               {
                 id: "COMPLETED",
@@ -1637,7 +1641,7 @@ function TrackTokenContent() {
                           : currentStatus === "VERIFIED"
                           ? t("tracker.progressStage3")
                           : currentStatus === "CALLED"
-                          ? t("tracker.progressStage2")
+                          ? "Stage 03 • Document Verification"
                           : currentStatus === "CANCELLED"
                           ? t("tracker.cancelled")
                           : t("tracker.progressStage1")}
@@ -1651,11 +1655,11 @@ function TrackTokenContent() {
                             currentStatus === "COMPLETED"
                               ? "100%"
                               : currentStatus === "PROCESSING"
-                              ? "80%"
+                              ? "85%"
                               : currentStatus === "VERIFIED"
-                              ? "60%"
+                              ? "65%"
                               : currentStatus === "CALLED"
-                              ? "40%"
+                              ? "45%"
                               : currentStatus === "CANCELLED"
                               ? "0%"
                               : "20%",
@@ -1678,7 +1682,7 @@ function TrackTokenContent() {
                         key={stage.id}
                         className={`rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all ${
                           isActive
-                            ? "border-2 border-emerald-400 bg-white shadow-xs"
+                            ? "border-2 border-emerald-500 bg-white shadow-xs ring-1 ring-emerald-500/20"
                             : isCompleted
                             ? "border border-emerald-200 bg-emerald-50/20 shadow-2xs"
                             : "border border-gray-200 bg-white"
@@ -1700,15 +1704,15 @@ function TrackTokenContent() {
                             )}
 
                             {/* STATUS BADGE */}
-                            {isCompleted ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-emerald-800 border border-emerald-200/80">
-                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                                {t("tracker.stageCompleted")}
-                              </span>
-                            ) : isActive ? (
+                            {isActive ? (
                               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-emerald-800 border border-emerald-200/80 animate-pulse">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
                                 {t("tracker.stageInProgress")}
+                              </span>
+                            ) : isCompleted ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-emerald-800 border border-emerald-200/80">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                {t("tracker.stageCompleted")}
                               </span>
                             ) : (
                               <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold tracking-wide uppercase text-gray-400">

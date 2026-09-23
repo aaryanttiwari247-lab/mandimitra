@@ -16,6 +16,8 @@ import {
   Search,
   Sprout,
   Ticket,
+  Truck,
+  UserCheck,
   Users,
   Warehouse,
   Wheat,
@@ -65,6 +67,8 @@ type Booking = {
   procurementStatus?: string;
 
   calledAt?: string | null;
+  farmerArrived?: boolean;
+  arrivedAt?: string | null;
   processingStartedAt?: string | null;
   completedAt?: string | null;
   verifiedBy?: string | null;
@@ -113,9 +117,9 @@ function StatusBadge({ status }: { status: Status }) {
 
   if (status === "CALLED") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700">
-        <Ticket className="h-3.5 w-3.5" />
-        CALLED
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 border border-amber-200">
+        <Truck className="h-3.5 w-3.5 text-amber-700" />
+        ARRIVED (GATE)
       </span>
     );
   }
@@ -578,13 +582,13 @@ export default function OfficialDashboardPage() {
   };
 
   // ============================================================
-  // CALL FARMER
+  // MARK FARMER ARRIVED (GATE ENTRY RECORDED)
   // ============================================================
 
-  const handleCallFarmer = (
+  const handleMarkFarmerArrived = (
     booking: Booking
   ) => {
-    if (!booking.token) {
+    if (!booking.token && !booking.bookingId) {
       return;
     }
 
@@ -613,8 +617,9 @@ export default function OfficialDashboardPage() {
 
           const sameToken =
             item.token &&
+            booking.token &&
             item.token.toUpperCase() ===
-              booking.token?.toUpperCase();
+              booking.token.toUpperCase();
 
           if (
             !sameBooking &&
@@ -625,15 +630,12 @@ export default function OfficialDashboardPage() {
 
           return {
             ...item,
-
             status: "CALLED",
-
             queueStatus: "CALLED",
-
             procurementStatus: "CALLED",
-
-            calledAt: now,
-
+            farmerArrived: true,
+            arrivedAt: item.arrivedAt || now,
+            calledAt: item.calledAt || now,
             updatedAt: now,
           };
         });
@@ -658,7 +660,9 @@ export default function OfficialDashboardPage() {
               status: "CALLED",
               queueStatus: "CALLED",
               procurementStatus: "CALLED",
-              calledAt: now,
+              farmerArrived: true,
+              arrivedAt: currentBooking.arrivedAt || now,
+              calledAt: currentBooking.calledAt || now,
               updatedAt: now,
             }));
           }
@@ -676,61 +680,56 @@ export default function OfficialDashboardPage() {
         )
       );
 
+      const updatedItem = {
+        ...booking,
+        status: "CALLED",
+        queueStatus: "CALLED",
+        procurementStatus: "CALLED",
+        farmerArrived: true,
+        arrivedAt: booking.arrivedAt || now,
+        calledAt: booking.calledAt || now,
+        updatedAt: now,
+      };
+
       // Real-time broadcast to farmer tabs
       broadcastProcurementUpdate({
         type: "STATUS_UPDATED",
         token: booking.token,
         bookingId: booking.bookingId,
         status: "CALLED",
-        booking: {
-          ...booking,
-          status: "CALLED",
-          queueStatus: "CALLED",
-          procurementStatus: "CALLED",
-          calledAt: now,
-          updatedAt: now,
-        } as any,
+        booking: updatedItem as any,
       });
 
-      // Sync CALLED status to server
+      // Sync CALLED / farmerArrived status to server
       const identifier = booking.bookingId || booking.token || "";
       if (identifier) {
         fetch(`/api/official/queue/${encodeURIComponent(identifier)}/status`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "CALLED" }),
+          body: JSON.stringify({
+            status: "CALLED",
+            farmerArrived: true,
+          }),
         }).catch(() => {});
       }
 
       fetch("/api/official/queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...booking,
-          status: "CALLED",
-          queueStatus: "CALLED",
-          procurementStatus: "CALLED",
-          calledAt: now,
-          updatedAt: now,
-        }),
+        body: JSON.stringify(updatedItem),
       }).catch(() => {});
-
-      router.push(
-        `/official/procurement?token=${encodeURIComponent(
-          booking.token
-        )}`
-      );
     } catch (error) {
       console.error(
-        "Unable to call farmer:",
+        "Unable to mark farmer arrived:",
         error
       );
-
       alert(
-        "Unable to call farmer."
+        "Unable to mark farmer arrived."
       );
     }
   };
+
+  const handleCallFarmer = handleMarkFarmerArrived;
 
   // ============================================================
   // LOADING
@@ -1252,29 +1251,41 @@ export default function OfficialDashboardPage() {
                                     <StatusBadge status={status} />
 
                                     {status === "WAITING" && (
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          onClick={() => handleMarkFarmerArrived(booking)}
+                                          className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#256428] shadow-xs active:scale-95 cursor-pointer"
+                                          title="Mark farmer arrived at mandi terminal"
+                                        >
+                                          <Truck className="h-3.5 w-3.5" />
+                                          Farmer Arrived
+                                        </button>
+                                        <button
+                                          onClick={() => handleVerifyFarmer(booking)}
+                                          className="flex items-center gap-1 rounded-xl border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                                          title="Open Document Verification"
+                                        >
+                                          Verify
+                                          <ArrowRight className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {status === "CALLED" && (
                                       <button
                                         onClick={() => handleVerifyFarmer(booking)}
-                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428] shadow-xs cursor-pointer"
                                       >
-                                        Verify Farmer
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        Verify Documents
                                         <ArrowRight className="h-3.5 w-3.5" />
                                       </button>
                                     )}
 
                                     {status === "VERIFIED" && (
                                       <button
-                                        onClick={() => handleCallFarmer(booking)}
-                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
-                                      >
-                                        Call Farmer
-                                        <ArrowRight className="h-3.5 w-3.5" />
-                                      </button>
-                                    )}
-
-                                    {status === "CALLED" && (
-                                      <button
                                         onClick={() => handleOpenProcurement(booking)}
-                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                        className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428] shadow-xs cursor-pointer"
                                       >
                                         Open Procurement
                                         <ArrowRight className="h-3.5 w-3.5" />
@@ -1284,7 +1295,7 @@ export default function OfficialDashboardPage() {
                                     {status === "PROCESSING" && (
                                       <button
                                         onClick={() => handleOpenProcurement(booking)}
-                                        className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-white px-4 py-2.5 text-xs font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9]"
+                                        className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-white px-4 py-2.5 text-xs font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9] cursor-pointer"
                                       >
                                         View Procurement
                                         <ArrowRight className="h-3.5 w-3.5" />
@@ -1383,29 +1394,41 @@ export default function OfficialDashboardPage() {
                               <StatusBadge status={status} />
 
                               {status === "WAITING" && (
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => handleMarkFarmerArrived(booking)}
+                                    className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#256428] shadow-xs active:scale-95 cursor-pointer"
+                                    title="Mark farmer arrived at mandi terminal"
+                                  >
+                                    <Truck className="h-3.5 w-3.5" />
+                                    Farmer Arrived
+                                  </button>
+                                  <button
+                                    onClick={() => handleVerifyFarmer(booking)}
+                                    className="flex items-center gap-1 rounded-xl border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                                    title="Open Document Verification"
+                                  >
+                                    Verify
+                                    <ArrowRight className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {status === "CALLED" && (
                                 <button
                                   onClick={() => handleVerifyFarmer(booking)}
-                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428] shadow-xs cursor-pointer"
                                 >
-                                  Verify Farmer
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Verify Documents
                                   <ArrowRight className="h-3.5 w-3.5" />
                                 </button>
                               )}
 
                               {status === "VERIFIED" && (
                                 <button
-                                  onClick={() => handleCallFarmer(booking)}
-                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
-                                >
-                                  Call Farmer
-                                  <ArrowRight className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-
-                              {status === "CALLED" && (
-                                <button
                                   onClick={() => handleOpenProcurement(booking)}
-                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428]"
+                                  className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#256428] shadow-xs cursor-pointer"
                                 >
                                   Open Procurement
                                   <ArrowRight className="h-3.5 w-3.5" />
@@ -1415,7 +1438,7 @@ export default function OfficialDashboardPage() {
                               {status === "PROCESSING" && (
                                 <button
                                   onClick={() => handleOpenProcurement(booking)}
-                                  className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-white px-4 py-2.5 text-xs font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9]"
+                                  className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-white px-4 py-2.5 text-xs font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9] cursor-pointer"
                                 >
                                   View Procurement
                                   <ArrowRight className="h-3.5 w-3.5" />
@@ -1510,15 +1533,45 @@ export default function OfficialDashboardPage() {
                 {getStatus(
                   currentFarmer
                 ) === "WAITING" && (
+                  <div className="mt-6 flex flex-col gap-2.5">
+                    <button
+                      onClick={() =>
+                        handleMarkFarmerArrived(
+                          currentFarmer
+                        )
+                      }
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428] shadow-xs active:scale-95 cursor-pointer"
+                    >
+                      <Truck className="h-4 w-4" />
+                      Farmer Arrived
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleVerifyFarmer(
+                          currentFarmer
+                        )
+                      }
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                    >
+                      Verify Documents
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {getStatus(
+                  currentFarmer
+                ) === "CALLED" && (
                   <button
                     onClick={() =>
                       handleVerifyFarmer(
                         currentFarmer
                       )
                     }
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428]"
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428] shadow-xs cursor-pointer"
                   >
-                    Verify Farmer
+                    <CheckCircle2 className="h-4 w-4" />
+                    Verify Documents
 
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -1529,28 +1582,11 @@ export default function OfficialDashboardPage() {
                 ) === "VERIFIED" && (
                   <button
                     onClick={() =>
-                      handleCallFarmer(
-                        currentFarmer
-                      )
-                    }
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428]"
-                  >
-                    Call Farmer
-
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                )}
-
-                {getStatus(
-                  currentFarmer
-                ) === "CALLED" && (
-                  <button
-                    onClick={() =>
                       handleOpenProcurement(
                         currentFarmer
                       )
                     }
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428]"
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428] shadow-xs cursor-pointer"
                   >
                     Open Procurement
 
@@ -1567,7 +1603,7 @@ export default function OfficialDashboardPage() {
                         currentFarmer
                       )
                     }
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-[#2E7D32] bg-white px-5 py-3.5 text-sm font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9]"
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-[#2E7D32] bg-white px-5 py-3.5 text-sm font-bold text-[#2E7D32] transition hover:bg-[#E8F5E9] cursor-pointer"
                   >
                     View Procurement
 
