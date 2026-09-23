@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateBookingInAllStores } from "@/lib/procurement-store";
 import { CropGrade, getMspRate } from "@/lib/msp-rates";
-import { sendProcurementCompletedSms } from "@/lib/sms-service";
 
 export async function POST(req: Request) {
   try {
@@ -43,17 +42,6 @@ export async function POST(req: Request) {
       paymentStatus: "APPROVED",
       completedAt: new Date().toISOString(),
     });
-
-    // Dispatch Procurement & DBT payment completion SMS
-    if (updated?.farmerMobile) {
-      sendProcurementCompletedSms({
-        booking: updated,
-        netWeightQtl: finalPayableWeightQtl,
-        cropGrade: assignedGrade,
-        mspPerQtl,
-        totalPayoutAmount: Math.round(totalPayoutAmount),
-      }).catch(err => console.warn("Procurement completion SMS error:", err));
-    }
 
     const receipt = {
       bookingId,

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { generateUniqueToken } from "@/lib/token-service";
 import { getStoredQueue, saveStoredQueue, saveStoredCurrentBooking, saveStoredHistory, getStoredHistory } from "@/lib/procurement-store";
 import { Booking } from "@/lib/types";
-import { sendBookingConfirmationSms } from "@/lib/sms-service";
 
 export async function POST(req: Request) {
   try {
@@ -58,13 +57,6 @@ export async function POST(req: Request) {
     const history = getStoredHistory().filter(b => b.bookingId !== newBooking.bookingId);
     history.unshift(newBooking);
     saveStoredHistory(history.slice(0, 15));
-
-    // Dispatch Booking Confirmation SMS
-    if (newBooking.farmerMobile) {
-      sendBookingConfirmationSms(newBooking).catch(err => {
-        console.warn("Could not dispatch booking SMS:", err);
-      });
-    }
 
     return NextResponse.json({ success: true, booking: newBooking });
   } catch (error: unknown) {

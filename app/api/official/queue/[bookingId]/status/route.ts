@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateBookingInAllStores } from "@/lib/procurement-store";
 import { Booking, BookingStatus } from "@/lib/types";
-import {
-  sendTokenCalledSms,
-  sendDocsVerifiedSms,
-  sendProcurementCompletedSms,
-  sendBookingCancelledSms,
-} from "@/lib/sms-service";
 
 export async function PATCH(
   req: Request,
@@ -67,25 +61,6 @@ export async function PATCH(
 
   if (!updated) {
     return NextResponse.json({ success: false, message: "Booking not found" }, { status: 404 });
-  }
-
-  // Dispatch real-time SMS alerts to farmer's mobile
-  if (updated.farmerMobile) {
-    if (status === "CALLED") {
-      sendTokenCalledSms(updated).catch(err => console.warn("SMS sendTokenCalled error:", err));
-    } else if (status === "VERIFIED") {
-      sendDocsVerifiedSms(updated, verifiedBy || officialId).catch(err => console.warn("SMS sendDocsVerified error:", err));
-    } else if (status === "COMPLETED") {
-      sendProcurementCompletedSms({
-        booking: updated,
-        netWeightQtl: updated.actualQuantity || updated.quantity || 0,
-        cropGrade: updated.cropGrade || "Grade A",
-        mspPerQtl: updated.mspRate || 2425,
-        totalPayoutAmount: updated.totalPayout || 0,
-      }).catch(err => console.warn("SMS sendProcurementCompleted error:", err));
-    } else if (status === "CANCELLED") {
-      sendBookingCancelledSms(updated, updates.cancellationReason || undefined).catch(err => console.warn("SMS sendBookingCancelled error:", err));
-    }
   }
 
   return NextResponse.json({ success: true, booking: updated });

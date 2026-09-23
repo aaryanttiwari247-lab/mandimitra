@@ -23,7 +23,6 @@ import {
   saveFarmerSession,
   saveOtp,
   getOtp,
-  isValidOtp,
   clearFarmerSession,
   FarmerUser,
   findFarmerByAadhaar,
@@ -88,13 +87,8 @@ export default function FarmerLogin() {
     return () => clearInterval(interval);
   }, [showOtp, timer]);
 
-  // Send OTP via SMS
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [smsDeliveryStatus, setSmsDeliveryStatus] = useState<string>("");
-
-  const handleContinue = async () => {
-    if (sendingOtp) return;
-
+  // Send OTP
+  const handleContinue = () => {
     if (loginMethod === "mobile") {
       if (mobile.length !== 10) {
         setMessage(t("auth.invalidMobile") || "Please enter a valid 10-digit mobile number.");
@@ -108,46 +102,15 @@ export default function FarmerLogin() {
       }
     }
 
-    setSendingOtp(true);
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    saveOtp(newOtp);
+
+    setDevelopmentOtp(newOtp);
+    setOtp("");
     setMessage("");
-
-    const targetMobile = loginMethod === "mobile" ? mobile : undefined;
-    const cleanAadhaar = loginMethod === "aadhaar" ? aadhaar.replace(/\D/g, "") : undefined;
-
-    try {
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mobile: targetMobile,
-          aadhaar: cleanAadhaar,
-        }),
-      });
-      const data = await res.json();
-
-      if (data.success && data.otp) {
-        saveOtp(data.otp);
-        setDevelopmentOtp(data.otp);
-        setSmsDeliveryStatus(data.message || `OTP sent to ${data.maskedMobile || targetMobile} via SMS`);
-      } else {
-        // Fallback local generation if API has issue
-        const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        saveOtp(fallbackOtp);
-        setDevelopmentOtp(fallbackOtp);
-        setSmsDeliveryStatus(`OTP sent via SMS to ${targetMobile || "registered mobile"}`);
-      }
-    } catch {
-      // Offline / fallback
-      const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      saveOtp(fallbackOtp);
-      setDevelopmentOtp(fallbackOtp);
-      setSmsDeliveryStatus(`OTP sent via SMS to ${targetMobile || "registered mobile"}`);
-    } finally {
-      setSendingOtp(false);
-      setOtp("");
-      setTimer(30);
-      setShowOtp(true);
-    }
+    setTimer(30);
+    setShowOtp(true);
   };
 
   // Verify OTP
@@ -157,39 +120,16 @@ export default function FarmerLogin() {
       return;
     }
 
-    setVerifying(true);
-    setMessage("");
+    const storedOtp = getOtp();
 
-    const cleanAadhaar = loginMethod === "aadhaar" ? aadhaar.replace(/\D/g, "") : undefined;
-    const targetMobile = loginMethod === "mobile" ? mobile : undefined;
-
-    // Check client-side stored OTPs first (instant validation)
-    let isMatch = isValidOtp(otp);
-
-    // If client doesn't match directly, verify with server-side dispatched SMS OTPs
-    if (!isMatch) {
-      try {
-        const verifyRes = await fetch("/api/auth/verify-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mobile: targetMobile,
-            aadhaar: cleanAadhaar,
-            otp: otp.trim(),
-          }),
-        });
-        const verifyData = await verifyRes.json();
-        if (verifyData.success) {
-          isMatch = true;
-        }
-      } catch {}
-    }
-
-    if (!isMatch) {
-      setVerifying(false);
-      setMessage(t("auth.invalidOtp") || "Incorrect OTP. Please enter the OTP received on your mobile.");
+    if (!storedOtp || otp !== storedOtp) {
+      setMessage(t("auth.invalidOtp") || "Incorrect OTP. Please try again.");
       return;
     }
+
+    setVerifying(true);
+
+    const cleanAadhaar = loginMethod === "aadhaar" ? aadhaar.replace(/\D/g, "") : undefined;
 
     try {
       const res = await fetch("/api/farmers/auth", {
@@ -239,42 +179,15 @@ export default function FarmerLogin() {
   };
 
   // {t("auth.resendOtp")}
-  const handleResend = async () => {
-    if (sendingOtp) return;
-    setSendingOtp(true);
-    const targetMobile = loginMethod === "mobile" ? mobile : undefined;
-    const cleanAadhaar = loginMethod === "aadhaar" ? aadhaar.replace(/\D/g, "") : undefined;
+  const handleResend = () => {
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    try {
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mobile: targetMobile,
-          aadhaar: cleanAadhaar,
-          isResend: true,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.otp) {
-        saveOtp(data.otp);
-        setDevelopmentOtp(data.otp);
-        setSmsDeliveryStatus(data.message || `OTP re-sent via SMS`);
-      } else {
-        const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        saveOtp(fallbackOtp);
-        setDevelopmentOtp(fallbackOtp);
-      }
-    } catch {
-      const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      saveOtp(fallbackOtp);
-      setDevelopmentOtp(fallbackOtp);
-    } finally {
-      setSendingOtp(false);
-      setOtp("");
-      setTimer(30);
-      setMessage("");
-    }
+    saveOtp(newOtp);
+
+    setDevelopmentOtp(newOtp);
+    setOtp("");
+    setTimer(30);
+    setMessage("");
   };
 
   // Go back to mobile / aadhaar number
@@ -556,20 +469,10 @@ export default function FarmerLogin() {
 
                 <button
                   onClick={handleContinue}
-                  disabled={sendingOtp}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-4 text-base font-semibold text-white transition hover:bg-[#256428] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-4 text-base font-semibold text-white transition hover:bg-[#256428] active:scale-[0.99] cursor-pointer"
                 >
-                  {sendingOtp ? (
-                    <>
-                      <RefreshCw className="h-5 w-5 animate-spin" />
-                      <span>Sending OTP via SMS...</span>
-                    </>
-                  ) : (
-                    <>
-                      {t("auth.continue")}
-                      <ArrowRight className="h-5 w-5" />
-                    </>
-                  )}
+                  {t("auth.continue")}
+                  <ArrowRight className="h-5 w-5" />
                 </button>
 
                 <div className="mt-6 border-t border-gray-100 pt-6 text-center">
@@ -587,21 +490,6 @@ export default function FarmerLogin() {
               </>
             ) : (
               <>
-                {/* SMS Dispatch Confirmation Banner */}
-                {smsDeliveryStatus && (
-                  <div className="mb-3.5 flex items-start gap-2.5 rounded-xl border border-emerald-300 bg-emerald-50/90 p-3 text-xs text-emerald-900 shadow-sm animate-in fade-in slide-in-from-top-1">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-emerald-950">{smsDeliveryStatus}</p>
-                      <p className="text-[11px] text-emerald-700 mt-0.5">
-                        Please check your SMS inbox on your mobile device.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 {/* OTP Auto-fill Simulator Banner */}
                 <div className="mb-4 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 p-3.5 shadow-sm">
                   <div className="flex items-center justify-between gap-2">

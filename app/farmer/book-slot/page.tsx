@@ -668,30 +668,6 @@ export default function BookProcurementSlot() {
       }).catch(() => {});
     } catch {}
 
-    // Dispatch real-time booking confirmation SMS to farmer's mobile
-    if (finalBooking.farmerMobile) {
-      try {
-        fetch("/api/notifications/sms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: finalBooking.farmerMobile,
-            message: `MandiMitra: Slot Confirmed! Token #${finalBooking.token} for ${finalBooking.quantity} Qtl ${finalBooking.crop} at ${finalBooking.centre} on ${finalBooking.date} (${finalBooking.time}). Please arrive 15 mins prior with Aadhaar and Land documents.`,
-            type: "BOOKING_CONFIRMED",
-            metadata: {
-              bookingId: finalBooking.bookingId,
-              token: finalBooking.token,
-              centre: finalBooking.centre,
-              crop: finalBooking.crop,
-              quantity: finalBooking.quantity,
-              date: finalBooking.date,
-              time: finalBooking.time,
-            },
-          }),
-        }).catch(() => {});
-      } catch {}
-    }
-
     // ==========================================================
     // 6. NOTIFY OTHER TABS / COMPONENTS
     // ==========================================================

@@ -120,44 +120,11 @@ export function clearFarmerSession() {
   window.dispatchEvent(new Event("smartProcurementQueueUpdated"));
 }
 
-const FARMER_VALID_OTPS_KEY = "smart_procurement_valid_otps";
-
 export function saveOtp(otp: string) {
   if (typeof window === "undefined") {
     return;
   }
-  const clean = String(otp).trim();
-  localStorage.setItem(FARMER_OTP_KEY, clean);
-
-  try {
-    const raw = localStorage.getItem(FARMER_VALID_OTPS_KEY);
-    const existing: string[] = raw ? JSON.parse(raw) : [];
-    const updated = Array.from(new Set([clean, ...existing])).slice(0, 10);
-    localStorage.setItem(FARMER_VALID_OTPS_KEY, JSON.stringify(updated));
-  } catch {}
-}
-
-export function isValidOtp(inputOtp: string): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  const cleanInput = String(inputOtp).trim();
-  if (!cleanInput) return false;
-
-  const current = localStorage.getItem(FARMER_OTP_KEY);
-  if (current && current.trim() === cleanInput) return true;
-
-  try {
-    const raw = localStorage.getItem(FARMER_VALID_OTPS_KEY);
-    if (raw) {
-      const list: string[] = JSON.parse(raw);
-      if (Array.isArray(list) && list.some(item => String(item).trim() === cleanInput)) {
-        return true;
-      }
-    }
-  } catch {}
-
-  return false;
+  localStorage.setItem(FARMER_OTP_KEY, otp);
 }
 
 export function getOtp(): string | null {
@@ -172,5 +139,4 @@ export function clearOtp() {
     return;
   }
   localStorage.removeItem(FARMER_OTP_KEY);
-  localStorage.removeItem(FARMER_VALID_OTPS_KEY);
 }
