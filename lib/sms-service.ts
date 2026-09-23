@@ -144,7 +144,35 @@ async function sendViaFast2SMS(mobile: string, message: string): Promise<{ succe
   const apiKey = process.env.FAST2SMS_API_KEY || process.env.NEXT_PUBLIC_FAST2SMS_API_KEY;
   if (!apiKey) return { success: false, error: "FAST2SMS_API_KEY is not configured" };
 
+  const cleanMobile = sanitizeMobileNumber(mobile);
+  const otpMatch = message.match(/\b\d{6}\b/);
+
   try {
+    // 1. If message contains 6-digit OTP, try Fast2SMS dedicated OTP route
+    if (otpMatch) {
+      const otpCode = otpMatch[0];
+      const otpRes = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+        method: "POST",
+        headers: {
+          authorization: apiKey.trim(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          route: "otp",
+          variables_values: otpCode,
+          numbers: cleanMobile,
+        }),
+      });
+
+      const otpData = await otpRes.json();
+      if (otpData.return === true || otpData.status_code === 200 || (Array.isArray(otpData.message) && otpData.message[0]?.toLowerCase().includes("success"))) {
+        return { success: true, messageId: otpData.request_id || `F2S-OTP-${Date.now()}` };
+      }
+
+      console.warn("[Fast2SMS OTP Route Warning]:", otpData.message || otpData);
+    }
+
+    // 2. Standard Quick SMS Route
     const res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
       method: "POST",
       headers: {
@@ -156,15 +184,17 @@ async function sendViaFast2SMS(mobile: string, message: string): Promise<{ succe
         message: message,
         language: "english",
         flash: 0,
-        numbers: mobile,
+        numbers: cleanMobile,
       }),
     });
 
     const data = await res.json();
-    if (data.return === true || data.status_code === 200 || data.message?.[0]?.includes("Success")) {
+    if (data.return === true || data.status_code === 200 || (Array.isArray(data.message) && data.message[0]?.toLowerCase().includes("success"))) {
       return { success: true, messageId: data.request_id || `F2S-${Date.now()}` };
     }
-    return { success: false, error: data.message?.[0] || JSON.stringify(data) };
+
+    const errorMsg = Array.isArray(data.message) ? data.message.join(", ") : (data.message || JSON.stringify(data));
+    return { success: false, error: errorMsg };
   } catch (error: any) {
     return { success: false, error: error?.message || "Fast2SMS network error" };
   }
