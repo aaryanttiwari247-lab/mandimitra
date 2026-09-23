@@ -13,13 +13,19 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Download,
+  ExternalLink,
+  FileCheck2,
   IndianRupee,
   Info,
   LogOut,
   MapPin,
   Mic,
+  Printer,
+  ReceiptText,
   RotateCcw,
   Search,
+  ShieldCheck,
   Sprout,
   Ticket,
   TrendingUp,
@@ -45,11 +51,13 @@ import {
   CropCategory,
   formatINR,
   getCropDisplayName,
+  getCropMspData,
   getCategoryDisplayName,
   getGradeLabel,
   getGradeSpecs,
 } from "@/lib/msp-rates";
 import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
+import { MandiJSlipModal } from "@/components/MandiJSlipModal";
 import { openVoiceAssistant } from "@/components/MandimitraChatWidget";
 
 type Booking = {
@@ -67,6 +75,8 @@ type Booking = {
   crops?: Array<{
     crop: string;
     quantity: number;
+    actualQuantity?: number;
+    cropGrade?: string;
     mspRate?: number;
     totalPayout?: number;
   }>;
@@ -120,6 +130,10 @@ export default function FarmerDashboard() {
   const [booking, setBooking] =
     useState<Booking | null>(null);
 
+  const [completedProcurements, setCompletedProcurements] = useState<Booking[]>([]);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [selectedReceiptBooking, setSelectedReceiptBooking] = useState<Booking | null>(null);
+
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   const [mspCategory, setMspCategory] = useState<string>("All");
@@ -138,8 +152,34 @@ export default function FarmerDashboard() {
     });
   }, [mspCategory, mspSearch]);
 
+  const openReceiptModal = (b: Booking) => {
+    setSelectedReceiptBooking(b);
+    setIsReceiptModalOpen(true);
+  };
+
+  const formatCompletedDateTime = (b: Booking) => {
+    const ts = b.completedAt || b.updatedAt;
+    if (ts) {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        const datePart = d.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        const timePart = d.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        return `${datePart} • ${timePart}`;
+      }
+    }
+    return `${formatDate(b.date)} • ${b.fullTime || b.time || "Completed"}`;
+  };
+
   // ============================================================
-  // LOAD BOOKING
+  // LOAD BOOKING & COMPLETED PROCUREMENTS
   // ============================================================
 
   const loadBooking = useCallback(() => {
@@ -173,6 +213,12 @@ export default function FarmerDashboard() {
       return false;
     };
 
+    const isCompletedBooking = (b: Booking | null) => {
+      if (!b) return false;
+      const s = String(b.queueStatus || b.status || b.procurementStatus || "").toUpperCase();
+      return s.includes("COMPLETED");
+    };
+
     // 1. Check current booking
     const currentBookingRaw = localStorage.getItem("smartProcurementBooking");
     let currentBooking: Booking | null = null;
@@ -183,7 +229,6 @@ export default function FarmerDashboard() {
         if (parsed && belongsToFarmer(parsed)) {
           currentBooking = parsed;
         } else if (parsed && !belongsToFarmer(parsed)) {
-          // If stored booking belongs to another farmer, clean it up
           localStorage.removeItem("smartProcurementBooking");
         }
       } catch {
@@ -203,15 +248,59 @@ export default function FarmerDashboard() {
               currentBooking = farmerBooking;
             }
           }
-        } catch {
-          // Ignore invalid queue data
-        }
+        } catch {}
       }
     }
 
     setBooking(currentBooking);
 
-    // 3. Fetch live server queue to sync verification/procurement status across devices
+    // 3. Collect ALL completed procurements for this farmer
+    const completedMap = new Map<string, Booking>();
+
+    if (currentBooking && isCompletedBooking(currentBooking)) {
+      const key = (currentBooking.bookingId || currentBooking.token || "").toUpperCase();
+      if (key) completedMap.set(key, currentBooking);
+    }
+
+    try {
+      const qRaw = localStorage.getItem("smartProcurementQueue");
+      if (qRaw) {
+        const q = JSON.parse(qRaw);
+        if (Array.isArray(q)) {
+          q.forEach((item: Booking) => {
+            if (belongsToFarmer(item) && isCompletedBooking(item)) {
+              const key = (item.bookingId || item.token || "").toUpperCase();
+              if (key) completedMap.set(key, item);
+            }
+          });
+        }
+      }
+    } catch {}
+
+    try {
+      const hRaw = localStorage.getItem("smartProcurementHistory");
+      if (hRaw) {
+        const h = JSON.parse(hRaw);
+        if (Array.isArray(h)) {
+          h.forEach((item: Booking) => {
+            if (belongsToFarmer(item) && isCompletedBooking(item)) {
+              const key = (item.bookingId || item.token || "").toUpperCase();
+              if (key && !completedMap.has(key)) completedMap.set(key, item);
+            }
+          });
+        }
+      }
+    } catch {}
+
+    const sortedCompleted = Array.from(completedMap.values()).sort((a, b) => {
+      const timeA = new Date(a.completedAt || a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.completedAt || b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+    setCompletedProcurements(sortedCompleted);
+
+    // 4. Fetch live server queue to sync verification/procurement status across devices
     if (currentFarmer) {
       fetch("/api/official/queue")
         .then((res) => res.json())
@@ -224,6 +313,21 @@ export default function FarmerDashboard() {
                 localStorage.setItem("smartProcurementBooking", JSON.stringify(liveMatch));
               } catch {}
             }
+
+            data.queue.forEach((item: Booking) => {
+              if (belongsToFarmer(item) && isCompletedBooking(item)) {
+                const key = (item.bookingId || item.token || "").toUpperCase();
+                if (key) completedMap.set(key, item);
+              }
+            });
+
+            setCompletedProcurements(
+              Array.from(completedMap.values()).sort((a, b) => {
+                const timeA = new Date(a.completedAt || a.updatedAt || a.createdAt || 0).getTime();
+                const timeB = new Date(b.completedAt || b.updatedAt || b.createdAt || 0).getTime();
+                return timeB - timeA;
+              })
+            );
           }
         })
         .catch(() => {});
@@ -424,7 +528,8 @@ export default function FarmerDashboard() {
   };
 
   const isCancelled = booking ? getDisplayStatus() === "CANCELLED" : false;
-  const canFarmerCancel = Boolean(booking && !isCancelled && getDisplayStatus() !== "PROCESSING" && getDisplayStatus() !== "COMPLETED");
+  const isCompleted = booking ? getDisplayStatus() === "COMPLETED" : false;
+  const canFarmerCancel = Boolean(booking && !isCancelled && !isCompleted && getDisplayStatus() !== "PROCESSING");
 
   // ============================================================
   // AUTH CHECK SCREEN
@@ -639,6 +744,120 @@ export default function FarmerDashboard() {
               </div>
             </div>
           </div>
+        ) : isCompleted && booking ? (
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#13491E] via-[#1B5E2B] to-[#0F3817] p-6 sm:p-8 text-white shadow-lg border border-emerald-400/30">
+            <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 shadow-xs">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-300" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-emerald-500/30 border border-emerald-400/40 px-3 py-1 text-xs font-black uppercase tracking-wider text-emerald-200">
+                      {t("dashboard.celebrateCompletedBadge")}
+                    </span>
+                    <span className="rounded-full bg-white/20 px-3 py-0.5 text-xs font-mono font-bold text-white">
+                      Token #{booking.token || booking.tokenNumber}
+                    </span>
+                  </div>
+
+                  <h2 className="mt-2.5 text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    {t("dashboard.completedProcurementTitle")}
+                  </h2>
+                  <p className="mt-1 text-sm text-emerald-100/90 leading-relaxed max-w-2xl">
+                    {t("dashboard.completedProcurementSubtitle")}
+                  </p>
+
+                  {/* Summary Metric Pills */}
+                  <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+                      <p className="text-[11px] font-semibold text-emerald-200 uppercase tracking-wider">
+                        {t("booking.cropLabel")}
+                      </p>
+                      <p className="mt-0.5 text-base font-bold text-white truncate">
+                        {booking.crops && booking.crops.length > 1
+                          ? `${booking.crops.length} Crops`
+                          : booking.crop || "Produce"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+                      <p className="text-[11px] font-semibold text-emerald-200 uppercase tracking-wider">
+                        {t("official.weighedQuantity")}
+                      </p>
+                      <p className="mt-0.5 text-base font-bold text-white">
+                        {booking.actualQuantity ?? booking.quantity ?? 0} {t("common.quintals")}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+                      <p className="text-[11px] font-semibold text-emerald-200 uppercase tracking-wider">
+                        {t("official.assignedGrade")}
+                      </p>
+                      <p className="mt-0.5 text-base font-bold text-emerald-300">
+                        {booking.cropGrade || "Grade A"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-emerald-500/20 p-3 border border-emerald-400/30">
+                      <p className="text-[11px] font-semibold text-emerald-200 uppercase tracking-wider">
+                        {t("dashboard.finalSettledPayout")}
+                      </p>
+                      <p className="mt-0.5 text-lg font-black text-white">
+                        {formatINR(booking.totalPayout ?? 0)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3.5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-emerald-200">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>{booking.centre || "APMC Mandi Yard"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      <span>{t("dashboard.completedOn")}: {formatCompletedDateTime(booking)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-bold">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      <span>Aadhaar-DBT Authorized</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row lg:flex-col items-stretch gap-3 shrink-0 lg:min-w-[200px]">
+                <button
+                  type="button"
+                  onClick={() => openReceiptModal(booking)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-bold text-[#13491E] shadow-md hover:bg-emerald-50 transition active:scale-95 cursor-pointer"
+                  title="View and Print Official J-Slip"
+                >
+                  <ReceiptText className="h-4 w-4 text-[#13491E]" />
+                  <span>{t("dashboard.viewJSlip")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBookSlot}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-emerald-700/80 hover:bg-emerald-600 px-5 py-3 text-sm font-bold text-white border border-emerald-400/30 transition shadow-xs cursor-pointer"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>{t("dashboard.bookNextSlot")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleTrackToken}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 px-5 py-2.5 text-xs font-semibold text-emerald-100 transition border border-white/20 cursor-pointer"
+                >
+                  <span>{t("dashboard.trackNow")}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
         ) : booking ? (
           <div className="overflow-hidden rounded-3xl bg-[#2E7D32] shadow-sm">
             <div className="p-6 sm:p-8">
@@ -764,6 +983,122 @@ export default function FarmerDashboard() {
                 {t("dashboard.bookSlotBtn")}
                 <ArrowRight className="h-4 w-4" />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ====================================================
+            COMPLETED PROCUREMENTS & J-SLIPS SECTION
+        ==================================================== */}
+        {completedProcurements.length > 0 && (
+          <div className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-gray-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FileCheck2 className="h-5 w-5 text-[#2E7D32]" />
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {t("dashboard.completedProcurementsSection")}
+                  </h2>
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                    {completedProcurements.length}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  {t("dashboard.completedProcurementsDesc")}
+                </p>
+              </div>
+
+              <button
+                onClick={handleBookSlot}
+                className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] hover:bg-[#256428] px-4 py-2.5 text-xs sm:text-sm font-bold text-white transition shadow-xs w-fit cursor-pointer"
+              >
+                <CalendarDays className="h-4 w-4" />
+                <span>{t("dashboard.bookNextSlot")}</span>
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {completedProcurements.map((item, idx) => {
+                const itemToken = String(item.token || item.tokenNumber || item.bookingId || "---").replace(/^#/, "");
+                const itemPayout = item.totalPayout || 0;
+                const itemQty = item.actualQuantity ?? item.quantity ?? 0;
+                const itemGrade = item.cropGrade || "Grade A";
+                const itemRate = item.mspRate || (item.crop ? getCropMspData(item.crop).standardMsp : 2425);
+
+                return (
+                  <div
+                    key={item.bookingId || idx}
+                    className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-emerald-500 hover:shadow-md hover:bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-lg bg-emerald-800 px-2.5 py-1 text-xs font-mono font-black text-white">
+                            Token #{itemToken}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            Completed
+                          </span>
+                        </div>
+                        <p className="mt-2 text-base font-bold text-gray-900">
+                          🌾 {item.crops && item.crops.length > 1
+                            ? item.crops.map((c) => `${c.crop} (${c.actualQuantity ?? c.quantity}q)`).join(", ")
+                            : `${item.crop || "Produce"} • ${itemQty} Quintals`}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Settled Payout
+                        </p>
+                        <p className="mt-0.5 text-lg font-black text-[#2E7D32]">
+                          {formatINR(itemPayout)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3.5 grid grid-cols-2 gap-2 text-xs border-t border-gray-200/80 pt-3">
+                      <div>
+                        <span className="text-gray-500">Quality Grade:</span>{" "}
+                        <strong className="text-gray-800 font-semibold">{itemGrade}</strong>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-gray-500">Applied Rate:</span>{" "}
+                        <strong className="text-gray-800 font-semibold">₹{itemRate}/qtl</strong>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Centre:</span>{" "}
+                        <span className="text-gray-700 font-medium truncate inline-block max-w-[140px] align-bottom">
+                          {item.centre || "Mandi Centre"}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-gray-500">Completed:</span>{" "}
+                        <span className="text-gray-700 font-medium">
+                          {formatCompletedDateTime(item)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-dashed border-gray-200 pt-3">
+                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-bold">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>DBT Transfer Authorized</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openReceiptModal(item)}
+                        className="flex items-center gap-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 text-xs font-bold text-[#13491E] transition active:scale-95 cursor-pointer"
+                      >
+                        <ReceiptText className="h-3.5 w-3.5 text-[#13491E]" />
+                        <span>{t("dashboard.viewJSlip")}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1235,6 +1570,12 @@ export default function FarmerDashboard() {
           setBooking(updated);
           setIsCancelModalOpen(false);
         }}
+      />
+
+      <MandiJSlipModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        booking={selectedReceiptBooking}
       />
     </main>
   );

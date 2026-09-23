@@ -1,19 +1,26 @@
 "use client";
 
 import {
+  Archive,
   ArrowRight,
   Building2,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock3,
+  ExternalLink,
+  FileCheck2,
   Filter,
   Layers,
   ListFilter,
   MapPin,
   PackageCheck,
   Phone,
+  Printer,
+  ReceiptText,
   Search,
+  ShieldCheck,
   Sprout,
   Ticket,
   Truck,
@@ -21,6 +28,7 @@ import {
   Users,
   Warehouse,
   Wheat,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -35,6 +43,8 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/context/language-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { BookingCropItem } from "@/lib/types";
+import { MandiJSlipModal } from "@/components/MandiJSlipModal";
+import { formatINR, getCropMspData } from "@/lib/msp-rates";
 
 type Booking = {
   bookingId?: string;
@@ -48,6 +58,10 @@ type Booking = {
   crop?: string;
   cropGrade?: string;
   quantity?: number;
+  actualQuantity?: number;
+  mspRate?: number;
+  totalPayout?: number;
+  paymentStatus?: string;
   crops?: BookingCropItem[];
 
   date?: string;
@@ -154,6 +168,12 @@ export default function OfficialDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [viewMode, setViewMode] = useState<"grouped" | "flat">("grouped");
   const [collapsedCentres, setCollapsedCentres] = useState<Record<string, boolean>>({});
+
+  // Completed Procurements Modal & Voucher
+  const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
+  const [completedSearchQuery, setCompletedSearchQuery] = useState("");
+  const [selectedVoucherBooking, setSelectedVoucherBooking] = useState<Booking | null>(null);
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
 
   const toggleCentreCollapse = (centreId: string) => {
     setCollapsedCentres((prev) => ({
@@ -374,6 +394,90 @@ export default function OfficialDashboardPage() {
       return true;
     });
   }, [queue, selectedLocation, selectedCentre, statusFilter, searchQuery]);
+
+  // ============================================================
+  // ALL COMPLETED PROCUREMENTS (ACROSS ALL QUEUES & HISTORY)
+  // ============================================================
+
+  const allCompletedProcurements = useMemo(() => {
+    const map = new Map<string, Booking>();
+
+    // 1. From live/local queue
+    queue.forEach((b) => {
+      if (getStatus(b) === "COMPLETED") {
+        const key = (b.bookingId || b.token || "").toUpperCase();
+        if (key) map.set(key, b);
+      }
+    });
+
+    // 2. From localStorage history
+    try {
+      if (typeof window !== "undefined") {
+        const historyRaw = localStorage.getItem("smartProcurementHistory");
+        if (historyRaw) {
+          const parsed = JSON.parse(historyRaw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((b: Booking) => {
+              if (getStatus(b) === "COMPLETED") {
+                const key = (b.bookingId || b.token || "").toUpperCase();
+                if (key && !map.has(key)) map.set(key, b);
+              }
+            });
+          }
+        }
+      }
+    } catch {}
+
+    const list = Array.from(map.values());
+    list.sort((a, b) => {
+      const timeA = new Date(a.completedAt || a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.completedAt || b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+    return list;
+  }, [queue]);
+
+  const filteredCompletedProcurements = useMemo(() => {
+    if (!completedSearchQuery.trim()) return allCompletedProcurements;
+    const q = completedSearchQuery.toLowerCase().trim();
+    return allCompletedProcurements.filter((b) => {
+      return (
+        (b.token || "").toLowerCase().includes(q) ||
+        (b.farmerName || "").toLowerCase().includes(q) ||
+        (b.farmerMobile || "").includes(q) ||
+        (b.crop || "").toLowerCase().includes(q) ||
+        (b.centre || "").toLowerCase().includes(q) ||
+        (b.location || "").toLowerCase().includes(q)
+      );
+    });
+  }, [allCompletedProcurements, completedSearchQuery]);
+
+  const formatCompletedDateTime = (b: Booking) => {
+    const ts = b.completedAt || b.updatedAt;
+    if (ts) {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        const datePart = d.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        const timePart = d.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        return `${datePart} • ${timePart}`;
+      }
+    }
+    return `${b.date || "Today"} • ${b.fullTime || b.time || "Completed"}`;
+  };
+
+  const openVoucherModal = (b: Booking) => {
+    setSelectedVoucherBooking(b);
+    setIsVoucherModalOpen(true);
+  };
 
   // ============================================================
   // GROUPED BY ALLOTTED CENTRES
@@ -778,7 +882,20 @@ export default function OfficialDashboardPage() {
             {t("common.appName")}
           </button>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* COMPLETED PROCUREMENTS ICON BUTTON */}
+            <button
+              type="button"
+              onClick={() => setIsCompletedModalOpen(true)}
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-emerald-400/40 bg-emerald-800/80 hover:bg-emerald-700 px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white transition shadow-2xs cursor-pointer active:scale-95"
+              title={t("official.completedLogTitle")}
+            >
+              <Archive className="h-4 w-4 text-emerald-300" />
+              <span className="hidden sm:inline">{t("official.completedLogBtn")}</span>
+              <span className="rounded-full bg-emerald-400/25 px-2 py-0.5 text-xs font-black text-emerald-100">
+                {allCompletedProcurements.length}
+              </span>
+            </button>
 
             <LanguageSelector />
 
@@ -911,6 +1028,8 @@ export default function OfficialDashboardPage() {
             label={t("official.completed")}
             value={completedToday}
             tag="TODAY"
+            onClick={() => setIsCompletedModalOpen(true)}
+            subtext="View Logs"
           />
 
           <StatCard
@@ -1665,6 +1784,187 @@ export default function OfficialDashboardPage() {
 
       </section>
 
+      {/* ====================================================
+          MODAL: ALL COMPLETED PROCUREMENTS ARCHIVE
+      ==================================================== */}
+      {isCompletedModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
+          {/* Backdrop Dismiss */}
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsCompletedModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="relative z-10 my-6 w-full max-w-4xl rounded-3xl bg-white shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] px-6 py-5 text-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 border border-white/30 text-white">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      {t("official.completedLogTitle")}
+                    </h3>
+                    <span className="rounded-full bg-emerald-400/30 border border-emerald-300/40 px-2.5 py-0.5 text-xs font-black text-emerald-100">
+                      {allCompletedProcurements.length}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-emerald-200 max-w-xl">
+                    {t("official.completedLogSubtitle")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCompletedModalOpen(false)}
+                  className="rounded-xl p-2 text-white/80 hover:bg-white/20 hover:text-white transition cursor-pointer"
+                  title={t("common.close")}
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Search Bar & Subheader */}
+            <div className="border-b border-gray-100 bg-gray-50/80 px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+              <div className="relative flex-1 max-w-md">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={completedSearchQuery}
+                  onChange={(e) => setCompletedSearchQuery(e.target.value)}
+                  placeholder={t("official.searchCompletedPlaceholder")}
+                  className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3.5 text-xs sm:text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                <span>{t("official.totalCompletedRecords", { count: String(filteredCompletedProcurements.length) })}</span>
+              </div>
+            </div>
+
+            {/* Scrollable Records Body */}
+            <div className="overflow-y-auto p-5 sm:p-6 space-y-4">
+              {filteredCompletedProcurements.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
+                    <FileCheck2 className="h-6 w-6" />
+                  </div>
+                  <h4 className="mt-4 text-base font-bold text-gray-900">
+                    {t("official.noCompletedRecords")}
+                  </h4>
+                  <p className="mt-1 text-xs text-gray-500 max-w-md mx-auto">
+                    {completedSearchQuery
+                      ? "No records matched your search filter. Try clearing the search query."
+                      : "Completed farmer procurements will appear here automatically with their timestamp and payout details."}
+                  </p>
+                </div>
+              ) : (
+                filteredCompletedProcurements.map((item, idx) => {
+                  const itemToken = String(item.token || item.tokenNumber || item.bookingId || "---").replace(/^#/, "");
+                  const itemQty = item.actualQuantity ?? item.quantity ?? 0;
+                  const itemGrade = item.cropGrade || "Grade A";
+                  const itemRate = item.mspRate || (item.crop ? getCropMspData(item.crop).standardMsp : 2425);
+                  const itemPayout = item.totalPayout || Math.round(itemQty * itemRate);
+
+                  return (
+                    <div
+                      key={item.bookingId || idx}
+                      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition hover:border-[#2E7D32] hover:shadow-md"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        {/* Left Info */}
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <span className="rounded-lg bg-emerald-800 px-3 py-1 text-xs font-mono font-black text-white">
+                              Token #{itemToken}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                              Procured & Disbursed
+                            </span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-700">
+                              <CalendarDays className="h-3.5 w-3.5 text-[#2E7D32]" />
+                              <Clock3 className="h-3.5 w-3.5 text-[#2E7D32]" />
+                              <span>{t("official.completionDateTime")}: </span>
+                              <strong className="text-gray-900 ml-1">{formatCompletedDateTime(item)}</strong>
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                            <p className="font-extrabold text-gray-900">
+                              {item.farmerName || "Farmer"}
+                            </p>
+                            <p className="font-medium text-gray-500">
+                              +91 {item.farmerMobile || "---"}
+                            </p>
+                            <p className="text-xs font-mono text-gray-500">
+                              ID: {item.farmerId || `FMR-${item.farmerMobile?.slice(-4) || "8924"}`}
+                            </p>
+                          </div>
+
+                          {/* Crop & Weighbridge Specs */}
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="rounded-md bg-gray-100 px-2.5 py-1 font-bold text-gray-800">
+                              🌾 {item.crops && item.crops.length > 1
+                                ? item.crops.map((c) => `${c.crop} (${c.actualQuantity ?? c.quantity}q)`).join(", ")
+                                : `${item.crop || "Produce"} • ${itemQty} Quintals`}
+                            </span>
+                            <span className="rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1 font-bold text-emerald-800">
+                              {itemGrade}
+                            </span>
+                            <span className="text-gray-600">
+                              Rate: <strong>₹{itemRate}/qtl</strong>
+                            </span>
+                            <span className="text-gray-400">|</span>
+                            <span className="text-gray-600 truncate max-w-[200px]">
+                              📍 {item.centre || "Mandi Yard"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right Payout & Action */}
+                        <div className="flex sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-3 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-gray-100">
+                          <div className="text-left lg:text-right">
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                              {t("official.payoutDisbursed")}
+                            </p>
+                            <p className="text-xl font-black text-[#2E7D32]">
+                              {formatINR(itemPayout)}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => openVoucherModal(item)}
+                            className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-emerald-50 hover:bg-[#2E7D32] hover:text-white px-3.5 py-2 text-xs font-bold text-[#2E7D32] transition active:scale-95 cursor-pointer shadow-2xs"
+                          >
+                            <ReceiptText className="h-3.5 w-3.5" />
+                            <span>{t("official.viewVoucher")}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* J-SLIP VOUCHER PREVIEW MODAL */}
+      <MandiJSlipModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+        booking={selectedVoucherBooking}
+      />
     </main>
   );
 }
@@ -1678,25 +1978,42 @@ function StatCard({
   label,
   value,
   tag,
+  onClick,
+  subtext,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   tag: string;
+  onClick?: () => void;
+  subtext?: string;
 }) {
+  const isClickable = Boolean(onClick);
+
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-
+    <div
+      onClick={onClick}
+      className={`rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition ${
+        isClickable
+          ? "cursor-pointer hover:border-[#2E7D32] hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]"
+          : ""
+      }`}
+    >
       <div className="flex items-start justify-between">
-
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E8F5E9]">
           {icon}
         </div>
 
-        <span className="text-sm font-medium text-gray-400">
-          {tag}
-        </span>
-
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-sm font-medium text-gray-400">
+            {tag}
+          </span>
+          {subtext && (
+            <span className="text-[10px] font-bold text-[#2E7D32] uppercase tracking-wider flex items-center gap-0.5">
+              {subtext} →
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="mt-7 text-base text-gray-600">

@@ -476,6 +476,28 @@ function ProcurementContent() {
         }
       } catch {}
 
+      // When procurement completes, record into smartProcurementHistory
+      if (newStatus === "COMPLETED") {
+        try {
+          const historyRaw = localStorage.getItem("smartProcurementHistory");
+          const history: Booking[] = historyRaw ? JSON.parse(historyRaw) : [];
+          const idx = history.findIndex(
+            (h) =>
+              (booking.bookingId && h.bookingId === booking.bookingId) ||
+              (booking.token &&
+                h.token &&
+                booking.token.toUpperCase().replace(/^#/, "") ===
+                  h.token.toUpperCase().replace(/^#/, ""))
+          );
+          if (idx !== -1) {
+            history[idx] = { ...history[idx], ...updatedBooking };
+          } else {
+            history.unshift(updatedBooking);
+          }
+          localStorage.setItem("smartProcurementHistory", JSON.stringify(history));
+        } catch {}
+      }
+
       setBooking(updatedBooking);
 
       window.dispatchEvent(
