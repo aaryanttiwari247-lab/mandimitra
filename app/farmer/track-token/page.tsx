@@ -34,7 +34,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getFarmerSession, clearFarmerSession, FarmerUser } from "@/lib/farmer-auth";
 import { formatINR, getCropMspData } from "@/lib/msp-rates";
 import { subscribeProcurementUpdates, ProcurementSyncMessage } from "@/lib/cross-tab-sync";
@@ -103,6 +103,10 @@ function TrackTokenContent() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
+  // Keep a ref to current booking to avoid closure issues and detect when data is already present
+  const bookingRef = useRef<Booking | null>(null);
+  bookingRef.current = booking;
+
   // ============================================================
   // EXIT / LOGOUT
   // ============================================================
@@ -141,130 +145,151 @@ function TrackTokenContent() {
   // ============================================================
   // LOAD BOOKING (STRICT TOKEN MATCHING — NO STRANGER FALLBACKS)
   // ============================================================
-  const loadBooking = useCallback(async () => {
-    setLoading(true);
-    setSearchError("");
+  const loadBooking = useCallback(
+    async (options?: { isInitial?: boolean; forceLoader?: boolean }) => {
+      const isInitial = options?.isInitial ?? false;
+      const forceLoader = options?.forceLoader ?? false;
 
-    try {
-      const farmer = getFarmerSession();
-      const cleanTokenParam = normalizeTokenClean(tokenParam);
-
-      const queueData = localStorage.getItem("smartProcurementQueue");
-      const currentBookingData = localStorage.getItem("smartProcurementBooking");
-
-      let queue: Booking[] = [];
-      if (queueData) {
-        try {
-          const parsed = JSON.parse(queueData);
-          if (Array.isArray(parsed)) queue = parsed;
-        } catch {
-          queue = [];
-        }
+      // Only show full loading screen on initial mount if there is NO booking yet,
+      // or if explicitly requested when switching to a different token.
+      // Polling intervals and storage events MUST update silently in background.
+      if (forceLoader || (isInitial && !bookingRef.current)) {
+        setLoading(true);
+        setSearchError("");
       }
 
-      let currentBooking: Booking | null = null;
-      if (currentBookingData) {
-        try {
-          currentBooking = JSON.parse(currentBookingData);
-        } catch {
-          currentBooking = null;
-        }
-      }
+      try {
+        const farmer = getFarmerSession();
+        const cleanTokenParam = normalizeTokenClean(tokenParam);
 
-      let foundBooking: Booking | null = null;
+        const queueData = localStorage.getItem("smartProcurementQueue");
+        const currentBookingData = localStorage.getItem("smartProcurementBooking");
 
-      // 1. If explicit token requested in URL (?token=...)
-      if (cleanTokenParam) {
-        // Check currentBooking first if matched
-        if (matchesBookingIdentifier(currentBooking, cleanTokenParam)) {
-          foundBooking = currentBooking;
-        } else {
-          // Search local queue
-          foundBooking = queue.find((item) => matchesBookingIdentifier(item, cleanTokenParam)) ?? null;
-        }
-
-        // Live server query for requested token
-        try {
-          const res = await fetch(`/api/bookings/track/${encodeURIComponent(cleanTokenParam)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.booking) {
-              foundBooking = data.booking;
-            }
-          }
-        } catch (fetchErr) {
-          console.warn("Live token tracking fetch error:", fetchErr);
-        }
-
-        if (!foundBooking) {
-          setSearchError(`Token "#${cleanTokenParam}" was not found. Please verify the token number.`);
-          setBooking(null);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 2. If NO token specified in URL, strictly look up the LOGGED-IN FARMER'S booking
-      if (!cleanTokenParam && farmer) {
-        if (currentBooking && belongsToFarmer(currentBooking, farmer)) {
-          foundBooking = currentBooking;
-        } else {
-          const farmerBookings = queue.filter((item) => belongsToFarmer(item, farmer));
-          if (farmerBookings.length > 0) {
-            foundBooking =
-              [...farmerBookings].sort(
-                (a, b) =>
-                  new Date(b.createdAt ?? 0).getTime() -
-                  new Date(a.createdAt ?? 0).getTime()
-              )[0] ?? null;
-          }
-        }
-
-        // Also query server queue for this farmer's phone
-        if (!foundBooking && farmer.mobile) {
+        let queue: Booking[] = [];
+        if (queueData) {
           try {
-            const res = await fetch(`/api/bookings/track/${encodeURIComponent(farmer.mobile)}`);
+            const parsed = JSON.parse(queueData);
+            if (Array.isArray(parsed)) queue = parsed;
+          } catch {
+            queue = [];
+          }
+        }
+
+        let currentBooking: Booking | null = null;
+        if (currentBookingData) {
+          try {
+            currentBooking = JSON.parse(currentBookingData);
+          } catch {
+            currentBooking = null;
+          }
+        }
+
+        let foundBooking: Booking | null = null;
+
+        // 1. If explicit token requested in URL (?token=...)
+        if (cleanTokenParam) {
+          // Check currentBooking first if matched
+          if (matchesBookingIdentifier(currentBooking, cleanTokenParam)) {
+            foundBooking = currentBooking;
+          } else {
+            // Search local queue
+            foundBooking = queue.find((item) => matchesBookingIdentifier(item, cleanTokenParam)) ?? null;
+          }
+
+          // Live server query for requested token
+          try {
+            const res = await fetch(`/api/bookings/track/${encodeURIComponent(cleanTokenParam)}`);
             if (res.ok) {
               const data = await res.json();
               if (data.success && data.booking) {
                 foundBooking = data.booking;
               }
             }
+          } catch (fetchErr) {
+            console.warn("Live token tracking fetch error:", fetchErr);
+          }
+
+          if (!foundBooking) {
+            if (forceLoader || (isInitial && !bookingRef.current)) {
+              setSearchError(`Token "#${cleanTokenParam}" was not found. Please verify the token number.`);
+              setBooking(null);
+            }
+            setLoading(false);
+            return;
+          }
+        }
+
+        // 2. If NO token specified in URL, strictly look up the LOGGED-IN FARMER'S booking
+        if (!cleanTokenParam && farmer) {
+          if (currentBooking && belongsToFarmer(currentBooking, farmer)) {
+            foundBooking = currentBooking;
+          } else {
+            const farmerBookings = queue.filter((item) => belongsToFarmer(item, farmer));
+            if (farmerBookings.length > 0) {
+              foundBooking =
+                [...farmerBookings].sort(
+                  (a, b) =>
+                    new Date(b.createdAt ?? 0).getTime() -
+                    new Date(a.createdAt ?? 0).getTime()
+                )[0] ?? null;
+            }
+          }
+
+          // Also query server queue for this farmer's phone
+          if (!foundBooking && farmer.mobile) {
+            try {
+              const res = await fetch(`/api/bookings/track/${encodeURIComponent(farmer.mobile)}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.booking) {
+                  foundBooking = data.booking;
+                }
+              }
+            } catch {}
+          }
+        }
+
+        // 3. Fallback to currentBooking ONLY if logged-in farmer session exists AND belongs to that farmer
+        if (!foundBooking && !cleanTokenParam && currentBooking && farmer) {
+          if (belongsToFarmer(currentBooking, farmer)) {
+            foundBooking = currentBooking;
+          }
+        }
+
+        // If still nothing found, do NOT assign a random booking from queue!
+        if (foundBooking) {
+          setBooking(foundBooking);
+          setLastUpdated(new Date());
+
+          // Cache for this session
+          try {
+            localStorage.setItem("smartProcurementBooking", JSON.stringify(foundBooking));
           } catch {}
+        } else {
+          if (forceLoader || (isInitial && !bookingRef.current)) {
+            setBooking(null);
+          }
         }
+      } catch (error) {
+        console.error("Unable to load procurement booking:", error);
+      } finally {
+        setLoading(false);
       }
-
-      // 3. Fallback to currentBooking ONLY if logged-in farmer session exists AND belongs to that farmer
-      if (!foundBooking && !cleanTokenParam && currentBooking && farmer) {
-        if (belongsToFarmer(currentBooking, farmer)) {
-          foundBooking = currentBooking;
-        }
-      }
-
-      // If still nothing found, do NOT assign a random booking from queue!
-      if (foundBooking) {
-        setBooking(foundBooking);
-        setLastUpdated(new Date());
-
-        // Cache for this session
-        try {
-          localStorage.setItem("smartProcurementBooking", JSON.stringify(foundBooking));
-        } catch {}
-      } else {
-        setBooking(null);
-      }
-    } catch (error) {
-      console.error("Unable to load procurement booking:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [tokenParam]);
+    },
+    [tokenParam]
+  );
 
   // ============================================================
   // REAL-TIME BROADCAST CHANNEL & STORAGE SYNC
   // ============================================================
   useEffect(() => {
-    loadBooking();
+    const cleanParam = normalizeTokenClean(tokenParam);
+    const isDifferentToken = Boolean(
+      cleanParam &&
+        (!bookingRef.current || !matchesBookingIdentifier(bookingRef.current, cleanParam))
+    );
+
+    loadBooking({ isInitial: true, forceLoader: isDifferentToken });
 
     // 1. Instant zero-latency cross-tab sync via BroadcastChannel
     const unsubscribe = subscribeProcurementUpdates((msg: ProcurementSyncMessage) => {
@@ -294,19 +319,19 @@ function TrackTokenContent() {
       }
     });
 
-    // 2. Storage event listener (when other tabs write to localStorage)
+    // 2. Storage event listener (when other tabs write to localStorage) - SILENT REFRESH
     const handleStorage = (event: StorageEvent) => {
       if (event.key === "smartProcurementQueue" || event.key === "smartProcurementBooking") {
-        loadBooking();
+        loadBooking({ isInitial: false, forceLoader: false });
       }
     };
 
     window.addEventListener("storage", handleStorage);
 
-    // 3. Polite background polling every 10s (only when visible)
+    // 3. Polite background polling every 10s (only when visible) - SILENT REFRESH
     const interval = window.setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        loadBooking();
+        loadBooking({ isInitial: false, forceLoader: false });
       }
     }, 10000);
 
@@ -548,9 +573,9 @@ function TrackTokenContent() {
   };
 
   // ============================================================
-  // LOADING SCREEN
+  // LOADING SCREEN (ONLY SHOWN BEFORE INITIAL BOOKING DATA IS RETRIEVED)
   // ============================================================
-  if (loading) {
+  if (loading && !booking) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#F7F9F5]">
         <div className="text-center">
@@ -558,7 +583,7 @@ function TrackTokenContent() {
             <Sprout className="h-7 w-7 animate-pulse text-[#2E7D32]" />
           </div>
           <p className="mt-4 text-sm font-medium text-gray-600">
-            Loading live token data...
+            {t("common.loading") || "Loading live token data..."}
           </p>
         </div>
       </main>
