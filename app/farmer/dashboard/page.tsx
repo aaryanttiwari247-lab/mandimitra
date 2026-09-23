@@ -16,6 +16,8 @@ import {
   Download,
   ExternalLink,
   FileCheck2,
+  Filter,
+  History,
   IndianRupee,
   Info,
   LogOut,
@@ -32,6 +34,7 @@ import {
   Truck,
   Users,
   Wheat,
+  X,
   XCircle,
 } from "lucide-react";
 
@@ -130,7 +133,10 @@ export default function FarmerDashboard() {
   const [booking, setBooking] =
     useState<Booking | null>(null);
 
-  const [completedProcurements, setCompletedProcurements] = useState<Booking[]>([]);
+  const [pastRecords, setPastRecords] = useState<Booking[]>([]);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyTab, setHistoryTab] = useState<"ALL" | "COMPLETED" | "CANCELLED">("ALL");
+  const [historySearchQuery, setHistorySearchQuery] = useState("");
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [selectedReceiptBooking, setSelectedReceiptBooking] = useState<Booking | null>(null);
 
@@ -157,17 +163,69 @@ export default function FarmerDashboard() {
     setIsReceiptModalOpen(true);
   };
 
+  const isCompletedBooking = useCallback((b: Booking | null) => {
+    if (!b) return false;
+    const s = String(b.queueStatus || b.status || b.procurementStatus || "").toUpperCase();
+    return s.includes("COMPLETED");
+  }, []);
+
+  const isCancelledBooking = useCallback((b: Booking | null) => {
+    if (!b) return false;
+    const s = String(b.queueStatus || b.status || b.procurementStatus || "").toUpperCase();
+    return s.includes("CANCEL");
+  }, []);
+
+  const isPastBooking = useCallback((b: Booking | null) => {
+    return isCompletedBooking(b) || isCancelledBooking(b);
+  }, [isCompletedBooking, isCancelledBooking]);
+
+  const completedCount = useMemo(() => {
+    return pastRecords.filter(isCompletedBooking).length;
+  }, [pastRecords, isCompletedBooking]);
+
+  const cancelledCount = useMemo(() => {
+    return pastRecords.filter(isCancelledBooking).length;
+  }, [pastRecords, isCancelledBooking]);
+
+  const filteredPastRecords = useMemo(() => {
+    return pastRecords.filter((b) => {
+      const isComp = isCompletedBooking(b);
+      const isCanc = isCancelledBooking(b);
+
+      if (historyTab === "COMPLETED" && !isComp) return false;
+      if (historyTab === "CANCELLED" && !isCanc) return false;
+
+      if (!historySearchQuery.trim()) return true;
+
+      const q = historySearchQuery.toLowerCase().trim();
+      const token = String(b.token || b.tokenNumber || b.bookingId || "").toLowerCase();
+      const crop = (b.crop || "").toLowerCase();
+      const cropsStr = (b.crops || []).map((c) => c.crop).join(" ").toLowerCase();
+      const centre = (b.centre || "").toLowerCase();
+      const reason = (b.cancellationReason || "").toLowerCase();
+
+      return (
+        token.includes(q) ||
+        crop.includes(q) ||
+        cropsStr.includes(q) ||
+        centre.includes(q) ||
+        reason.includes(q)
+      );
+    });
+  }, [pastRecords, historyTab, historySearchQuery, isCompletedBooking, isCancelledBooking]);
+
   const formatCompletedDateTime = (b: Booking) => {
     const ts = b.completedAt || b.updatedAt;
     if (ts) {
       const d = new Date(ts);
       if (!isNaN(d.getTime())) {
-        const datePart = d.toLocaleDateString("en-IN", {
+        const locale = language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN";
+        const datePart = d.toLocaleDateString(locale, {
           day: "numeric",
           month: "short",
           year: "numeric",
         });
-        const timePart = d.toLocaleTimeString("en-IN", {
+        const timePart = d.toLocaleTimeString(locale, {
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
@@ -176,6 +234,28 @@ export default function FarmerDashboard() {
       }
     }
     return `${formatDate(b.date)} • ${b.fullTime || b.time || "Completed"}`;
+  };
+
+  const formatCancelledDateTime = (b: Booking) => {
+    const ts = b.cancelledAt || b.updatedAt;
+    if (ts) {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        const locale = language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN";
+        const datePart = d.toLocaleDateString(locale, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        const timePart = d.toLocaleTimeString(locale, {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        return `${datePart} • ${timePart}`;
+      }
+    }
+    return `${b.date ? formatDate(b.date) : "Recent"} • ${b.fullTime || b.time || "Cancelled"}`;
   };
 
   // ============================================================
@@ -213,12 +293,6 @@ export default function FarmerDashboard() {
       return false;
     };
 
-    const isCompletedBooking = (b: Booking | null) => {
-      if (!b) return false;
-      const s = String(b.queueStatus || b.status || b.procurementStatus || "").toUpperCase();
-      return s.includes("COMPLETED");
-    };
-
     // 1. Check current booking
     const currentBookingRaw = localStorage.getItem("smartProcurementBooking");
     let currentBooking: Booking | null = null;
@@ -254,12 +328,12 @@ export default function FarmerDashboard() {
 
     setBooking(currentBooking);
 
-    // 3. Collect ALL completed procurements for this farmer
-    const completedMap = new Map<string, Booking>();
+    // 3. Collect ALL completed and cancelled procurements for this farmer
+    const pastMap = new Map<string, Booking>();
 
-    if (currentBooking && isCompletedBooking(currentBooking)) {
-      const key = (currentBooking.bookingId || currentBooking.token || "").toUpperCase();
-      if (key) completedMap.set(key, currentBooking);
+    if (currentBooking && isPastBooking(currentBooking)) {
+      const key = (currentBooking.bookingId || currentBooking.token || `TK-${currentBooking.tokenNumber}` || "").toUpperCase();
+      if (key) pastMap.set(key, currentBooking);
     }
 
     try {
@@ -268,9 +342,9 @@ export default function FarmerDashboard() {
         const q = JSON.parse(qRaw);
         if (Array.isArray(q)) {
           q.forEach((item: Booking) => {
-            if (belongsToFarmer(item) && isCompletedBooking(item)) {
-              const key = (item.bookingId || item.token || "").toUpperCase();
-              if (key) completedMap.set(key, item);
+            if (belongsToFarmer(item) && isPastBooking(item)) {
+              const key = (item.bookingId || item.token || `TK-${item.tokenNumber}` || "").toUpperCase();
+              if (key) pastMap.set(key, item);
             }
           });
         }
@@ -283,22 +357,22 @@ export default function FarmerDashboard() {
         const h = JSON.parse(hRaw);
         if (Array.isArray(h)) {
           h.forEach((item: Booking) => {
-            if (belongsToFarmer(item) && isCompletedBooking(item)) {
-              const key = (item.bookingId || item.token || "").toUpperCase();
-              if (key && !completedMap.has(key)) completedMap.set(key, item);
+            if (belongsToFarmer(item) && isPastBooking(item)) {
+              const key = (item.bookingId || item.token || `TK-${item.tokenNumber}` || "").toUpperCase();
+              if (key && !pastMap.has(key)) pastMap.set(key, item);
             }
           });
         }
       }
     } catch {}
 
-    const sortedCompleted = Array.from(completedMap.values()).sort((a, b) => {
-      const timeA = new Date(a.completedAt || a.updatedAt || a.createdAt || 0).getTime();
-      const timeB = new Date(b.completedAt || b.updatedAt || b.createdAt || 0).getTime();
+    const sortedPast = Array.from(pastMap.values()).sort((a, b) => {
+      const timeA = new Date(a.completedAt || a.cancelledAt || a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.completedAt || b.cancelledAt || b.updatedAt || b.createdAt || 0).getTime();
       return timeB - timeA;
     });
 
-    setCompletedProcurements(sortedCompleted);
+    setPastRecords(sortedPast);
 
     // 4. Fetch live server queue to sync verification/procurement status across devices
     if (currentFarmer) {
@@ -315,16 +389,16 @@ export default function FarmerDashboard() {
             }
 
             data.queue.forEach((item: Booking) => {
-              if (belongsToFarmer(item) && isCompletedBooking(item)) {
-                const key = (item.bookingId || item.token || "").toUpperCase();
-                if (key) completedMap.set(key, item);
+              if (belongsToFarmer(item) && isPastBooking(item)) {
+                const key = (item.bookingId || item.token || `TK-${item.tokenNumber}` || "").toUpperCase();
+                if (key) pastMap.set(key, item);
               }
             });
 
-            setCompletedProcurements(
-              Array.from(completedMap.values()).sort((a, b) => {
-                const timeA = new Date(a.completedAt || a.updatedAt || a.createdAt || 0).getTime();
-                const timeB = new Date(b.completedAt || b.updatedAt || b.createdAt || 0).getTime();
+            setPastRecords(
+              Array.from(pastMap.values()).sort((a, b) => {
+                const timeA = new Date(a.completedAt || a.cancelledAt || a.updatedAt || a.createdAt || 0).getTime();
+                const timeB = new Date(b.completedAt || b.cancelledAt || b.updatedAt || b.createdAt || 0).getTime();
                 return timeB - timeA;
               })
             );
@@ -332,7 +406,7 @@ export default function FarmerDashboard() {
         })
         .catch(() => {});
     }
-  }, [router]);
+  }, [router, isPastBooking]);
 
   // ============================================================
   // AUTHENTICATION
@@ -598,7 +672,23 @@ export default function FarmerDashboard() {
 
           {/* RIGHT SIDE */}
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* PROCUREMENT RECORDS ICON BUTTON */}
+            <button
+              type="button"
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-emerald-400/40 bg-emerald-800/80 hover:bg-emerald-700 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-bold text-white transition shadow-2xs cursor-pointer active:scale-95"
+              title={t("dashboard.historyIconTitle")}
+            >
+              <History className="h-4 w-4 text-emerald-200" />
+              <span className="hidden sm:inline">{t("dashboard.historyIconBtn")}</span>
+              {pastRecords.length > 0 && (
+                <span className="rounded-full bg-emerald-400/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-100">
+                  {pastRecords.length}
+                </span>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => openVoiceAssistant()}
@@ -668,7 +758,19 @@ export default function FarmerDashboard() {
 
             {farmer && (
               <div className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-right shadow-xs">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("dashboard.farmerAccount")}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("dashboard.farmerAccount")}</span>
+                  {pastRecords.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsHistoryModalOpen(true)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2E7D32] hover:text-[#1B5E2B] hover:underline cursor-pointer"
+                    >
+                      <History className="h-3 w-3" />
+                      <span>{t("dashboard.historyIconBtn")} ({pastRecords.length})</span>
+                    </button>
+                  )}
+                </div>
                 <p className="mt-0.5 text-base font-bold text-[#2E7D32]">{farmer.farmerCode || farmer.farmerId || `FMR${farmer.mobile?.slice(-4)}`}</p>
                 <p className="text-xs text-gray-600 font-medium">+91 {farmer.mobile}</p>
                 {farmer.district && (
@@ -976,129 +1078,26 @@ export default function FarmerDashboard() {
                 </p>
               </div>
 
-              <button
-                onClick={handleBookSlot}
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428] shadow-sm shrink-0"
-              >
-                {t("dashboard.bookSlotBtn")}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ====================================================
-            COMPLETED PROCUREMENTS & J-SLIPS SECTION
-        ==================================================== */}
-        {completedProcurements.length > 0 && (
-          <div className="mt-8 rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-gray-100">
-              <div>
-                <div className="flex items-center gap-2">
-                  <FileCheck2 className="h-5 w-5 text-[#2E7D32]" />
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {t("dashboard.completedProcurementsSection")}
-                  </h2>
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
-                    {completedProcurements.length}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-gray-600">
-                  {t("dashboard.completedProcurementsDesc")}
-                </p>
-              </div>
-
-              <button
-                onClick={handleBookSlot}
-                className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] hover:bg-[#256428] px-4 py-2.5 text-xs sm:text-sm font-bold text-white transition shadow-xs w-fit cursor-pointer"
-              >
-                <CalendarDays className="h-4 w-4" />
-                <span>{t("dashboard.bookNextSlot")}</span>
-              </button>
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {completedProcurements.map((item, idx) => {
-                const itemToken = String(item.token || item.tokenNumber || item.bookingId || "---").replace(/^#/, "");
-                const itemPayout = item.totalPayout || 0;
-                const itemQty = item.actualQuantity ?? item.quantity ?? 0;
-                const itemGrade = item.cropGrade || "Grade A";
-                const itemRate = item.mspRate || (item.crop ? getCropMspData(item.crop).standardMsp : 2425);
-
-                return (
-                  <div
-                    key={item.bookingId || idx}
-                    className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-emerald-500 hover:shadow-md hover:bg-white"
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                {pastRecords.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryModalOpen(true)}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white hover:border-[#2E7D32] hover:text-[#2E7D32] px-5 py-3.5 text-sm font-bold text-gray-700 transition shadow-xs cursor-pointer"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-lg bg-emerald-800 px-2.5 py-1 text-xs font-mono font-black text-white">
-                            Token #{itemToken}
-                          </span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                            Completed
-                          </span>
-                        </div>
-                        <p className="mt-2 text-base font-bold text-gray-900">
-                          🌾 {item.crops && item.crops.length > 1
-                            ? item.crops.map((c) => `${c.crop} (${c.actualQuantity ?? c.quantity}q)`).join(", ")
-                            : `${item.crop || "Produce"} • ${itemQty} Quintals`}
-                        </p>
-                      </div>
+                    <History className="h-4 w-4 text-[#2E7D32]" />
+                    <span>{t("dashboard.historyIconBtn")} ({pastRecords.length})</span>
+                  </button>
+                )}
 
-                      <div className="text-right shrink-0">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                          Settled Payout
-                        </p>
-                        <p className="mt-0.5 text-lg font-black text-[#2E7D32]">
-                          {formatINR(itemPayout)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3.5 grid grid-cols-2 gap-2 text-xs border-t border-gray-200/80 pt-3">
-                      <div>
-                        <span className="text-gray-500">Quality Grade:</span>{" "}
-                        <strong className="text-gray-800 font-semibold">{itemGrade}</strong>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-gray-500">Applied Rate:</span>{" "}
-                        <strong className="text-gray-800 font-semibold">₹{itemRate}/qtl</strong>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Centre:</span>{" "}
-                        <span className="text-gray-700 font-medium truncate inline-block max-w-[140px] align-bottom">
-                          {item.centre || "Mandi Centre"}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-gray-500">Completed:</span>{" "}
-                        <span className="text-gray-700 font-medium">
-                          {formatCompletedDateTime(item)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between border-t border-dashed border-gray-200 pt-3">
-                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-bold">
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>DBT Transfer Authorized</span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => openReceiptModal(item)}
-                        className="flex items-center gap-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 text-xs font-bold text-[#13491E] transition active:scale-95 cursor-pointer"
-                      >
-                        <ReceiptText className="h-3.5 w-3.5 text-[#13491E]" />
-                        <span>{t("dashboard.viewJSlip")}</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                <button
+                  onClick={handleBookSlot}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#256428] shadow-sm shrink-0"
+                >
+                  {t("dashboard.bookSlotBtn")}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1118,12 +1117,12 @@ export default function FarmerDashboard() {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* BOOK PROCUREMENT SLOT */}
 
             <button
               onClick={handleBookSlot}
-              className="group rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#2E7D32] hover:shadow-md"
+              className="group rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#2E7D32] hover:shadow-md cursor-pointer"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E8F5E9]">
                 <CalendarDays className="h-6 w-6 text-[#2E7D32]" />
@@ -1148,7 +1147,7 @@ export default function FarmerDashboard() {
 
             <button
               onClick={handleTrackToken}
-              className="group rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#2E7D32] hover:shadow-md"
+              className="group rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#2E7D32] hover:shadow-md cursor-pointer"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E8F5E9]">
                 <Ticket className="h-6 w-6 text-[#2E7D32]" />
@@ -1164,6 +1163,38 @@ export default function FarmerDashboard() {
 
               <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#2E7D32]">
                 {t("dashboard.trackNow")}
+
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+              </div>
+            </button>
+
+            {/* PROCUREMENT RECORDS / HISTORY CARD */}
+
+            <button
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="group rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#2E7D32] hover:shadow-md cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E8F5E9]">
+                  <History className="h-6 w-6 text-[#2E7D32]" />
+                </div>
+                {pastRecords.length > 0 && (
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                    {pastRecords.length} {t("dashboard.historyIconBtn")}
+                  </span>
+                )}
+              </div>
+
+              <h3 className="mt-4 font-bold text-gray-900">
+                {t("dashboard.historyActionTitle")}
+              </h3>
+
+              <p className="mt-1 text-sm leading-5 text-gray-600">
+                {t("dashboard.historyActionDesc")}
+              </p>
+
+              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[#2E7D32]">
+                <span>{t("dashboard.historyIconBtn")}</span>
 
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
               </div>
@@ -1561,6 +1592,290 @@ export default function FarmerDashboard() {
           </div>
         )}
       </section>
+
+      {/* ====================================================
+          MODAL: PREVIOUS COMPLETED & CANCELLED PROCUREMENTS
+      ==================================================== */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
+          {/* Backdrop Dismiss */}
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsHistoryModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="relative z-10 w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl bg-white shadow-2xl border border-gray-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#0F3817] bg-gradient-to-r from-[#13491E] via-[#1B5E2B] to-[#13491E] px-5 sm:px-7 py-4 text-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-200">
+                  <History className="h-5 w-5 text-emerald-200" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      {t("dashboard.historyModalTitle")}
+                    </h3>
+                    <span className="rounded-full bg-emerald-400/30 border border-emerald-300/40 px-2.5 py-0.5 text-xs font-black text-emerald-100">
+                      {pastRecords.length}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-emerald-200 max-w-xl">
+                    {t("dashboard.historyModalSubtitle")}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="rounded-xl p-2 text-white/80 hover:bg-white/20 hover:text-white transition cursor-pointer"
+                title={t("common.close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Filter Tabs & Search Bar */}
+            <div className="border-b border-gray-200 bg-[#F9FBF9] px-5 sm:px-7 py-3.5 space-y-3 shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Tabs */}
+                <div className="flex items-center gap-1.5 p-1 bg-gray-200/70 rounded-xl w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryTab("ALL")}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                      historyTab === "ALL"
+                        ? "bg-white text-gray-900 shadow-xs"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    {t("dashboard.allRecordsTab")} ({pastRecords.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryTab("COMPLETED")}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                      historyTab === "COMPLETED"
+                        ? "bg-[#2E7D32] text-white shadow-xs"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    {t("dashboard.completedRecordsTab")} ({completedCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryTab("CANCELLED")}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                      historyTab === "CANCELLED"
+                        ? "bg-red-600 text-white shadow-xs"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    {t("dashboard.cancelledRecordsTab")} ({cancelledCount})
+                  </button>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative flex-1 sm:max-w-xs">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    placeholder={t("dashboard.searchHistoryPlaceholder")}
+                    className="w-full rounded-xl border border-gray-300 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-500 font-medium">
+                <span>
+                  {t("dashboard.totalRecordsCount", { count: String(filteredPastRecords.length) })}
+                </span>
+                <span className="text-[11px] text-gray-400">
+                  {farmer?.name} • +91 {farmer?.mobile}
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Body / Records List */}
+            <div className="overflow-y-auto p-5 sm:p-7 space-y-4">
+              {filteredPastRecords.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
+                    <RotateCcw className="h-6 w-6" />
+                  </div>
+                  <h4 className="mt-4 text-base font-bold text-gray-900">
+                    {t("dashboard.noHistoryFound")}
+                  </h4>
+                  <p className="mt-1 text-xs text-gray-500 max-w-md mx-auto">
+                    {historySearchQuery
+                      ? "No records matched your search query. Try searching with a different term."
+                      : t("dashboard.noHistoryDesc")}
+                  </p>
+                  <div className="mt-5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsHistoryModalOpen(false);
+                        handleBookSlot();
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#2E7D32] hover:bg-[#256428] px-4 py-2 text-xs font-bold text-white transition shadow-xs cursor-pointer"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      <span>{t("dashboard.bookSlotBtn")}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                filteredPastRecords.map((item, idx) => {
+                  const itemToken = String(item.token || item.tokenNumber || item.bookingId || "---").replace(/^#/, "");
+                  const isItemCompleted = isCompletedBooking(item);
+                  const isItemCancelled = isCancelledBooking(item);
+                  const itemQty = item.actualQuantity ?? item.quantity ?? 0;
+                  const itemGrade = item.cropGrade || "Grade A";
+                  const itemRate = item.mspRate || (item.crop ? getCropMspData(item.crop).standardMsp : 2425);
+                  const itemPayout = item.totalPayout || Math.round(itemQty * itemRate);
+
+                  return (
+                    <div
+                      key={item.bookingId || item.token || idx}
+                      className={`relative overflow-hidden rounded-2xl border p-5 transition shadow-xs ${
+                        isItemCompleted
+                          ? "border-gray-200 bg-white hover:border-emerald-500 hover:shadow-md"
+                          : "border-red-200 bg-red-50/40 hover:border-red-400 hover:shadow-md"
+                      }`}
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        {/* Left Details */}
+                        <div className="space-y-2.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-lg px-2.5 py-1 text-xs font-mono font-black text-white ${
+                                isItemCompleted ? "bg-emerald-800" : "bg-red-800"
+                              }`}
+                            >
+                              Token #{itemToken}
+                            </span>
+
+                            {isItemCompleted ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                Completed & Cleared
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800">
+                                <XCircle className="h-3.5 w-3.5 text-red-600" />
+                                Cancelled
+                              </span>
+                            )}
+
+                            <span className="text-xs text-gray-300">•</span>
+
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-600">
+                              <CalendarDays className="h-3.5 w-3.5 text-[#2E7D32]" />
+                              <Clock3 className="h-3.5 w-3.5 text-[#2E7D32]" />
+                              <span>{isItemCompleted ? t("dashboard.completedOn") : t("dashboard.cancelledOn")}:</span>
+                              <strong className="text-gray-900 ml-0.5">
+                                {isItemCompleted ? formatCompletedDateTime(item) : formatCancelledDateTime(item)}
+                              </strong>
+                            </span>
+                          </div>
+
+                          {/* Crop & Quantity */}
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span className="font-extrabold text-gray-900">
+                              🌾 {item.crops && item.crops.length > 1
+                                ? item.crops.map((c) => `${c.crop} (${c.actualQuantity ?? c.quantity}q)`).join(", ")
+                                : `${item.crop || "Produce"} • ${itemQty} Quintals`}
+                            </span>
+                            {isItemCompleted && (
+                              <>
+                                <span className="rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                                  {itemGrade}
+                                </span>
+                                <span className="text-xs text-gray-600">
+                                  MSP: <strong>₹{itemRate}/qtl</strong>
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Location / Centre */}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                            <span>📍 Centre: <strong className="text-gray-800">{item.centre || "Mandi Yard"}</strong></span>
+                            {item.bookingId && (
+                              <span className="font-mono text-gray-400">ID: {item.bookingId}</span>
+                            )}
+                          </div>
+
+                          {/* Cancellation Details if Cancelled */}
+                          {isItemCancelled && (
+                            <div className="mt-2 rounded-xl border border-red-200 bg-white p-3 text-xs space-y-1">
+                              <p className="font-bold text-red-700">
+                                {t("dashboard.cancellationReason")}: <span className="font-semibold text-gray-800">{item.cancellationReason || "Slot cancelled"}</span>
+                              </p>
+                              {item.cancelledBy && (
+                                <p className="text-gray-500 text-[11px]">
+                                  {t("dashboard.cancelledBy")}: <strong className="text-gray-700">{item.cancelledBy}</strong>
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right Payout / Actions */}
+                        <div className="flex sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-3 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-gray-100">
+                          {isItemCompleted ? (
+                            <>
+                              <div className="text-left lg:text-right">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                                  Settled Payout (DBT)
+                                </p>
+                                <p className="text-xl font-black text-[#2E7D32]">
+                                  {formatINR(itemPayout)}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => openReceiptModal(item)}
+                                className="flex items-center gap-1.5 rounded-xl border border-[#2E7D32] bg-emerald-50 hover:bg-[#2E7D32] hover:text-white px-3.5 py-2 text-xs font-bold text-[#2E7D32] transition active:scale-95 cursor-pointer shadow-2xs"
+                              >
+                                <ReceiptText className="h-3.5 w-3.5" />
+                                <span>{t("dashboard.viewJSlip")}</span>
+                              </button>
+                            </>
+                          ) : (
+                            <div className="flex sm:flex-row lg:flex-col items-start sm:items-center lg:items-end gap-2 w-full sm:w-auto">
+                              <span className="rounded-md bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+                                Cancelled Slot
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsHistoryModalOpen(false);
+                                  handleBookSlot();
+                                }}
+                                className="flex items-center gap-1.5 rounded-xl bg-[#2E7D32] hover:bg-[#256428] px-3.5 py-2 text-xs font-bold text-white transition active:scale-95 cursor-pointer shadow-2xs"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                <span>{t("dashboard.bookNewSlotBtn")}</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <FarmerCancellationModal
         isOpen={isCancelModalOpen}

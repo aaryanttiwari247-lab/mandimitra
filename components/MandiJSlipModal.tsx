@@ -208,7 +208,7 @@ export function MandiJSlipModal({
   };
 
   return (
-    <div className="receipt-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static">
+    <div className="receipt-modal-backdrop fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static">
       <style jsx global>{`
         @media print {
           body * {
