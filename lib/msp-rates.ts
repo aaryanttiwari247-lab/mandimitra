@@ -1126,31 +1126,38 @@ export function normalizeCropName(cropStr?: string): string {
   if (!cropStr) return "wheat";
   const clean = cropStr.toLowerCase().trim();
 
+  // 1. Direct ID or Name Match
+  const direct = CROP_MSP_RATES.find(
+    (c) => c.id === clean || c.name.toLowerCase() === clean
+  );
+  if (direct) return direct.id;
+
+  // 2. Specific multi-word phrases MUST come before single substrings:
   // Cereals
+  if (clean.includes("ragi") || clean.includes("finger millet") || clean.includes("mandua") || clean.includes("रागी") || clean.includes("मड़ुआ") || clean.includes("রাগি")) return "ragi";
+  if (clean.includes("bajra") || clean.includes("pearl millet") || clean.includes("बाजरा")) return "bajra";
   if (clean.includes("wheat") || clean.includes("गेहूं") || clean.includes("গম")) return "wheat";
   if (clean.includes("paddy") || clean.includes("rice") || clean.includes("धान") || clean.includes("चावल") || clean.includes("চাল")) return "paddy";
   if (clean.includes("barley") || clean.includes("jau") || clean.includes("जौ") || clean.includes("যব") || clean.includes("বার্লি")) return "barley";
   if (clean.includes("jowar") || clean.includes("sorghum") || clean.includes("ज्वार") || clean.includes("জোয়ার")) return "jowar";
-  if (clean.includes("bajra") || clean.includes("millet") || clean.includes("बाजरा")) return "bajra";
   if (clean.includes("maize") || clean.includes("makka") || clean.includes("मक्का") || clean.includes("corn") || clean.includes("ভুট্টা")) return "maize";
-  if (clean.includes("ragi") || clean.includes("finger millet") || clean.includes("mandua") || clean.includes("रागी") || clean.includes("मड़ुआ") || clean.includes("রাগি")) return "ragi";
 
-  // Pulses
-  if (clean.includes("gram") || clean.includes("chana") || clean.includes("चना") || clean.includes("ছোলা")) return "gram";
-  if (clean.includes("arhar") || clean.includes("tur") || clean.includes("toor") || clean.includes("pigeon pea") || clean.includes("अरहर") || clean.includes("तुअर") || clean.includes("অড়হর")) return "arhar";
+  // Pulses (Moong & Urad before general "gram")
   if (clean.includes("moong") || clean.includes("mung") || clean.includes("green gram") || clean.includes("मूंग") || clean.includes("মুগ")) return "moong";
   if (clean.includes("urad") || clean.includes("black gram") || clean.includes("उड़द") || clean.includes("কলাই") || clean.includes("উড়দ")) return "urad";
+  if (clean.includes("gram") || clean.includes("chana") || clean.includes("चना") || clean.includes("ছোলা")) return "gram";
+  if (clean.includes("arhar") || clean.includes("tur") || clean.includes("toor") || clean.includes("pigeon pea") || clean.includes("अरहर") || clean.includes("तुअर") || clean.includes("অড়হর")) return "arhar";
   if (clean.includes("lentil") || clean.includes("masur") || clean.includes("masoor") || clean.includes("मसूर") || clean.includes("মসুর")) return "lentil";
 
-  // Oilseeds
-  if (clean.includes("groundnut") || clean.includes("peanut") || clean.includes("moongfali") || clean.includes("मूंगफली") || clean.includes("चिनेবাদাম")) return "groundnut";
+  // Oilseeds (Nigerseed/Ramtil before "til"/sesamum)
+  if (clean.includes("nigerseed") || clean.includes("niger") || clean.includes("ramtil") || clean.includes("रामतिल") || clean.includes("রামতিল")) return "nigerseed";
+  if (clean.includes("sesamum") || clean.includes("sesame") || clean.includes("til") || clean.includes("तिल") || clean.includes("তিল")) return "sesamum";
+  if (clean.includes("groundnut") || clean.includes("peanut") || clean.includes("moongfali") || clean.includes("मूंगफली")) return "groundnut";
   if (clean.includes("mustard") || clean.includes("sarson") || clean.includes("rai") || clean.includes("rapeseed") || clean.includes("सरसों") || clean.includes("राई") || clean.includes("সরিষা")) return "mustard";
   if (clean.includes("toria") || clean.includes("lahi") || clean.includes("तोरिया") || clean.includes("लाही") || clean.includes("তোরিয়া")) return "toria";
   if (clean.includes("soybean") || clean.includes("soya") || clean.includes("सोयाबीन") || clean.includes("সয়াবিন")) return "soybean";
   if (clean.includes("sunflower") || clean.includes("surajmukhi") || clean.includes("सूरजमुखी") || clean.includes("সূর্যমুখী")) return "sunflower";
-  if (clean.includes("sesamum") || clean.includes("sesame") || clean.includes("til") || clean.includes("तिल") || clean.includes("তিল")) return "sesamum";
   if (clean.includes("safflower") || clean.includes("kusum") || clean.includes("kardi") || clean.includes("कुसुम") || clean.includes("কুসুম")) return "safflower";
-  if (clean.includes("nigerseed") || clean.includes("niger") || clean.includes("ramtil") || clean.includes("रामतिल") || clean.includes("রামতিল")) return "nigerseed";
 
   // Commercials
   if (clean.includes("cotton") || clean.includes("kapas") || clean.includes("कपास") || clean.includes("তুলা")) return "cotton";

@@ -1083,7 +1083,7 @@ export default function BookProcurementSlot() {
                   </h2>
                   <p className="mt-1 text-sm text-gray-500">
                     {t("booking.step2Subtitle")}
- v                 </p>
+                  </p>
                 </div>
                 <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
                   {t("booking.locationsAvailable", { count: LOCATIONS_DATA.length })}
@@ -1115,7 +1115,9 @@ export default function BookProcurementSlot() {
               <div className="mt-6">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    {t("booking.allottedCentresFor", { location: selectedLocation, count: processedCentres.length })}
+                    {hasLocalCompatibleCentres
+                      ? t("booking.allottedCentresFor", { location: selectedLocation, count: processedCentres.length })
+                      : t("booking.nearestCrossDistrictCentresFor", { location: selectedLocation, count: processedCentres.length }) || `Nearest Regional Centres (${processedCentres.length})`}
                   </label>
                   <span className="text-xs text-gray-500">
                     {t("booking.showingTerminals")}
@@ -1197,7 +1199,7 @@ export default function BookProcurementSlot() {
                     <span>{t("booking.filterCompatibleCentres") || "Only show centres accepting my selected crop(s)"}</span>
                   </label>
                   <span className="text-[11px] font-bold text-[#2E7D32]">
-                    {processedCentres.length} {t("booking.centresAllotted", { count: processedCentres.length })}
+                    {t("booking.centresAllotted", { count: processedCentres.length })}
                   </span>
                 </div>
 
