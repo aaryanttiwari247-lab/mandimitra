@@ -879,7 +879,7 @@ export default function BookProcurementSlot() {
                   </h2>
                   <p className="mt-1 text-sm text-gray-500">
                     {t("booking.step2Subtitle")}
-                  </p>
+ v                 </p>
                 </div>
                 <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
                   {t("booking.locationsAvailable", { count: LOCATIONS_DATA.length })}

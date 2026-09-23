@@ -976,7 +976,7 @@ export default function OfficialDashboardPage() {
               {/* LOCATION SELECTOR */}
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-600">
-                  Location / District ({LOCATIONS_DATA.length})
+                  {t("official.locationDistrict", { count: String(LOCATIONS_DATA.length) })}
                 </label>
                 <div className="relative mt-1.5">
                   <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2E7D32]" />
@@ -985,7 +985,7 @@ export default function OfficialDashboardPage() {
                     onChange={(e) => setSelectedLocation(e.target.value)}
                     className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pl-10 pr-8 text-sm font-semibold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                   >
-                    <option value="ALL">All Locations (15 Districts)</option>
+                    <option value="ALL">{t("official.allLocations", { count: String(LOCATIONS_DATA.length) })}</option>
                     {LOCATIONS_DATA.map((loc) => (
                       <option key={loc.id} value={loc.name}>
                         {loc.name} ({loc.state}) — {loc.centresCount} Centres
@@ -998,7 +998,7 @@ export default function OfficialDashboardPage() {
               {/* ALLOTTED CENTRE SELECTOR */}
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-600">
-                  Allotted Centre ({availableCentresForLocation.length})
+                  {t("official.allottedCentreFilter", { count: String(availableCentresForLocation.length) })}
                 </label>
                 <div className="relative mt-1.5">
                   <Building2 className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2E7D32]" />
@@ -1008,7 +1008,7 @@ export default function OfficialDashboardPage() {
                     className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pl-10 pr-8 text-sm font-semibold text-gray-900 outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                   >
                     <option value="ALL">
-                      All Centres ({availableCentresForLocation.length})
+                      {t("official.allCentresOption", { count: String(availableCentresForLocation.length) })}
                     </option>
                     {availableCentresForLocation.map((c) => (
                       <option key={c.id} value={c.name}>
@@ -1043,13 +1043,13 @@ export default function OfficialDashboardPage() {
                 Filter Status:
               </span>
               {[
-                { id: "ALL", label: "All" },
-                { id: "WAITING", label: "Waiting" },
-                { id: "CALLED", label: "Called" },
-                { id: "VERIFIED", label: "Verified" },
-                { id: "PROCESSING", label: "Processing" },
-                { id: "COMPLETED", label: "Completed" },
-                { id: "CANCELLED", label: "Cancelled" },
+                { id: "ALL", label: t("history.filterAll") },
+                { id: "WAITING", label: t("tracker.statusWaiting") },
+                { id: "CALLED", label: t("tracker.statusCalled") },
+                { id: "VERIFIED", label: t("tracker.statusVerified") },
+                { id: "PROCESSING", label: t("tracker.statusProcessing") },
+                { id: "COMPLETED", label: t("tracker.statusCompleted") },
+                { id: "CANCELLED", label: t("tracker.statusCancelled") },
               ].map((pill) => {
                 const count =
                   pill.id === "ALL"
@@ -1174,7 +1174,7 @@ export default function OfficialDashboardPage() {
                         {group.farmers.length === 0 ? (
                           <div className="p-8 text-center text-sm text-gray-500">
                             <Users className="mx-auto h-8 w-8 text-gray-300" />
-                            <p className="mt-2 font-medium">No farmers currently registered for this centre matching active filters.</p>
+                            <p className="mt-2 font-medium">{t("official.noFarmersMatchingFilter")}</p>
                           </div>
                         ) : (
                           group.farmers.map((booking, index) => {

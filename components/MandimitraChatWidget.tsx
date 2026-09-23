@@ -385,6 +385,15 @@ export function MandimitraChatWidget() {
           },
         ];
       }
+      if (prev.length === 1 && prev[0].id === "greeting-1") {
+        return [
+          {
+            ...prev[0],
+            content: greetingText,
+            menuOptions: getMainMenuOptions(chatLanguage),
+          },
+        ];
+      }
       return prev;
     });
   }, [chatLanguage]);
@@ -694,7 +703,7 @@ export function MandimitraChatWidget() {
 
           <div className="flex items-center gap-1.5 font-bold">
             <BrandLogo size="xs" rounded="full" className="ring-1 ring-white/40" />
-            <span>MandiHelp</span>
+            <span>{t("common.voiceHelp")}</span>
           </div>
 
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">

@@ -1184,17 +1184,17 @@ function ProcurementContent() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-black uppercase tracking-wider text-[#13491E]">
-                        Administrative Filing Flow
+                        {t("official.adminFilingFlow")}
                       </span>
                       <span className="text-xs font-semibold text-gray-500">
-                        3 Mandi Desks
+                        {t("official.threeMandiDesks")}
                       </span>
                     </div>
                     <h2 className="mt-1 text-xl font-black text-gray-900">
-                      Procurement Filing Progress
+                      {t("official.adminFilingProgress")}
                     </h2>
                     <p className="mt-0.5 text-xs sm:text-sm text-gray-600">
-                      Live movement of this farmer&apos;s procurement file across official mandi desks.
+                      {t("official.adminFilingDesc")}
                     </p>
                   </div>
 
@@ -1202,16 +1202,16 @@ function ProcurementContent() {
                   <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 border border-gray-100 shrink-0">
                     <div className="text-right">
                       <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                        File Status
+                        {t("official.fileStatus")}
                       </div>
                       <div className="text-xs font-black text-[#13491E]">
                         {currentStatus === "COMPLETED"
-                          ? "Stage 3 of 3 (Settled 100%)"
+                          ? t("official.stage3Settled")
                           : currentStatus === "PROCESSING"
-                          ? "Stage 2 of 3 (Grading & Weighment)"
+                          ? t("official.stage2Grading")
                           : currentStatus === "VERIFIED"
-                          ? "Stage 1 of 3 (Verified)"
-                          : "Awaiting Verification"}
+                          ? t("official.stage1Verified")
+                          : t("official.awaitingVerification")}
                       </div>
                     </div>
                     <div className="h-2 w-28 sm:w-36 rounded-full bg-gray-200 overflow-hidden">
@@ -1252,7 +1252,7 @@ function ProcurementContent() {
                                   : "bg-gray-100 text-gray-500 border-gray-200"
                               }`}
                             >
-                              <span>Desk #{stage.stepNumber}</span>
+                              <span>{t("tracker.deskNumber", { num: stage.stepNumber })}</span>
                             </div>
                           </div>
 
@@ -1294,10 +1294,10 @@ function ProcurementContent() {
                                   }`}
                                 >
                                   {stage.completed
-                                    ? "Desk Cleared"
+                                    ? t("official.deskCleared")
                                     : stage.active
-                                    ? "Active Action"
-                                    : "Queued"}
+                                    ? t("official.activeAction")
+                                    : t("official.pending")}
                                 </span>
                               </div>
 
@@ -1320,20 +1320,20 @@ function ProcurementContent() {
 
                             {/* BOTTOM STAGE DETAILS */}
                             <div className="mt-3 pt-2 border-t border-dashed border-gray-200 text-[9px] sm:text-[10px] font-bold text-gray-400 flex items-center justify-between">
-                              <span>Office File #{stage.stepNumber}</span>
+                              <span>{t("official.officeFileNumber", { num: stage.stepNumber })}</span>
                               {stage.completed && (
                                 <span className="text-[#13491E] font-black flex items-center gap-1">
-                                  Verified & Passed ✓
+                                  {t("official.verifiedPassed")}
                                 </span>
                               )}
                               {stage.active && (
                                 <span className="text-[#13491E] font-black flex items-center gap-1">
                                   <span className="h-1.5 w-1.5 rounded-full bg-[#13491E] animate-ping" />
-                                  Processing Now
+                                  {t("official.processingNow")}
                                 </span>
                               )}
                               {!stage.completed && !stage.active && (
-                                <span className="text-gray-400">Pending</span>
+                                <span className="text-gray-400">{t("official.pending")}</span>
                               )}
                             </div>
                           </div>
@@ -1450,7 +1450,7 @@ function ProcurementContent() {
                   </div>
                   {(!booking.crops || booking.crops.length <= 1) && (
                     <div className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-xs">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Procured Crop</p>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("official.procuredCrop")}</p>
                       <p className="text-base font-extrabold text-[#2E7D32]">{cropMspInfo.name} ({cropMspInfo.nameHi})</p>
                     </div>
                   )}
@@ -1470,12 +1470,12 @@ function ProcurementContent() {
                                 🌾 {cropItem.crop} ({cropItem.mspInfo.nameHi})
                               </h3>
                               <p className="text-xs text-gray-500">
-                                Declared Booking Quantity: {booking.crops?.[idx]?.quantity || 0} Quintals
+                                {t("official.declaredBookingQty", { qty: String(booking.crops?.[idx]?.quantity || 0) })}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-bold uppercase text-gray-400">Crop Subtotal</p>
+                            <p className="text-xs font-bold uppercase text-gray-400">{t("official.cropSubtotal")}</p>
                             <p className="text-xl font-black text-[#2E7D32]">{formatINR(cropItem.calc.totalPayout)}</p>
                           </div>
                         </div>
@@ -1483,7 +1483,7 @@ function ProcurementContent() {
                         {/* Grade selection buttons for this crop */}
                         <div className="mt-4">
                           <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                            Select Quality Grade for {cropItem.crop}:
+                            {t("official.selectQualityGradeFor", { crop: cropItem.crop })}
                           </label>
                           <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
                             {(["Grade A", "Grade B", "Grade C", "Grade D"] as CropGrade[]).map((gradeKey) => {
@@ -1781,11 +1781,11 @@ function ProcurementContent() {
                     </div>
                     <div className="rounded-2xl border-2 border-[#2E7D32] bg-[#E8F5E9] p-4 flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Weighed Produce</p>
-                        <p className="text-xl font-bold text-gray-900">{booking.actualQuantity || booking.quantity || 0} Quintals</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("official.totalWeighedProduce")}</p>
+                        <p className="text-xl font-bold text-gray-900">{booking.actualQuantity || booking.quantity || 0} {t("common.quintals")}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-bold uppercase tracking-wider text-[#2E7D32]">Combined DBT Payout</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-[#2E7D32]">{t("official.combinedDbtPayout")}</p>
                         <p className="text-2xl font-black text-[#2E7D32]">{formatINR(booking.totalPayout || multiCropTotalPayout)}</p>
                       </div>
                     </div>
@@ -1793,7 +1793,7 @@ function ProcurementContent() {
                 ) : (
                   <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 rounded-2xl bg-white p-5 border border-gray-200">
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase">Quality Grade</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase">{t("tracker.gradeLabel")}</p>
                       <p className="mt-1 text-base font-bold text-gray-900">
                         {booking.cropGrade || selectedGrade}
                       </p>
@@ -1801,27 +1801,27 @@ function ProcurementContent() {
                     </div>
 
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase">MSP Rate Applied</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase">{t("tracker.mspRateLabel")}</p>
                       <p className="mt-1 text-base font-extrabold text-[#2E7D32]">
                         ₹{(booking.mspRate || livePayoutCalc.ratePerQuintal).toLocaleString("en-IN")} <span className="text-xs font-normal text-gray-500">/ quintal</span>
                       </p>
-                      <p className="text-xs text-gray-500">Official Government Rate</p>
+                      <p className="text-xs text-gray-500">{t("official.officialGovtRate")}</p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase">Weighed Quantity</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase">{t("official.weighedQuantity")}</p>
                       <p className="mt-1 text-base font-bold text-gray-900">
-                        {booking.actualQuantity || booking.quantity || 0} Quintals
+                        {booking.actualQuantity || booking.quantity || 0} {t("common.quintals")}
                       </p>
-                      <p className="text-xs text-gray-500">Weighbridge Certified</p>
+                      <p className="text-xs text-gray-500">{t("official.weighbridgeCertified")}</p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase">Calculated Farmer Payout</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase">{t("official.calculatedFarmerPayout")}</p>
                       <p className="mt-1 text-xl font-black text-[#2E7D32]">
                         {formatINR(booking.totalPayout || livePayoutCalc.totalPayout)}
                       </p>
-                      <p className="text-xs text-[#2E7D32] font-semibold">Direct Bank Transfer (DBT)</p>
+                      <p className="text-xs text-[#2E7D32] font-semibold">{t("tracker.dbtChannel")}</p>
                     </div>
                   </div>
                 )}
@@ -1836,8 +1836,8 @@ function ProcurementContent() {
                   >
                     <CheckCircle2 className="h-5 w-5" />
                     {actionLoading
-                      ? "Completing..."
-                      : "Complete Procurement & Generate Settlement Slip"}
+                      ? t("official.completing")
+                      : t("official.completeProcurementBtn")}
                   </button>
 
                   <button

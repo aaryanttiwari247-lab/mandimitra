@@ -21,6 +21,7 @@ import { useLanguage } from "@/context/language-context";
 import { BrandLogo } from "@/components/BrandLogo";
 import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
 import { clearFarmerSession } from "@/lib/farmer-auth";
+import { getCropDisplayName, getCropMspData } from "@/lib/msp-rates";
 
 type Booking = {
   bookingId?: string;
@@ -72,7 +73,7 @@ type Booking = {
 
 export default function BookingConfirmationPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [booking, setBooking] =
     useState<Booking | null>(null);
@@ -145,7 +146,7 @@ export default function BookingConfirmationPage() {
         );
 
       return date.toLocaleDateString(
-        "en-IN",
+        language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN",
         {
           day: "numeric",
           month: "long",
@@ -530,7 +531,7 @@ export default function BookingConfirmationPage() {
                     <div className="space-y-2">
                       {booking.crops.map((c, idx) => (
                         <div key={idx} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
-                          <span className="font-bold text-gray-800">{c.crop}</span>
+                          <span className="font-bold text-gray-800">{getCropDisplayName(getCropMspData(c.crop), language)}</span>
                           <span className="font-extrabold text-[#2E7D32]">{c.quantity} {t("common.quintals")}</span>
                         </div>
                       ))}
@@ -543,7 +544,7 @@ export default function BookingConfirmationPage() {
                     </span>
 
                     <span className="font-semibold text-gray-900">
-                      {booking.crop ?? "—"}
+                      {booking.crop ? getCropDisplayName(getCropMspData(booking.crop), language) : "—"}
                     </span>
                   </div>
                 )}
@@ -565,7 +566,7 @@ export default function BookingConfirmationPage() {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-4">
 
                   <span className="text-sm text-gray-500">
-                    Procurement Date
+                    {t("common.procurementDate")}
                   </span>
 
                   <span className="text-right font-semibold text-gray-900">
@@ -579,7 +580,7 @@ export default function BookingConfirmationPage() {
                 <div className="flex items-center justify-between">
 
                   <span className="text-sm text-gray-500">
-                    Booking ID
+                    {t("common.bookingIdLabel")}
                   </span>
 
                   <span className="max-w-[180px] truncate text-right text-sm font-semibold text-gray-900">
@@ -614,7 +615,7 @@ export default function BookingConfirmationPage() {
                   </h2>
 
                   <p className="text-sm text-gray-500">
-                    Where your produce will be procured
+                    {t("confirmation.whereProcured")}
                   </p>
 
                 </div>
@@ -647,7 +648,7 @@ export default function BookingConfirmationPage() {
                   <div>
 
                     <p className="text-xs font-medium text-gray-500">
-                      APPOINTMENT SLOT
+                      {t("confirmation.appointmentSlot")}
                     </p>
 
                     <p className="mt-1 font-bold text-gray-900">
@@ -721,37 +722,27 @@ export default function BookingConfirmationPage() {
           <div className="mt-6 rounded-2xl border border-[#FDE7C2] bg-[#FFF9EF] p-5">
 
             <h3 className="font-bold text-[#92400E]">
-              Important
+              {t("confirmation.important")}
             </h3>
 
             <ul className="mt-3 space-y-2 text-sm leading-6 text-[#A16207]">
 
               <li>
-                • Keep your Smart Token{" "}
-                <strong>
-                  {token}
-                </strong>{" "}
-                with you.
+                • {t("confirmation.ruleKeepToken", { token })}
               </li>
 
               <li>
-                • Reach the procurement centre
-                around{" "}
-                <strong>
-                  {booking.arrivalTime ??
-                    "10 minutes before your slot"}
-                </strong>
-                .
+                • {t("confirmation.ruleReachCentre", {
+                  time: booking.arrivalTime || (language === "hi" ? "स्लॉट से 10 मिनट पहले" : language === "bn" ? "স্লটের ১০ মিনিট আগে" : "10 minutes before your slot"),
+                })}
               </li>
 
               <li>
-                • Carry the required documents
-                and your produce.
+                • {t("confirmation.ruleCarryDocs")}
               </li>
 
               <li>
-                • You can track your queue position
-                from the Farmer Dashboard.
+                • {t("confirmation.ruleTrackQueue")}
               </li>
 
             </ul>
@@ -802,7 +793,7 @@ export default function BookingConfirmationPage() {
               className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#2E7D32] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#256428]"
             >
 
-              Track Token
+              {t("confirmation.trackTokenAction")}
 
               <ArrowRight className="h-4 w-4" />
 

@@ -114,7 +114,7 @@ export default function FarmerLogin() {
   // Verify OTP
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) {
-      setMessage("Please enter the 6-digit OTP.");
+      setMessage(t("auth.enter6DigitOtp") || "Please enter the 6-digit OTP.");
       return;
     }
 

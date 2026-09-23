@@ -26,6 +26,7 @@ import {
   getFarmerSession,
   clearFarmerSession,
 } from "@/lib/farmer-auth";
+import { getCropDisplayName, getCropMspData } from "@/lib/msp-rates";
 
 type Booking = {
   bookingId?: string;
@@ -71,7 +72,7 @@ type Booking = {
 
 export default function FarmerHistoryPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [history, setHistory] = useState<Booking[]>([]);
@@ -261,7 +262,7 @@ export default function FarmerHistoryPage() {
     dateString?: string
   ) => {
     if (!dateString) {
-      return "Date not available";
+      return t("common.notAvailable");
     }
 
     const date = new Date(
@@ -273,7 +274,7 @@ export default function FarmerHistoryPage() {
     }
 
     return date.toLocaleDateString(
-      "en-IN",
+      language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN",
       {
         day: "numeric",
         month: "long",
@@ -301,6 +302,27 @@ export default function FarmerHistoryPage() {
     }
 
     return rawStatus;
+  };
+
+  const getStatusLabel = (s: string) => {
+    switch (s) {
+      case "COMPLETED":
+        return t("tracker.statusCompleted");
+      case "PROCESSING":
+        return t("tracker.statusProcessing");
+      case "VERIFIED":
+        return t("tracker.statusVerified");
+      case "CALLED":
+        return t("tracker.statusCalled");
+      case "WAITING":
+      case "TOKEN GENERATED":
+      case "BOOKED":
+        return t("tracker.statusWaiting");
+      case "CANCELLED":
+        return t("tracker.statusCancelled");
+      default:
+        return s;
+    }
   };
 
   // ============================================================
@@ -428,7 +450,7 @@ export default function FarmerHistoryPage() {
           </div>
 
           <p className="mt-4 text-sm font-medium text-gray-600">
-            Checking your account...
+            {t("common.checkingAccount")}
           </p>
 
         </div>
@@ -634,7 +656,7 @@ export default function FarmerHistoryPage() {
                                 status={status}
                               />
 
-                              {status}
+                              {getStatusLabel(status)}
 
                             </span>
 
@@ -682,7 +704,7 @@ export default function FarmerHistoryPage() {
 
                         <p className="mt-2 font-semibold text-gray-900">
                           {booking.centre ??
-                            "Centre not available"}
+                            t("common.notAvailable")}
                         </p>
 
                       </div>
@@ -701,8 +723,9 @@ export default function FarmerHistoryPage() {
                         </div>
 
                         <p className="mt-2 font-semibold text-gray-900">
-                          {booking.crop ??
-                            "Not available"}
+                          {booking.crop
+                            ? getCropDisplayName(getCropMspData(booking.crop), language)
+                            : t("common.notAvailable")}
                         </p>
 
                       </div>
@@ -748,7 +771,7 @@ export default function FarmerHistoryPage() {
 
                           {booking.fullTime ??
                             booking.time ??
-                            "Not available"}
+                            t("common.notAvailable")}
 
                         </p>
 

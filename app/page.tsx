@@ -33,11 +33,11 @@ export default function Home() {
                   {t("common.appName")}
                 </h1>
                 <span className="hidden md:inline-flex items-center rounded-full bg-emerald-800/80 px-2 py-0.5 text-[10px] font-bold text-emerald-200 border border-emerald-600/50">
-                  e-Procurement
+                  {t("home.eProcurement")}
                 </span>
               </div>
               <p className="text-[11px] font-semibold text-emerald-200/90">
-                {t("common.tagline")} • MSP Portal
+                {t("common.tagline")} • {t("home.mspPortalBadge")}
               </p>
             </div>
           </Link>
@@ -107,7 +107,7 @@ export default function Home() {
 
                 <div className="flex items-center gap-2">
                   <span className="hidden sm:inline-block rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-200">
-                    Smart Token
+                    {t("home.smartTokenBadge")}
                   </span>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 group-hover:bg-emerald-600 transition">
                     <ArrowRight className="h-4 w-4 text-[#2E7D32] group-hover:text-white transition group-hover:translate-x-0.5" />
@@ -130,7 +130,7 @@ export default function Home() {
                 <ArrowRight className="h-4 w-4" />
               </span>
               <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                1-Click Slot Booking
+                {t("home.slotBookingBadge")}
               </span>
             </div>
           </Link>
@@ -148,7 +148,7 @@ export default function Home() {
 
                 <div className="flex items-center gap-2">
                   <span className="hidden sm:inline-block rounded-full bg-[#EAF3EB] px-2.5 py-0.5 text-[11px] font-bold text-[#276B32] border border-[#D5E6D8]">
-                    APMC Official
+                    {t("home.apmcOfficialBadge")}
                   </span>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EB] group-hover:bg-[#2E7D32] transition">
                     <ArrowRight className="h-4 w-4 text-[#2E7D32] group-hover:text-white transition group-hover:translate-x-0.5" />
@@ -171,7 +171,7 @@ export default function Home() {
                 <ArrowRight className="h-4 w-4" />
               </span>
               <span className="text-[11px] font-semibold text-[#276B32] bg-[#EAF3EB] px-2 py-0.5 rounded-md">
-                Weighbridge & Queue
+                {t("home.weighbridgeQueueBadge")}
               </span>
             </div>
           </Link>

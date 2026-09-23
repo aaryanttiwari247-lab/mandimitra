@@ -44,6 +44,10 @@ import {
   CropGrade,
   CropCategory,
   formatINR,
+  getCropDisplayName,
+  getCategoryDisplayName,
+  getGradeLabel,
+  getGradeSpecs,
 } from "@/lib/msp-rates";
 import { FarmerCancellationModal } from "@/components/FarmerCancellationModal";
 import { openVoiceAssistant } from "@/components/MandimitraChatWidget";
@@ -107,7 +111,7 @@ type Booking = {
 
 export default function FarmerDashboard() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -928,16 +932,16 @@ export default function FarmerDashboard() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold uppercase tracking-wider text-[#2E7D32]">
-                            Crop Quality Grade Assigned
+                            {t("dashboard.cropQualityGradeAssigned")}
                           </span>
                           <span className="rounded-md bg-[#2E7D32] px-2 py-0.5 text-xs font-bold text-white">
                             {booking.cropGrade || "Grade A"}
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-gray-700">
-                          Applied MSP Rate:{" "}
+                          {t("dashboard.appliedMspRate")}{" "}
                           <strong>
-                            ₹{(booking.mspRate ?? 0).toLocaleString("en-IN")} / quintal
+                            ₹{(booking.mspRate ?? 0).toLocaleString(language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN")} / {t("common.quintals")}
                           </strong>
                         </p>
                       </div>
@@ -945,7 +949,7 @@ export default function FarmerDashboard() {
 
                     <div className="text-right">
                       <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                        {booking.status === "COMPLETED" ? "Final Settled Payout (DBT)" : "Estimated Direct Payout"}
+                        {booking.status === "COMPLETED" ? t("dashboard.finalSettledPayout") : t("dashboard.estimatedDirectPayout")}
                       </p>
                       <p className="mt-1 text-2xl font-black text-[#2E7D32]">
                         {formatINR(booking.totalPayout ?? 0)}
@@ -970,13 +974,13 @@ export default function FarmerDashboard() {
 
                     <div>
                       <p className="font-bold text-gray-900">
-                        {isCancelled ? "Procurement Cancelled" : `Booking ${getDisplayStatus().toLowerCase().replace(/^./, (letter) => letter.toUpperCase())}`}
+                        {isCancelled ? t("dashboard.procurementCancelledNotice") : `${t("dashboard.bookingPrefix")} ${getDisplayStatus().toLowerCase().replace(/^./, (letter) => letter.toUpperCase())}`}
                       </p>
 
                       <p className="text-sm text-gray-500">
                         {isCancelled
-                          ? `Reason: ${booking.cancellationReason || "Cancelled by official"}`
-                          : `Token #${booking.token || (booking.tokenNumber ? String(booking.tokenNumber) : "---")} is active.`}
+                          ? t("dashboard.cancelledReasonPrefix", { reason: booking.cancellationReason || t("dashboard.cancelledByOfficial") })
+                          : t("dashboard.tokenIsActive", { token: String(booking.token || (booking.tokenNumber ? String(booking.tokenNumber) : "---")) })}
                       </p>
                     </div>
                   </div>
@@ -1043,13 +1047,13 @@ export default function FarmerDashboard() {
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
                 <Award className="h-3.5 w-3.5" />
-                Government Support Prices (2025–26)
+                {t("dashboard.mspBoardBadge")}
               </div>
               <h2 className="mt-2 text-2xl font-bold text-gray-900">
-                Official MSP Rate Board (₹ / Quintal)
+                {t("dashboard.mspBoardTitle")}
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                Government Minimum Support Prices categorized by quality grades (<strong>Grade A, Grade B, Grade C, Grade D</strong>). When you arrive at the mandi, the procurement official selects the crop grade after moisture checks to calculate your total payout.
+                {t("dashboard.mspBoardDesc")}
               </p>
             </div>
 
@@ -1065,7 +1069,7 @@ export default function FarmerDashboard() {
                       : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  {cat === "All" ? "All Crops" : `${cat}s`}
+                  {getCategoryDisplayName(cat, language)}
                 </button>
               ))}
             </div>
@@ -1079,14 +1083,14 @@ export default function FarmerDashboard() {
                 type="text"
                 value={mspSearch}
                 onChange={(e) => setMspSearch(e.target.value)}
-                placeholder="Search crop (e.g. Wheat, Mustard)..."
+                placeholder={t("dashboard.searchCropPlaceholder")}
                 className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-3 text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#2E7D32] focus:outline-none focus:ring-1 focus:ring-[#2E7D32]"
               />
             </div>
 
             <div className="flex items-center gap-1.5 self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1 shrink-0">
-                Grade Filter:
+                {t("dashboard.gradeFilterLabel")}
               </span>
               {(["ALL", "Grade A", "Grade B", "Grade C", "Grade D"] as const).map((tab) => (
                 <button
@@ -1098,7 +1102,7 @@ export default function FarmerDashboard() {
                       : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  {tab === "ALL" ? "All Grades (A, B, C, D)" : tab}
+                  {tab === "ALL" ? t("dashboard.allGradesTab") : tab}
                 </button>
               ))}
             </div>
@@ -1124,16 +1128,16 @@ export default function FarmerDashboard() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-bold text-gray-900">{crop.name}</h3>
-                          <span className="text-xs font-semibold text-gray-500">({crop.nameHi})</span>
+                          <h3 className="text-lg font-bold text-gray-900">{getCropDisplayName(crop, language)}</h3>
+                          <span className="text-xs font-semibold text-gray-500">({language === "en" ? crop.nameHi : crop.name})</span>
                         </div>
                         <span className="inline-block text-[11px] font-semibold text-[#2E7D32]">
-                          {crop.category} • Base Standard MSP: ₹{crop.standardMsp.toLocaleString("en-IN")} / quintal
+                          {getCategoryDisplayName(crop.category, language)} • {t("dashboard.baseStandardMsp")}: ₹{crop.standardMsp.toLocaleString(language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN")} / {t("common.quintals")}
                         </span>
                       </div>
                     </div>
                     <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-600 shrink-0">
-                      ₹ / quintal
+                      {t("common.perQuintal")}
                     </span>
                   </div>
 
@@ -1162,15 +1166,15 @@ export default function FarmerDashboard() {
                               {gradeKey}
                             </span>
                             <span className="text-sm font-extrabold text-[#2E7D32]">
-                              ₹{detail.price.toLocaleString("en-IN")}
+                              ₹{detail.price.toLocaleString(language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN")}
                               <span className="text-[10px] font-normal text-gray-500"> / qtl</span>
                             </span>
                           </div>
                           <p className="mt-2 text-xs font-bold text-gray-800 leading-tight">
-                            {detail.label}
+                            {getGradeLabel(detail, language)}
                           </p>
                           <p className="mt-1 text-[11px] text-gray-500 leading-relaxed">
-                            {detail.specs}
+                            {getGradeSpecs(detail, language)}
                           </p>
                         </div>
                       );
@@ -1185,7 +1189,7 @@ export default function FarmerDashboard() {
           <div className="mt-4 flex items-start gap-3 rounded-2xl bg-amber-50/90 border border-amber-200 p-4 text-xs leading-relaxed text-amber-900">
             <Info className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
             <p>
-              <strong>Official MSP Quality Assurance:</strong> Rates are notified under the Commission for Agricultural Costs and Prices (CACP) benchmarks for 2025–26 in <strong>₹ per quintal</strong>. During weighment, digital moisture sensors and cleaning sieves assess the lot to assign the fair grade (Grade A, B, C, or D). The full amount is transferred directly to your bank account via PFMS/DBT.
+              <strong>{t("dashboard.mspAssuranceTitle")}</strong> {t("dashboard.mspAssuranceDesc")}
             </p>
           </div>
         </div>

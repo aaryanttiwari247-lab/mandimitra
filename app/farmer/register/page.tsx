@@ -35,23 +35,23 @@ export default function FarmerRegister() {
     e.preventDefault();
 
     if (!name.trim()) {
-      setMessage("Please enter your full name.");
+      setMessage(t("register.enterFullName") || "Please enter your full name.");
       return;
     }
 
     if (mobile.length !== 10) {
-      setMessage("Please enter a valid 10-digit mobile number.");
+      setMessage(t("auth.invalidMobile") || "Please enter a valid 10-digit mobile number.");
       return;
     }
 
     if (!district.trim()) {
-      setMessage("Please enter your district.");
+      setMessage(t("register.enterDistrict") || "Please enter your district.");
       return;
     }
 
     const parsedAcres = landAcres ? parseFloat(landAcres) : undefined;
     if (landAcres && (parsedAcres === undefined || Number.isNaN(parsedAcres) || parsedAcres <= 0)) {
-      setMessage("Please enter a valid land size in acres.");
+      setMessage(t("register.enterValidLand") || "Please enter a valid land size in acres.");
       return;
     }
 
