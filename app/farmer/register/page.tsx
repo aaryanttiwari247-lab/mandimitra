@@ -17,10 +17,11 @@ import { useLanguage } from "@/context/language-context";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { BrandLogo } from "@/components/BrandLogo";
 import { registerFarmerProfile } from "@/lib/farmer-auth";
+import { CROP_MSP_RATES, getCropDisplayName } from "@/lib/msp-rates";
 
 export default function FarmerRegister() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [village, setVillage] = useState("");
@@ -303,12 +304,11 @@ export default function FarmerRegister() {
                     onChange={(e) => setPrimaryCrop(e.target.value)}
                     className="w-full rounded-xl border border-gray-300 bg-white py-3.5 pl-10 pr-3 text-sm font-medium text-black outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/10"
                   >
-                    <option value="Cotton">{t("crops.Cotton")}</option>
-                    <option value="Wheat">{t("crops.Wheat")}</option>
-                    <option value="Soybean">{t("crops.Soybean")}</option>
-                    <option value="Mustard">{t("crops.Mustard")}</option>
-                    <option value="Paddy">{t("crops.Paddy")}</option>
-                    <option value="Gram">{t("crops.Gram")}</option>
+                    {CROP_MSP_RATES.map((crop) => (
+                      <option key={crop.id} value={crop.name}>
+                        {getCropDisplayName(crop, language)} ({language === "en" ? crop.nameHi : crop.name})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

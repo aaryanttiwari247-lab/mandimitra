@@ -154,10 +154,14 @@ export default function FarmerDashboard() {
     return CROP_MSP_RATES.filter((item) => {
       const matchCat =
         mspCategory === "All" || item.category === mspCategory;
+      const s = mspSearch.toLowerCase().trim();
       const matchSearch =
-        !mspSearch.trim() ||
-        item.name.toLowerCase().includes(mspSearch.toLowerCase()) ||
-        item.nameHi.toLowerCase().includes(mspSearch.toLowerCase());
+        !s ||
+        item.name.toLowerCase().includes(s) ||
+        item.nameHi.toLowerCase().includes(s) ||
+        (item.nameBn && item.nameBn.toLowerCase().includes(s)) ||
+        item.id.toLowerCase().includes(s) ||
+        item.category.toLowerCase().includes(s);
       return matchCat && matchSearch;
     });
   }, [mspCategory, mspSearch]);
@@ -1419,7 +1423,7 @@ export default function FarmerDashboard() {
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
                 <Award className="h-3.5 w-3.5" />
-                {t("dashboard.mspBoardBadge")}
+                {t("dashboard.mspBoardBadge")} • {filteredMspRates.length} / {CROP_MSP_RATES.length} Mandated Crops
               </div>
               <h2 className="mt-2 text-2xl font-bold text-gray-900">
                 {t("dashboard.mspBoardTitle")}
@@ -1481,81 +1485,103 @@ export default function FarmerDashboard() {
           </div>
 
           {/* Crops Cards Grid */}
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            {filteredMspRates.map((crop) => {
-              const gradesToDisplay: CropGrade[] =
-                selectedGradeTab === "ALL"
-                  ? ["Grade A", "Grade B", "Grade C", "Grade D"]
-                  : [selectedGradeTab];
+          {filteredMspRates.length === 0 ? (
+            <div className="mt-5 rounded-3xl border border-dashed border-gray-300 bg-white p-10 text-center">
+              <Wheat className="mx-auto h-10 w-10 text-gray-300" />
+              <h3 className="mt-3 text-base font-bold text-gray-800">
+                {t("dashboard.noCropsFound") || "No MSP crops found matching your search"}
+              </h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Try searching by crop name in English, Hindi, or Bengali, or clear your category filter.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMspCategory("All");
+                  setMspSearch("");
+                }}
+                className="mt-4 rounded-xl bg-[#2E7D32] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#256428]"
+              >
+                Reset Filters
+              </button>
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              {filteredMspRates.map((crop) => {
+                const gradesToDisplay: CropGrade[] =
+                  selectedGradeTab === "ALL"
+                    ? ["Grade A", "Grade B", "Grade C", "Grade D"]
+                    : [selectedGradeTab];
 
-              return (
-                <div
-                  key={crop.id}
-                  className="overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-xs transition hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E8F5E9] text-[#2E7D32]">
-                        <Wheat className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-bold text-gray-900">{getCropDisplayName(crop, language)}</h3>
-                          <span className="text-xs font-semibold text-gray-500">({language === "en" ? crop.nameHi : crop.name})</span>
+                return (
+                  <div
+                    key={crop.id}
+                    className="overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-xs transition hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E8F5E9] text-[#2E7D32]">
+                          <Wheat className="h-6 w-6" />
                         </div>
-                        <span className="inline-block text-[11px] font-semibold text-[#2E7D32]">
-                          {getCategoryDisplayName(crop.category, language)} • {t("dashboard.baseStandardMsp")}: ₹{crop.standardMsp.toLocaleString(language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN")} / {t("common.quintals")}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-600 shrink-0">
-                      {t("common.perQuintal")}
-                    </span>
-                  </div>
-
-                  {/* Graded Rates Matrix */}
-                  <div className={`mt-4 grid gap-2.5 ${gradesToDisplay.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-                    {gradesToDisplay.map((gradeKey) => {
-                      const detail = crop.grades[gradeKey];
-                      const isGradeA = gradeKey === "Grade A";
-                      return (
-                        <div
-                          key={gradeKey}
-                          className={`rounded-2xl border p-3.5 transition ${
-                            isGradeA
-                              ? "border-[#CDE8D0] bg-[#F1F8F2]"
-                              : "border-gray-100 bg-[#F9FAF8]"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                                isGradeA
-                                  ? "bg-[#2E7D32] text-white"
-                                  : "bg-gray-200 text-gray-800"
-                              }`}
-                            >
-                              {gradeKey}
-                            </span>
-                            <span className="text-sm font-extrabold text-[#2E7D32]">
-                              ₹{detail.price.toLocaleString(language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN")}
-                              <span className="text-[10px] font-normal text-gray-500"> / qtl</span>
-                            </span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-gray-900">{getCropDisplayName(crop, language)}</h3>
+                            <span className="text-xs font-semibold text-gray-500">({language === "en" ? crop.nameHi : crop.name})</span>
                           </div>
-                          <p className="mt-2 text-xs font-bold text-gray-800 leading-tight">
-                            {getGradeLabel(detail, language)}
-                          </p>
-                          <p className="mt-1 text-[11px] text-gray-500 leading-relaxed">
-                            {getGradeSpecs(detail, language)}
-                          </p>
+                          <span className="inline-block text-[11px] font-semibold text-[#2E7D32]">
+                            {getCategoryDisplayName(crop.category, language)} • {t("dashboard.baseStandardMsp")}: ₹{crop.standardMsp.toLocaleString(language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN")} / {t("common.quintals")}
+                          </span>
                         </div>
-                      );
-                    })}
+                      </div>
+                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-600 shrink-0">
+                        {t("common.perQuintal")}
+                      </span>
+                    </div>
+
+                    {/* Graded Rates Matrix */}
+                    <div className={`mt-4 grid gap-2.5 ${gradesToDisplay.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                      {gradesToDisplay.map((gradeKey) => {
+                        const detail = crop.grades[gradeKey];
+                        const isGradeA = gradeKey === "Grade A";
+                        return (
+                          <div
+                            key={gradeKey}
+                            className={`rounded-2xl border p-3.5 transition ${
+                              isGradeA
+                                ? "border-[#CDE8D0] bg-[#F1F8F2]"
+                                : "border-gray-100 bg-[#F9FAF8]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                                  isGradeA
+                                    ? "bg-[#2E7D32] text-white"
+                                    : "bg-gray-200 text-gray-800"
+                                }`}
+                              >
+                                {gradeKey}
+                              </span>
+                              <span className="text-sm font-extrabold text-[#2E7D32]">
+                                ₹{detail.price.toLocaleString(language === "hi" ? "hi-IN" : language === "bn" ? "bn-IN" : "en-IN")}
+                                <span className="text-[10px] font-normal text-gray-500"> / qtl</span>
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs font-bold text-gray-800 leading-tight">
+                              {getGradeLabel(detail, language)}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500 leading-relaxed">
+                              {getGradeSpecs(detail, language)}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* MSP Info Footer Banner */}
           <div className="mt-4 flex items-start gap-3 rounded-2xl bg-amber-50/90 border border-amber-200 p-4 text-xs leading-relaxed text-amber-900">
